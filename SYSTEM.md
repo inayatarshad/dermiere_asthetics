@@ -40,8 +40,10 @@ Enforced in the UI (controls hidden or locked per role) and by route guards. Ses
 
 - `landmarker.ts`: MediaPipe FaceLandmarker singleton. GPU delegate with CPU fallback. WASM runtime and the 3.7MB model file are served from `/public`, so the pipeline runs with zero network.
 - `geometry.ts`: mesh triangulation derived at runtime from the official tessellation edge list (3-clique detection, ~900 triangles, cached); semantic region weights (nose frame, alar, dorsum, tip, radix, lips, cheeks, jaw, chin, under-eye) with smooth falloff; the shared **morph engine** that maps slider params to landmark displacements. Magnitudes are capped to clinically plausible ranges.
+- `subdivide.ts`: uniform 1-to-4 mesh subdivision (2 levels, ~14.4k triangles). The morph engine is a smooth displacement field; the 3D canvas evaluates it at every subdivided vertex, so a handle drag reads as a refined curved push rather than a flat triangle moving. Originals keep their indices, so anatomical anchors stay valid. Field evaluation stays in the low milliseconds.
 - `warp2d.ts`: per-triangle affine warp of the photo from base to morphed landmarks, with seam-hiding clip expansion; also burns the disclaimer bar into saved after-images.
 - The 3D canvas and the 2D preview share the same morph math, so what the doctor sculpts and what the preview shows always agree.
+- Roadmap (owner decision): after IPAAC, the 3D canvas moves to a FLAME / 3DMM dense parametric head model as the final version (anatomically smooth morphs, full head; a few seconds of fit time accepted). The subdivided-mesh approach is the interim solution.
 
 ### The AI loop (05_ai-before-after.md)
 
@@ -49,7 +51,8 @@ Enforced in the UI (controls hidden or locked per role) and by route guards. Ses
 - Slider values map to phrase bands (under 15 neutral, 15-40 "very slightly", 40-70 "moderately", 70-100 "noticeably") assembled into the identity-preserving edit instruction.
 - Every generation stores `params` and `prompt_used` on the `Visualization` record for reproducibility and audit.
 - Consent gating: no capture or generation without a granted photography consent record.
-- Generations are cached client-side by params hash; revisiting a setting is instant.
+- Generations are cached client-side by provider + params hash; revisiting a setting is instant.
+- Admin control: Settings -> AI generation selects the provider clinic-wide, including **None** (photoreal off; on-device simulation only). The GUI reads provider availability from GET `/api/generate` (configured flags and model names only); API keys never leave the server environment.
 
 ### Data model
 

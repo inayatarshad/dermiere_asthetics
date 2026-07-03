@@ -34,6 +34,13 @@ const uid = () => crypto.randomUUID();
 const nowISO = () => new Date().toISOString();
 const today = () => new Date().toISOString().slice(0, 10);
 
+/**
+ * Clinic-side AI provider selection (admin GUI). "auto" defers to the
+ * server's env priority; "none" disables photoreal generation entirely
+ * (on-device simulation only). Keys always stay server-side.
+ */
+export type AiProviderSetting = "auto" | "none" | "gemini" | "openai" | "flux";
+
 interface StoreState {
   seeded: boolean;
   clinic: Clinic | null;
@@ -47,10 +54,12 @@ interface StoreState {
   planItems: PlanItem[];
   reports: Report[];
   sessionUserId: string | null;
+  aiProvider: AiProviderSetting;
 
   // lifecycle
   seedIfNeeded: () => Promise<void>;
   resetDemo: () => Promise<void>;
+  setAiProvider: (p: AiProviderSetting) => void;
 
   // auth
   login: (email: string, password: string) => User | null;
@@ -137,6 +146,9 @@ export const useStore = create<StoreState>()(
       planItems: [],
       reports: [],
       sessionUserId: null,
+      aiProvider: "auto",
+
+      setAiProvider: (p) => set({ aiProvider: p }),
 
       seedIfNeeded: async () => {
         if (get().seeded) return;

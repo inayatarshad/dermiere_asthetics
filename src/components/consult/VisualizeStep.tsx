@@ -54,8 +54,10 @@ export function VisualizeStep({
   const visualizations = useStore((s) => s.visualizations);
   const addAsset = useStore((s) => s.addAsset);
   const addVisualization = useStore((s) => s.addVisualization);
+  const aiProvider = useStore((s) => s.aiProvider);
   const consents = usePatientConsents(patient.id);
   const photographyOk = !!consentGranted(consents, "photography");
+  const aiDisabled = aiProvider === "none";
 
   const template = getTemplate(consultation.brief.primary_interest);
 
@@ -136,11 +138,19 @@ export function VisualizeStep({
 
   // ---- the photoreal pass ------------------------------------------------
   const generate = async () => {
-    if (!template || !beforeUrl || !frontPhoto || generating) return;
+    if (!template || !beforeUrl || !frontPhoto || generating || aiDisabled)
+      return;
     setGenerating(true);
     setGenError(null);
-    const key = `${frontPhoto.id}|${paramsHash(template.id, params)}`;
-    const outcome = await generateAfterImage(beforeUrl, prompt, key, template.id);
+    // provider is part of the cache key: different models, different results
+    const key = `${aiProvider}|${frontPhoto.id}|${paramsHash(template.id, params)}`;
+    const outcome = await generateAfterImage(
+      beforeUrl,
+      prompt,
+      key,
+      template.id,
+      aiProvider
+    );
     setGenerating(false);
     if (outcome.ok) {
       setAfter({ src: outcome.imageDataUrl, canvas: null, source: outcome.model });
@@ -369,14 +379,27 @@ export function VisualizeStep({
         </GlassCard>
 
         <GlassCard strong className="p-5 space-y-2.5">
-          <button
-            className="btn btn-primary w-full"
-            onClick={generate}
-            disabled={!active || generating || face.status !== "ready"}
-          >
-            {generating ? <Spinner className="w-4 h-4" /> : <Sparkles size={16} />}
-            Generate with AI
-          </button>
+          {aiDisabled ? (
+            <div className="rounded-xl bg-mint-100 px-4 py-3 text-sm text-ink-700 leading-relaxed">
+              <b>Photoreal AI is turned off</b> in Settings. The on-device
+              live preview stays fully available. An admin can re-enable a
+              provider under Settings, AI generation.
+            </div>
+          ) : (
+            <button
+              className="btn btn-primary w-full"
+              onClick={generate}
+              disabled={!active || generating || face.status !== "ready"}
+            >
+              {generating ? <Spinner className="w-4 h-4" /> : <Sparkles size={16} />}
+              Generate with AI
+              {aiProvider !== "auto" && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                  {aiProvider}
+                </span>
+              )}
+            </button>
+          )}
           <button
             className="btn btn-secondary w-full"
             onClick={save}
@@ -391,7 +414,7 @@ export function VisualizeStep({
               <ArrowRight size={15} />
             </button>
           )}
-          {!active && (
+          {!active && !aiDisabled && (
             <p className="caption text-center">
               Move a slider past the neutral zone to enable generation.
             </p>

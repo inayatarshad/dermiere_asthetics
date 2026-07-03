@@ -69,6 +69,27 @@ export function activeProvider(): Provider | null {
   return configuredProviders()[0] ?? null;
 }
 
+/**
+ * Safe status for the admin GUI: which providers have keys on the server
+ * and which models they resolve to. Never exposes key material.
+ */
+export function providerStatus() {
+  return {
+    configured: {
+      gemini: !!process.env.GEMINI_API_KEY,
+      openai: !!process.env.OPENAI_API_KEY,
+      flux: !!process.env.BFL_API_KEY,
+    },
+    active: activeProvider(),
+    envForced: (process.env.AI_PROVIDER as Provider | undefined) ?? null,
+    models: {
+      gemini: process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image",
+      openai: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
+      flux: process.env.BFL_MODEL || "flux-kontext-pro",
+    },
+  };
+}
+
 const RUNNERS: Record<
   Provider,
   (image: ImageInput, prompt: string) => Promise<GenerateResult>
@@ -80,13 +101,28 @@ const RUNNERS: Record<
 
 export async function generateAfter(
   image: ImageInput,
-  prompt: string
+  prompt: string,
+  /** Per-request provider choice from the admin GUI; overrides env. */
+  requested?: Provider
 ): Promise<GenerateResult> {
-  const forced = process.env.AI_PROVIDER as Provider | undefined;
-  // Forced provider runs alone; otherwise try each configured provider in
-  // priority order, falling through on non-moderation failures.
-  const chain =
-    forced && keyFor(forced) ? [forced] : configuredProviders();
+  const envForced = process.env.AI_PROVIDER as Provider | undefined;
+  // A GUI-requested provider runs alone (that's the point of a bake-off);
+  // an env-forced provider likewise. Otherwise try each configured provider
+  // in priority order, falling through on non-moderation failures.
+  let chain: Provider[];
+  if (requested) {
+    if (!keyFor(requested)) {
+      throw new GenerationError(
+        "no_api_key",
+        `${requested} is selected in Settings but has no key on the server. Set the matching env var (see .env.example).`
+      );
+    }
+    chain = [requested];
+  } else if (envForced && keyFor(envForced)) {
+    chain = [envForced];
+  } else {
+    chain = configuredProviders();
+  }
   if (chain.length === 0) {
     throw new GenerationError(
       "no_api_key",

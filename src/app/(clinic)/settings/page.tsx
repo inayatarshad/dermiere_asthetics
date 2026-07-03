@@ -5,7 +5,7 @@
  * and demo utilities. Admin-only (01_registration-and-access.md §1).
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   FlaskConical,
@@ -14,12 +14,54 @@ import {
   Plus,
   ChevronDown,
   ShieldCheck,
+  Sparkles,
+  Check,
+  CloudOff,
 } from "lucide-react";
-import { useStore, useSessionUser, can } from "@/lib/store";
+import { useStore, useSessionUser, can, type AiProviderSetting } from "@/lib/store";
 import { ROLE_LABELS } from "@/lib/format";
 import { TEMPLATES } from "@/lib/templates";
 import type { Role } from "@/lib/types";
-import { GlassCard, EmptyState, Field, Toggle, SectionTitle, Modal } from "@/components/ui";
+import { GlassCard, EmptyState, Field, Toggle, SectionTitle, Modal, Spinner } from "@/components/ui";
+
+interface ProviderStatus {
+  configured: { gemini: boolean; openai: boolean; flux: boolean };
+  active: string | null;
+  envForced: string | null;
+  models: { gemini: string; openai: string; flux: string };
+}
+
+const AI_CHOICES: {
+  id: AiProviderSetting;
+  label: string;
+  desc: string;
+}[] = [
+  {
+    id: "auto",
+    label: "Auto",
+    desc: "Server picks the best configured provider, with automatic fallback",
+  },
+  {
+    id: "gemini",
+    label: "Gemini (Nano Banana)",
+    desc: "Best identity preservation. Recommended for facial edits",
+  },
+  {
+    id: "openai",
+    label: "OpenAI GPT Image",
+    desc: "Strong spatial reasoning; sent with high input fidelity",
+  },
+  {
+    id: "flux",
+    label: "FLUX.1 Kontext",
+    desc: "Controllable instructed editing",
+  },
+  {
+    id: "none",
+    label: "None",
+    desc: "Photoreal AI off. On-device simulation preview only",
+  },
+];
 
 export default function SettingsPage() {
   const user = useSessionUser();
@@ -32,16 +74,35 @@ export default function SettingsPage() {
   const setUserActive = useStore((s) => s.setUserActive);
   const updateClinic = useStore((s) => s.updateClinic);
   const resetDemo = useStore((s) => s.resetDemo);
+  const aiProvider = useStore((s) => s.aiProvider);
+  const setAiProvider = useStore((s) => s.setAiProvider);
 
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  const [providerStatus, setProviderStatus] = useState<ProviderStatus | null>(null);
+  const [statusError, setStatusError] = useState(false);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
     role: "front_desk" as Role,
     title: "",
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/generate")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((s: ProviderStatus) => {
+        if (!cancelled) setProviderStatus(s);
+      })
+      .catch(() => {
+        if (!cancelled) setStatusError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!can.manageUsers(user?.role)) {
     return (
@@ -188,6 +249,106 @@ export default function SettingsPage() {
             </GlassCard>
           ))}
         </div>
+      </section>
+
+      {/* AI generation */}
+      <section className="fade-up-2">
+        <SectionTitle
+          title="AI generation"
+          sub="Which model powers the photoreal before/after. Keys live in the server environment, never in the browser"
+          className="mb-4"
+        />
+        <GlassCard className="p-6">
+          <div className="space-y-2.5">
+            {AI_CHOICES.map((choice) => {
+              const selected = aiProvider === choice.id;
+              const isProvider =
+                choice.id !== "auto" && choice.id !== "none";
+              const configured = isProvider
+                ? providerStatus?.configured[
+                    choice.id as "gemini" | "openai" | "flux"
+                  ]
+                : undefined;
+              const model = isProvider
+                ? providerStatus?.models[
+                    choice.id as "gemini" | "openai" | "flux"
+                  ]
+                : undefined;
+              return (
+                <button
+                  key={choice.id}
+                  onClick={() => setAiProvider(choice.id)}
+                  className={`glass-subtle w-full flex items-center gap-4 px-4 py-3 text-left transition-all ${
+                    selected ? "ring-2 ring-mint-400" : "card-hover"
+                  }`}
+                >
+                  <span
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      selected
+                        ? "bg-mint-500 text-white"
+                        : "bg-mint-100 text-ink-700"
+                    }`}
+                  >
+                    {choice.id === "none" ? (
+                      <CloudOff size={16} />
+                    ) : (
+                      <Sparkles size={16} />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-ink-900">
+                      {choice.label}
+                      {model && (
+                        <span className="caption font-normal"> · {model}</span>
+                      )}
+                    </span>
+                    <span className="caption block">{choice.desc}</span>
+                  </span>
+                  {isProvider &&
+                    providerStatus &&
+                    (configured ? (
+                      <span className="chip chip-static text-xs">
+                        <Check size={12} className="text-mint-500" />
+                        Key configured
+                      </span>
+                    ) : (
+                      <span className="chip chip-static text-xs opacity-70">
+                        No key on server
+                      </span>
+                    ))}
+                  {isProvider && !providerStatus && !statusError && (
+                    <Spinner className="w-4 h-4" />
+                  )}
+                  {selected && (
+                    <span className="chip chip-static text-xs bg-mint-100">
+                      Selected
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {aiProvider !== "none" &&
+            aiProvider !== "auto" &&
+            providerStatus &&
+            !providerStatus.configured[
+              aiProvider as "gemini" | "openai" | "flux"
+            ] && (
+              <p className="text-sm text-warning mt-4">
+                The selected provider has no key on the server, so generation
+                will fail until its env var is set (see .env.example). The
+                on-device preview keeps working regardless.
+              </p>
+            )}
+          <p className="caption mt-4">
+            Doctors see this choice reflected instantly in the consultation
+            workspace. "None" disables photoreal generation clinic-wide and
+            keeps the visualization fully on-device.
+            {providerStatus?.envForced
+              ? ` Server env currently forces ${providerStatus.envForced} when Auto is selected.`
+              : ""}
+          </p>
+        </GlassCard>
       </section>
 
       {/* Clinic branding */}

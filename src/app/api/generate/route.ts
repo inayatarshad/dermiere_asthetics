@@ -9,14 +9,25 @@ import {
   activeProvider,
   generateAfter,
   GenerationError,
+  providerStatus,
+  type Provider,
 } from "@/lib/server/providers";
 
 export const maxDuration = 60;
+
+const PROVIDERS: Provider[] = ["gemini", "openai", "flux"];
+
+/** Provider availability for the admin Settings GUI. No key material. */
+export async function GET() {
+  return NextResponse.json(providerStatus());
+}
 
 interface GenerateBody {
   imageDataUrl: string;
   prompt: string;
   procedure?: string;
+  /** Admin-selected provider ("auto"/absent = server auto-detect). */
+  provider?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -61,19 +72,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!activeProvider()) {
+  const requested = PROVIDERS.includes(body.provider as Provider)
+    ? (body.provider as Provider)
+    : undefined;
+
+  if (!requested && !activeProvider()) {
     return NextResponse.json(
       {
         error: "no_api_key",
         message:
-          "No image model configured on the server. Set GEMINI_API_KEY (or BFL_API_KEY) to enable photoreal AI generation.",
+          "No image model configured on the server. Set GEMINI_API_KEY (or OPENAI_API_KEY / BFL_API_KEY) to enable photoreal AI generation.",
       },
       { status: 501 }
     );
   }
 
   try {
-    const result = await generateAfter({ base64, mimeType }, prompt);
+    const result = await generateAfter({ base64, mimeType }, prompt, requested);
     return NextResponse.json({
       image: `data:${result.mimeType};base64,${result.imageBase64}`,
       model: result.model,

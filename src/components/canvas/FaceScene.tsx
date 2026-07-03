@@ -23,6 +23,7 @@ import {
   type FeatureId,
   type Pt,
 } from "@/lib/face/geometry";
+import { subdivideMesh } from "@/lib/face/subdivide";
 import type { AnnotationStroke } from "@/lib/types";
 
 export type CanvasTool = "move" | "draw" | "sculpt";
@@ -51,7 +52,14 @@ interface FaceSceneProps {
   resetToken: number; // bump to clear sculpt deltas
 }
 
-const MESH_POINTS = 478;
+/**
+ * Uniform subdivision applied to the landmark mesh. The morph engine is a
+ * smooth displacement field; the visible triangles came from sampling it at
+ * only 478 points. Two levels (~14.4k triangles) sample it densely enough
+ * that a handle drag reads as a refined, curved push instead of a flat
+ * wedge. Cost: low-millisecond field evaluation, trivial GPU load.
+ */
+const SUBDIV_LEVELS = 2;
 
 export function FaceScene(props: FaceSceneProps) {
   return (
@@ -113,7 +121,14 @@ function FaceMeshObject({
     const cy = (minY + maxY) / 2;
     const scale = (maxY - minY) / 2.3 || 1; // face height ≈ 2.3 world units
     const cz = basePx[1]?.z ?? 0;
-    return { w, h, basePx, cx, cy, cz, scale };
+    // Densify: originals keep indices 0..477 (anchors stay valid), midpoints
+    // are appended. The morph field is evaluated at every subdivided vertex.
+    const { points, triangles } = subdivideMesh(
+      basePx,
+      faceTriangles(),
+      SUBDIV_LEVELS
+    );
+    return { w, h, basePx, points, triangles, cx, cy, cz, scale };
   }, [image, landmarks]);
 
   const toWorld = useCallback(
@@ -127,23 +142,25 @@ function FaceMeshObject({
 
   // ---- geometry (built once per photo) ---------------------------------
   const geometry = useMemo(() => {
+    const n = frame.points.length;
     const geo = new THREE.BufferGeometry();
-    const positions = new Float32Array(MESH_POINTS * 3);
-    const uvs = new Float32Array(MESH_POINTS * 2);
-    const colors = new Float32Array(MESH_POINTS * 3);
-    for (let i = 0; i < MESH_POINTS; i++) {
-      const p = frame.basePx[i] ?? { x: frame.cx, y: frame.cy, z: 0 };
+    const positions = new Float32Array(n * 3);
+    const uvs = new Float32Array(n * 2);
+    const colors = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const p = frame.points[i];
       const [x, y, z] = toWorld(p);
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
+      // UV is a linear map of base pixel position, so midpoints inherit it
       uvs[i * 2] = p.x / frame.w;
       uvs[i * 2 + 1] = 1 - p.y / frame.h;
     }
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    geo.setIndex(faceTriangles());
+    geo.setIndex(frame.triangles);
     geo.computeVertexNormals();
     return geo;
   }, [frame, toWorld]);
@@ -203,7 +220,7 @@ function FaceMeshObject({
   }, [repaintTexture]);
 
   // ---- sculpt deltas (world space, transient) ---------------------------
-  const sculptDelta = useRef(new Float32Array(MESH_POINTS * 3));
+  const sculptDelta = useRef(new Float32Array(0));
 
   const baseNormals = useMemo(() => {
     const n = geometry.getAttribute("normal") as THREE.BufferAttribute;
@@ -214,11 +231,16 @@ function FaceMeshObject({
   const updatePositions = useCallback(() => {
     const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
     const arr = attr.array as Float32Array;
-    const morphedPx = applyMorphs(frame.basePx, morphs);
+    const n = frame.points.length;
+    if (sculptDelta.current.length !== n * 3) {
+      sculptDelta.current = new Float32Array(n * 3);
+    }
+    // Evaluate the smooth morph field at every subdivided vertex — this is
+    // what turns per-triangle bulk movement into a refined, curved push.
+    const morphedPx = applyMorphs(frame.points, morphs);
     const delta = sculptDelta.current;
-    for (let i = 0; i < MESH_POINTS; i++) {
-      const p = morphedPx[i] ?? frame.basePx[i];
-      if (!p) continue;
+    for (let i = 0; i < n; i++) {
+      const p = morphedPx[i] ?? frame.points[i];
       const [x, y, z] = toWorld(p);
       arr[i * 3] = x + delta[i * 3];
       arr[i * 3 + 1] = y + delta[i * 3 + 1];
@@ -244,10 +266,10 @@ function FaceMeshObject({
     const arr = attr.array as Float32Array;
     arr.fill(0);
     if (highlight) {
-      const ff = featureFrame(frame.basePx);
+      const ff = featureFrame(frame.points);
       const mint = new THREE.Color("#34D3B0");
-      for (let i = 0; i < Math.min(468, frame.basePx.length); i++) {
-        const w = featureWeight(i, frame.basePx[i], ff)[highlight] ?? 0;
+      for (let i = 0; i < frame.points.length; i++) {
+        const w = featureWeight(i, frame.points[i], ff)[highlight] ?? 0;
         if (w <= 0.01) continue;
         arr[i * 3] = mint.r * w * 0.75;
         arr[i * 3 + 1] = mint.g * w * 0.75;
@@ -267,7 +289,8 @@ function FaceMeshObject({
       const radius = 0.34;
       const strength = (sculpt.strength / 100) * 0.02 * sculpt.direction;
       const delta = sculptDelta.current;
-      for (let i = 0; i < MESH_POINTS; i++) {
+      const n = Math.min(frame.points.length, delta.length / 3);
+      for (let i = 0; i < n; i++) {
         const dx = arr[i * 3] - point.x;
         const dy = arr[i * 3 + 1] - point.y;
         const dz = arr[i * 3 + 2] - point.z;
@@ -291,7 +314,7 @@ function FaceMeshObject({
       }
       updatePositions();
     },
-    [geometry, sculpt, baseNormals, updatePositions]
+    [geometry, frame, sculpt, baseNormals, updatePositions]
   );
 
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {

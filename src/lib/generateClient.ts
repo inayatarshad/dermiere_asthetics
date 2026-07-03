@@ -33,7 +33,9 @@ export async function generateAfterImage(
   beforeSrc: string,
   prompt: string,
   cacheKey: string,
-  procedure: string
+  procedure: string,
+  /** Admin-selected provider; omit or "auto" for server auto-detect. */
+  provider?: string
 ): Promise<GenerateOutcome> {
   const hit = cache.get(cacheKey);
   if (hit) return hit;
@@ -53,7 +55,12 @@ export async function generateAfterImage(
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageDataUrl, prompt, procedure }),
+      body: JSON.stringify({
+        imageDataUrl,
+        prompt,
+        procedure,
+        provider: provider && provider !== "auto" ? provider : undefined,
+      }),
     });
     const data = (await res.json().catch(() => ({}))) as {
       image?: string;

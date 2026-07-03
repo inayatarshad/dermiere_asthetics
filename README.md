@@ -56,6 +56,8 @@ Three providers are wired so you can run the model bake-off the knowledge base r
 
 Set `AI_PROVIDER` to `gemini` \| `openai` \| `flux` to force one for a like-for-like comparison; leave it blank to auto-detect (priority gemini -> openai -> flux, others as fallbacks). The layer is model-agnostic (`src/lib/server/providers.ts`); point `GEMINI_IMAGE_MODEL` at `gemini-3-pro-image` (Nano Banana Pro) or `OPENAI_IMAGE_MODEL` at `gpt-image-2` as your keys gain access.
 
+The provider can also be switched at runtime from the app itself: **Settings -> AI generation** (admin role) selects Auto / Gemini / OpenAI / FLUX or **None**, which turns photoreal generation off clinic-wide and keeps the visualization fully on-device. The GUI shows which providers have keys configured on the server; keys themselves never reach the browser.
+
 ## Deploy to Vercel
 
 1. Push this folder to a GitHub repository.
