@@ -1,4 +1,4 @@
-# Star Fighter · System Documentation
+# Contour · System Documentation
 
 Client-safe technical overview of the aesthetic clinic consultation system.
 
@@ -30,9 +30,10 @@ Enforced in the UI (controls hidden or locked per role) and by route guards. Ses
   ├─ Live preview: on-device 2D triangulated landmark warp (offline, instant)
   ├─ Store: Zustand (localStorage) + IndexedDB for images and landmark caches
   └─ /api/generate (Vercel serverless, 60s max)
-        └─ Model-agnostic provider layer
-             ├─ Google Gemini image editing (primary; GEMINI_IMAGE_MODEL env)
-             └─ FLUX.1 Kontext via BFL API (automatic fallback)
+        └─ Model-agnostic provider layer (AI_PROVIDER selects; auto-fallback)
+             ├─ Google Gemini / Nano Banana (primary; identity preservation)
+             ├─ OpenAI GPT Image 2 (input_fidelity=high; spatial reasoning)
+             └─ FLUX.1 Kontext via BFL API (controllable editing)
 ```
 
 ### The face engine (src/lib/face)

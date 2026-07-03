@@ -1,4 +1,4 @@
-# BUILD_LOG · Star Fighter (Aesthetic Clinic OS)
+# BUILD_LOG · Contour (Aesthetic Clinic OS)
 
 One line per completed phase. Newest last. Resume any session from here.
 
@@ -14,6 +14,8 @@ One line per completed phase. Newest last. Resume any session from here.
 - 2026-07-02 · KNOWN ENV LIMIT: preview browser tab is hidden -> requestAnimationFrame never fires -> R3F canvas cannot rasterize there (and screenshot tool times out). The full morph/landmark math is proven via the warp path; 3D scene needs a visible browser tab. Screenshots for the handoff pack pending first run in a visible browser / live deploy.
 - 2026-07-03 · SHIP PREP: README, CREDENTIALS.md, DEMO_SCRIPT.md, SYSTEM.md, vercel.json, .env.example, .gitignore (wasm generated), production build green, git commit. Deploy: user pushes to GitHub -> Vercel (steps in README).
 
+- 2026-07-03 · RENAME + PROVIDERS: product renamed Star Fighter -> **Contour** (owner picked from 4 options; Star Fighter was the KB codename). Swept name across UI (Logo Con/tour, title), store persist key (contour-store), demo password (contour), package name, docs. Added **OpenAI GPT Image 2** as a third selectable provider (input_fidelity=high for identity) alongside Gemini (default) and FLUX; generateAfter now runs a priority chain with auto-fallback, AI_PROVIDER forces one for a bake-off. .env.example documents all three + Nano Banana Pro / gpt-image-2 upgrades. Folder renamed star-fighter -> contour. Pushed to github.com/Stryder-AI/Aesthetics.
+
 ## Current state
 
-Production build passes. All modules interactive, all roles verified in-browser, no dead buttons. AI runs in simulation mode until GEMINI_API_KEY is set. Ready to push.
+Production build passes. All modules interactive, all roles verified in-browser, no dead buttons. AI runs in simulation mode until a provider key (GEMINI_API_KEY / OPENAI_API_KEY / BFL_API_KEY) is set. Model recommendation for the identity-preserving nose edit: Gemini/Nano Banana default, GPT Image 2 per-case for spatial reasoning; run the bake-off with a live key before IPAAC.

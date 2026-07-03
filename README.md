@@ -1,8 +1,8 @@
-# Star Fighter · Aesthetic Clinic OS
+# Contour · Aesthetic Clinic OS
 
 The consultation system for modern aesthetic clinics: role-based clinic access, patient registration with consent capture, a parametric **3D face canvas**, identity-preserving **AI before/after visualization**, template-driven **treatment plans**, and a glassmorphic **patient report** that exports to PDF.
 
-Built from the Star Fighter knowledge base for the IPAAC 2026 demo. Rhinoplasty is the fully wired vertical; every additional procedure is one template object away (slider schema + prompt template + plan checklist), with no new engine code.
+Built from the Contour knowledge base for the IPAAC 2026 demo. Rhinoplasty is the fully wired vertical; every additional procedure is one template object away (slider schema + prompt template + plan checklist), with no new engine code.
 
 ## The consultation spine
 
@@ -25,7 +25,7 @@ npm install        # also copies MediaPipe WASM to /public (postinstall)
 npm run dev        # http://localhost:3000
 ```
 
-Sign in with a demo role (password for all: `starfighter`):
+Sign in with a demo role (password for all: `contour`):
 
 | Role | Email | Sees |
 |---|---|---|
@@ -44,7 +44,17 @@ GEMINI_API_KEY=...            # https://aistudio.google.com/apikey
 GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
 ```
 
-Without a key the visualization runs in **simulation mode**: the on-device landmark warp still gives a live preview, and the UI explains that photoreal AI is not configured. With a key, "Generate with AI" produces the photoreal healed result on the patient's actual photo. `BFL_API_KEY` wires FLUX.1 Kontext as an automatic fallback. The provider layer is model-agnostic (`src/lib/server/providers.ts`); point `GEMINI_IMAGE_MODEL` at newer Nano Banana releases as your key gains access.
+Without a key the visualization runs in **simulation mode**: the on-device landmark warp still gives a live preview, and the UI explains that photoreal AI is not configured. With a key, "Generate with AI" produces the photoreal healed result on the patient's actual photo.
+
+Three providers are wired so you can run the model bake-off the knowledge base recommends (same rhinoplasty edit, same 3-4 faces, whichever holds identity best wins):
+
+| Provider | Env | Best at |
+|---|---|---|
+| **Google Gemini** (Nano Banana / Pro) | `GEMINI_API_KEY` | Identity preservation — the recommended default for "same face, new nose" |
+| **OpenAI GPT Image 2** | `OPENAI_API_KEY` | Complex spatial reasoning (profile balancing); sent with `input_fidelity=high` |
+| **FLUX.1 Kontext** | `BFL_API_KEY` | Controllable instructed editing, self-hosting later |
+
+Set `AI_PROVIDER` to `gemini` \| `openai` \| `flux` to force one for a like-for-like comparison; leave it blank to auto-detect (priority gemini -> openai -> flux, others as fallbacks). The layer is model-agnostic (`src/lib/server/providers.ts`); point `GEMINI_IMAGE_MODEL` at `gemini-3-pro-image` (Nano Banana Pro) or `OPENAI_IMAGE_MODEL` at `gpt-image-2` as your keys gain access.
 
 ## Deploy to Vercel
 

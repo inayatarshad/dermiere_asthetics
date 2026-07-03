@@ -1,5 +1,5 @@
 /**
- * Star Fighter — data model.
+ * Contour — data model.
  * Mirrors knowledge base / 09_data-model.md. Everything is clinic-scoped.
  */
 

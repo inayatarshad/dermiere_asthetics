@@ -1,9 +1,9 @@
-# Star Fighter · Demo Credentials
+# Contour · Demo Credentials
 
 **Live URL:** _add after Vercel deploy_
 **Local:** http://localhost:3000
 
-Shared demo password for all roles: `starfighter`
+Shared demo password for all roles: `contour`
 
 | Role | Email | What they see |
 |---|---|---|

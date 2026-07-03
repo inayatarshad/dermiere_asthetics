@@ -1,4 +1,4 @@
-# Star Fighter · 4-Minute Demo Script (IPAAC booth walkthrough)
+# Contour · 4-Minute Demo Script (IPAAC booth walkthrough)
 
 The narrative from the demo build plan, click by click. Run it on repeat. Total time: about 4 minutes.
 

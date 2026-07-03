@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Star Fighter · Aesthetic Clinic OS",
+  title: "Contour · Aesthetic Clinic OS",
   description:
     "The consultation system for modern aesthetic clinics: 3D face canvas, AI before/after visualization, treatment plans, and beautiful patient reports.",
 };

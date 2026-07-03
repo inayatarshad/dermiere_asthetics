@@ -51,7 +51,7 @@ export interface SeedData {
   planItems: PlanItem[];
 }
 
-export const DEMO_PASSWORD = "starfighter";
+export const DEMO_PASSWORD = "contour";
 
 export function buildSeed(manifest: SeedManifest | null): SeedData {
   const clinicId = uid();

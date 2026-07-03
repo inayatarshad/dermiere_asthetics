@@ -421,7 +421,7 @@ export const useStore = create<StoreState>()(
           email: data.email,
           role: data.role,
           title: data.title,
-          password: "starfighter",
+          password: "contour",
           active: true,
         };
         set((s) => ({ users: [...s.users, user] }));
@@ -445,7 +445,7 @@ export const useStore = create<StoreState>()(
         })),
     }),
     {
-      name: "starfighter-store",
+      name: "contour-store",
       storage: createJSONStorage(() => localStorage),
       version: 1,
     }

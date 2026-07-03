@@ -291,7 +291,7 @@ export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
         </svg>
       </span>
       <span className={`font-semibold tracking-tight text-ink-900 ${text}`}>
-        Star<span className="font-light">Fighter</span>
+        Con<span className="font-light">tour</span>
       </span>
     </span>
   );
