@@ -1,26 +1,950 @@
 @import "tailwindcss";
 
+/* ============================================================
+   STAR FIGHTER — Glassmorphic Mint design system
+   Tokens sourced from knowledge base / 08_design-system.md
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Mint / brand */
+  --mint-500: #34d3b0;
+  --mint-400: #58dcc0;
+  --mint-300: #8be8d5;
+  --mint-200: #bff2e7;
+  --mint-100: #e6faf5;
+
+  /* Base / neutrals */
+  --white: #ffffff;
+  --off-white: #f6fbfa;
+  --ink-900: #0e2a26;
+  --ink-700: #35514c;
+  --ink-400: #8aa39d;
+
+  /* Glass */
+  --glass-fill: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-shadow: rgba(20, 80, 70, 0.12);
+
+  /* Gradient background (the mint light) */
+  --bg-gradient: radial-gradient(
+    1200px 800px at 20% 10%,
+    #e6faf5 0%,
+    #f6fbfa 45%,
+    #eaf6f3 100%
+  );
+
+  /* States */
+  --success: #34d3b0;
+  --warning: #e7b549;
+  --danger: #e06a6a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-mint-500: var(--mint-500);
+  --color-mint-400: var(--mint-400);
+  --color-mint-300: var(--mint-300);
+  --color-mint-200: var(--mint-200);
+  --color-mint-100: var(--mint-100);
+  --color-off-white: var(--off-white);
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-400: var(--ink-400);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --radius-card: 20px;
+  --radius-input: 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--ink-900);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+/* Ambient mint glow blobs behind everything */
+.bg-stage::before,
+.bg-stage::after {
+  content: "";
+  position: fixed;
+  border-radius: 9999px;
+  filter: blur(90px);
+  z-index: -1;
+  pointer-events: none;
+}
+.bg-stage::before {
+  width: 560px;
+  height: 560px;
+  left: -140px;
+  top: -120px;
+  background: radial-gradient(
+    circle,
+    rgba(52, 211, 176, 0.22),
+    rgba(52, 211, 176, 0)
+  );
+}
+.bg-stage::after {
+  width: 640px;
+  height: 640px;
+  right: -180px;
+  bottom: -200px;
+  background: radial-gradient(
+    circle,
+    rgba(139, 232, 213, 0.28),
+    rgba(139, 232, 213, 0)
+  );
+}
+
+/* ------------------------------------------------------------
+   Glass recipes
+   ------------------------------------------------------------ */
+.glass {
+  background: var(--glass-fill);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0) 42%
+  );
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px var(--glass-shadow);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.78);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0) 45%
+  );
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px var(--glass-shadow);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(20, 80, 70, 0.08);
+}
+
+.card-hover {
+  transition:
+    transform 0.2s ease-out,
+    box-shadow 0.2s ease-out;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(20, 80, 70, 0.16);
+}
+
+/* ------------------------------------------------------------
+   Buttons
+   ------------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  border-radius: 9999px;
+  padding: 0.625rem 1.375rem;
+  transition:
+    transform 0.15s ease-out,
+    box-shadow 0.2s ease-out,
+    background-color 0.2s ease-out,
+    border-color 0.2s ease-out,
+    color 0.2s ease-out,
+    opacity 0.2s ease-out;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-primary {
+  background: var(--mint-500);
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(52, 211, 176, 0.35);
+}
+.btn-primary:hover:not(:disabled) {
+  background: #2cc4a2;
+  box-shadow: 0 8px 28px rgba(52, 211, 176, 0.48);
+  transform: translateY(-1px);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: var(--ink-900);
+  box-shadow: 0 4px 16px rgba(20, 80, 70, 0.1);
+}
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--mint-400);
+  box-shadow: 0 6px 20px rgba(52, 211, 176, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-700);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(52, 211, 176, 0.1);
+  color: var(--ink-900);
+}
+
+.btn-danger {
+  background: rgba(224, 106, 106, 0.12);
+  color: var(--danger);
+  border: 1px solid rgba(224, 106, 106, 0.3);
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(224, 106, 106, 0.2);
+}
+
+.btn-sm {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+}
+.btn-lg {
+  padding: 0.875rem 2rem;
+  font-size: 1.0625rem;
+}
+
+/* ------------------------------------------------------------
+   Inputs
+   ------------------------------------------------------------ */
+.input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  font-size: 0.9375rem;
+  color: var(--ink-900);
+  box-shadow: inset 0 1px 3px rgba(20, 80, 70, 0.06);
+  transition:
+    border-color 0.2s ease-out,
+    box-shadow 0.2s ease-out;
+  outline: none;
+}
+.input::placeholder {
+  color: var(--ink-400);
+}
+.input:focus {
+  border-color: var(--mint-400);
+  box-shadow:
+    inset 0 1px 3px rgba(20, 80, 70, 0.06),
+    0 0 0 3px rgba(52, 211, 176, 0.22);
+}
+
+select.input {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238AA39D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 1em;
+  padding-right: 2.5rem;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-700);
+  margin-bottom: 0.375rem;
+  letter-spacing: 0.01em;
+}
+
+/* ------------------------------------------------------------
+   Chips / pills
+   ------------------------------------------------------------ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  color: var(--ink-700);
+  transition: all 0.18s ease-out;
+  cursor: pointer;
+  user-select: none;
+}
+.chip:hover {
+  border-color: var(--mint-300);
+}
+.chip-active {
+  background: rgba(52, 211, 176, 0.16);
+  border-color: var(--mint-400);
+  color: var(--ink-900);
+}
+.chip-static {
+  cursor: default;
+}
+
+/* ------------------------------------------------------------
+   The star control — procedure slider
+   ------------------------------------------------------------ */
+input[type="range"].mint-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--mint-500) 0%,
+    var(--mint-500) var(--fill, 50%),
+    rgba(14, 42, 38, 0.1) var(--fill, 50%),
+    rgba(14, 42, 38, 0.1) 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"].mint-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 2px 10px rgba(20, 80, 70, 0.25),
+    0 0 0 4px rgba(52, 211, 176, 0.15);
+  transition: box-shadow 0.15s ease-out, transform 0.15s ease-out;
+}
+input[type="range"].mint-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 3px 14px rgba(20, 80, 70, 0.3),
+    0 0 0 6px rgba(52, 211, 176, 0.22);
+}
+input[type="range"].mint-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 2px 10px rgba(20, 80, 70, 0.25),
+    0 0 0 4px rgba(52, 211, 176, 0.15);
+  cursor: pointer;
+}
+input[type="range"].mint-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+/* ------------------------------------------------------------
+   Toggle (consent)
+   ------------------------------------------------------------ */
+.toggle {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: 9999px;
+  background: rgba(14, 42, 38, 0.14);
+  transition: background 0.2s ease-out;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: none;
+}
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(20, 80, 70, 0.25);
+  transition: transform 0.2s ease-out;
+}
+.toggle[aria-checked="true"] {
+  background: var(--mint-500);
+}
+.toggle[aria-checked="true"]::after {
+  transform: translateX(20px);
+}
+
+/* ------------------------------------------------------------
+   Motion
+   ------------------------------------------------------------ */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-up {
+  animation: fade-up 0.35s ease-out both;
+}
+.fade-up-1 { animation: fade-up 0.35s ease-out 0.05s both; }
+.fade-up-2 { animation: fade-up 0.35s ease-out 0.12s both; }
+.fade-up-3 { animation: fade-up 0.35s ease-out 0.19s both; }
+.fade-up-4 { animation: fade-up 0.35s ease-out 0.26s both; }
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.25) 25%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.25) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+@keyframes pulse-mint {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 176, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(52, 211, 176, 0); }
+}
+.pulse-mint {
+  animation: pulse-mint 2s infinite;
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+/* ------------------------------------------------------------
+   Scrollbars — thin & minty
+   ------------------------------------------------------------ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(52, 211, 176, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(52, 211, 176, 0.55);
+}
+
+/* ------------------------------------------------------------
+   Typography helpers
+   ------------------------------------------------------------ */
+.display {
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.h1 {
+  font-size: 1.875rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.h2 {
+  font-size: 1.3125rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+.caption {
+  font-size: 0.8125rem;
+  color: var(--ink-400);
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--mint-400);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   REPORT — glassmorphic mint sheets (07_report-export.md).
+   Pre-composed opaque glass: no backdrop-filter, so print/PDF
+   output matches the screen exactly.
+   ============================================================ */
+
+.report-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+.report-sheet {
+  position: relative;
+  width: 210mm;
+  min-height: 296mm;
+  flex-shrink: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 18px 60px rgba(20, 80, 70, 0.18);
+  background:
+    radial-gradient(560px 420px at 12% 6%, #dff7f0 0%, rgba(223, 247, 240, 0) 60%),
+    radial-gradient(520px 460px at 92% 96%, #e2f8f2 0%, rgba(226, 248, 242, 0) 55%),
+    linear-gradient(160deg, #f6fbfa 0%, #eef9f5 55%, #f2faf7 100%);
+  padding: 16mm 15mm 12mm;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink-900);
+}
+
+/* ---- Cover sheet ---- */
+.report-cover {
+  justify-content: space-between;
+}
+.rc-orb {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+.rc-orb-1 {
+  width: 380px;
+  height: 380px;
+  right: -110px;
+  top: -90px;
+  background: radial-gradient(circle, rgba(52, 211, 176, 0.2) 0%, rgba(52, 211, 176, 0) 68%);
+}
+.rc-orb-2 {
+  width: 460px;
+  height: 460px;
+  left: -160px;
+  bottom: -140px;
+  background: radial-gradient(circle, rgba(139, 232, 213, 0.32) 0%, rgba(139, 232, 213, 0) 66%);
+}
+.rc-orb-3 {
+  width: 190px;
+  height: 190px;
+  left: 26%;
+  top: 30%;
+  background: radial-gradient(circle, rgba(191, 242, 231, 0.45) 0%, rgba(191, 242, 231, 0) 70%);
+}
+.rc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+}
+.rc-clinic {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rc-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--mint-500);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 22px rgba(52, 211, 176, 0.45);
+}
+.rc-mark svg {
+  width: 22px;
+  height: 22px;
+}
+.rc-clinic-name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.rc-clinic-city {
+  font-size: 12px;
+  color: var(--ink-400);
+}
+.rc-doc-type {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-700);
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+.rc-center {
+  text-align: center;
+  position: relative;
+  padding: 30px 0;
+}
+.rc-prepared {
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+.rc-name {
+  font-size: 84px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 18px 0 22px;
+}
+.rc-procedure {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-900);
+  background: rgba(52, 211, 176, 0.16);
+  border: 1px solid rgba(52, 211, 176, 0.4);
+  border-radius: 9999px;
+  padding: 8px 22px;
+}
+.rc-date {
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--ink-700);
+}
+.rc-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  position: relative;
+}
+.rc-panel {
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  padding: 14px 20px;
+  font-size: 13px;
+  color: var(--ink-700);
+  box-shadow: 0 6px 24px rgba(20, 80, 70, 0.1);
+}
+.rc-page {
+  font-size: 11px;
+  color: var(--ink-400);
+  letter-spacing: 0.12em;
+}
+
+/* ---- Body sheets ---- */
+.rb-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+.rb-header-clinic {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+.rb-header-title {
+  font-size: 34px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+.rb-section-title {
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 22px 0 12px;
+}
+.rb-panel {
+  background: rgba(255, 255, 255, 0.72);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0) 46%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(20, 80, 70, 0.09);
+  padding: 20px 22px;
+  margin-bottom: 14px;
+}
+.rb-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  margin-bottom: 8px;
+}
+.rb-quote {
+  font-size: 21px;
+  font-weight: 300;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+  border-left: 3px solid var(--mint-400);
+  padding-left: 16px;
+  margin: 4px 0 14px;
+}
+.rb-note {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-700);
+  margin-top: 6px;
+}
+.rb-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rb-chip {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-700);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(20, 80, 70, 0.1);
+  border-radius: 9999px;
+  padding: 5px 12px;
+}
+.rb-chip-mint {
+  background: rgba(52, 211, 176, 0.15);
+  border-color: rgba(52, 211, 176, 0.4);
+  color: var(--ink-900);
+}
+.rb-ba-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.rb-photo {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  aspect-ratio: 4 / 4.6;
+  background: var(--mint-100);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 26px rgba(20, 80, 70, 0.14);
+}
+.rb-photo-after {
+  border-color: rgba(52, 211, 176, 0.55);
+}
+.rb-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rb-photo-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(14, 42, 38, 0.55);
+  border-radius: 9999px;
+  padding: 4px 12px;
+}
+.rb-photo-tag-mint {
+  background: rgba(44, 196, 162, 0.92);
+}
+.rb-photo-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  font-size: 13px;
+  color: var(--ink-400);
+  text-align: center;
+  padding: 16px;
+}
+.rb-disclaimer {
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--ink-400);
+  text-align: center;
+}
+.rb-timeline {
+  position: relative;
+  padding-left: 4px;
+}
+.rb-tl-item {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding: 7px 0;
+}
+.rb-tl-item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 6.5px;
+  top: 26px;
+  bottom: -8px;
+  width: 1.5px;
+  background: var(--mint-200);
+}
+.rb-tl-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 2px solid var(--mint-400);
+  background: #fff;
+  margin-top: 3px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.rb-tl-dot-done {
+  background: var(--mint-500);
+  border-color: var(--mint-500);
+}
+.rb-tl-body {
+  flex: 1;
+  min-width: 0;
+}
+.rb-tl-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+.rb-tl-label {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.rb-tl-due {
+  font-size: 11.5px;
+  color: var(--ink-400);
+  white-space: nowrap;
+}
+.rb-tl-detail {
+  font-size: 12px;
+  color: var(--ink-700);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+.rb-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.rb-two-col .rb-panel {
+  margin-bottom: 0;
+}
+.rb-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rb-list-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.rb-list-detail {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-700);
+  margin-top: 1px;
+  line-height: 1.5;
+}
+.rb-next {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+  align-items: center;
+  margin-top: 0;
+}
+.rb-contact {
+  font-size: 13px;
+  color: var(--ink-900);
+  font-weight: 500;
+  line-height: 1.9;
+  text-align: right;
+}
+.rb-legal {
+  margin-top: auto;
+  padding-top: 16px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--ink-400);
+}
+.rb-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--ink-400);
+  letter-spacing: 0.08em;
+  padding-top: 10px;
+  border-top: 1px solid rgba(20, 80, 70, 0.08);
+  margin-top: 10px;
+}
+
+/* ------------------------------------------------------------
+   Print — the report must export pixel-identical.
+   backdrop-filter is unreliable in print engines, so report
+   surfaces use pre-composed opaque fills (see report styles).
+   ------------------------------------------------------------ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  .bg-stage::before,
+  .bg-stage::after {
+    display: none !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  .report-root {
+    gap: 0;
+  }
+  .report-sheet {
+    width: 210mm;
+    min-height: 296mm;
+    border-radius: 0;
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+  }
+  .report-sheet:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
 }
