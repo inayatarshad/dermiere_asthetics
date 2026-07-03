@@ -71,6 +71,71 @@ export function faceTriangles(): number[] {
   return tris;
 }
 
+// ---------------------------------------------------------------------
+// Eye fill — the tessellation leaves the eye openings unfilled, which
+// renders as "empty" (see-through) eyes on a textured mesh. Fill each eye
+// with a triangle fan from its centroid so the photo's own eyes show
+// through. The centroid UV is the average of the eyelid ring, so it samples
+// the eyeball region of the photo. (The mouth has the same hole but reads
+// fine on closed-mouth portraits.)
+// ---------------------------------------------------------------------
+
+function ringFromConnections(
+  conns: { start: number; end: number }[]
+): number[] {
+  const set = new Set<number>();
+  for (const { start, end } of conns) {
+    set.add(start);
+    set.add(end);
+  }
+  return [...set];
+}
+
+export interface EyeFill {
+  points: Pt[]; // centroid vertices to append after the base points
+  triangles: number[]; // indices into [...basePx, ...points]
+}
+
+export function buildEyeFill(basePx: Pt[]): EyeFill {
+  const points: Pt[] = [];
+  const triangles: number[] = [];
+  const eyes = [
+    FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
+    FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
+  ];
+  for (const conns of eyes) {
+    const ring = ringFromConnections(conns).filter((i) => basePx[i]);
+    if (ring.length < 3) continue;
+    let cx = 0,
+      cy = 0,
+      cz = 0;
+    for (const i of ring) {
+      cx += basePx[i].x;
+      cy += basePx[i].y;
+      cz += basePx[i].z;
+    }
+    cx /= ring.length;
+    cy /= ring.length;
+    cz /= ring.length;
+    // order the ring by angle so the fan is a valid, non-self-intersecting polygon
+    const ordered = ring
+      .slice()
+      .sort(
+        (a, b) =>
+          Math.atan2(basePx[a].y - cy, basePx[a].x - cx) -
+          Math.atan2(basePx[b].y - cy, basePx[b].x - cx)
+      );
+    // apex vertex; nudge a hair toward camera (more negative z) so the fill
+    // sits cleanly over the socket rim
+    const apex = basePx.length + points.length;
+    points.push({ x: cx, y: cy, z: cz - 1 });
+    for (let k = 0; k < ordered.length; k++) {
+      triangles.push(ordered[k], ordered[(k + 1) % ordered.length], apex);
+    }
+  }
+  return { points, triangles };
+}
+
 export function lipIndexSet(): Set<number> {
   const set = new Set<number>();
   for (const { start, end } of FaceLandmarker.FACE_LANDMARKS_LIPS) {

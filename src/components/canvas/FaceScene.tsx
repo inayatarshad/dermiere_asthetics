@@ -16,6 +16,7 @@ import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import {
   applyMorphs,
+  buildEyeFill,
   faceTriangles,
   featureFrame,
   featureWeight,
@@ -121,11 +122,21 @@ function FaceMeshObject({
     const cy = (minY + maxY) / 2;
     const scale = (maxY - minY) / 2.3 || 1; // face height ≈ 2.3 world units
     const cz = basePx[1]?.z ?? 0;
-    // Densify: originals keep indices 0..477 (anchors stay valid), midpoints
-    // are appended. The morph field is evaluated at every subdivided vertex.
+    // Fill the eye sockets (tessellation leaves them as holes), then densify.
+    // Originals keep indices 0..477 (anchors stay valid); eye-fill apexes and
+    // subdivision midpoints are appended. The morph field is evaluated at
+    // every vertex; eye-region vertices carry ~0 nose weight, so they hold
+    // still while the nose morphs.
+    const eyeFill = buildEyeFill(basePx);
+    const seedPoints = eyeFill.points.length
+      ? [...basePx, ...eyeFill.points]
+      : basePx;
+    const seedTris = eyeFill.triangles.length
+      ? [...faceTriangles(), ...eyeFill.triangles]
+      : faceTriangles();
     const { points, triangles } = subdivideMesh(
-      basePx,
-      faceTriangles(),
+      seedPoints,
+      seedTris,
       SUBDIV_LEVELS
     );
     return { w, h, basePx, points, triangles, cx, cy, cz, scale };
@@ -270,10 +281,16 @@ function FaceMeshObject({
       const mint = new THREE.Color("#34D3B0");
       for (let i = 0; i < frame.points.length; i++) {
         const w = featureWeight(i, frame.points[i], ff)[highlight] ?? 0;
-        if (w <= 0.01) continue;
-        arr[i * 3] = mint.r * w * 0.75;
-        arr[i * 3 + 1] = mint.g * w * 0.75;
-        arr[i * 3 + 2] = mint.b * w * 0.75;
+        if (w <= 0.02) continue;
+        // Rim-biased: a soft mint halo at the region's edge (peaks where the
+        // weight transitions) plus a very faint interior wash. This marks the
+        // selected feature without flooding it in green, so the face stays
+        // clearly visible.
+        const rim = 4 * w * (1 - w); // 0 at solid core / outside, 1 mid-edge
+        const intensity = Math.min(1, 0.85 * rim + 0.1 * w);
+        arr[i * 3] = mint.r * intensity;
+        arr[i * 3 + 1] = mint.g * intensity;
+        arr[i * 3 + 2] = mint.b * intensity;
       }
     }
     attr.needsUpdate = true;
@@ -373,12 +390,12 @@ function FaceMeshObject({
           toneMapped={false}
         />
       </mesh>
-      {/* highlight glow layer */}
-      <mesh geometry={geometry} scale={1.003} raycast={() => null}>
+      {/* highlight glow layer — soft mint rim, face stays visible */}
+      <mesh geometry={geometry} scale={1.004} raycast={() => null}>
         <meshBasicMaterial
           vertexColors
           transparent
-          opacity={0.9}
+          opacity={0.5}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.DoubleSide}
