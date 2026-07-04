@@ -81,8 +81,11 @@ export function VisualizeStep({
 
   const [params, setParams] = useState<Record<string, number>>(() => {
     if (savedViz) return savedViz.params;
-    const fromCanvas = canvasMorphsToAiParams(consultation.canvas_state.morphs ?? {});
-    return fromCanvas;
+    // Canvas -> AI handoff: the doctor's mesh morphs pre-set the sliders
+    return canvasMorphsToAiParams(
+      consultation.canvas_state.morphs ?? {},
+      template?.slider_schema.map((s) => s.key) ?? []
+    );
   });
   const [after, setAfter] = useState<AfterState | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -222,9 +225,10 @@ export function VisualizeStep({
           </span>
           <h2 className="h1 text-ink-900 mt-4">{template.name} preset coming soon</h2>
           <p className="text-ink-700 mt-2 leading-relaxed">
-            Rhinoplasty is fully wired today; each additional procedure is a
-            slider schema and prompt template away. Switch the primary
-            interest to Rhinoplasty to run the full visualization now.
+            Rhinoplasty, Lip Filler, Chin Filler and Botox are fully wired
+            today; each additional procedure is a slider schema and prompt
+            template away. Switch the primary interest to a live procedure to
+            run the full visualization now.
           </p>
           <div className="flex justify-center gap-2 mt-5 flex-wrap">
             {TEMPLATES.filter((t) => t.available).map((t) => (
@@ -297,6 +301,16 @@ export function VisualizeStep({
             <span className="text-sm text-ink-700">
               Generating the photoreal healed result on {patient.name.split(" ")[0]}'s
               photo...
+            </span>
+          </GlassCard>
+        )}
+        {active && !after && !generating && !genError && (
+          <GlassCard className="px-5 py-3.5 flex items-start gap-3">
+            <Sparkles size={17} className="text-mint-500 mt-0.5 shrink-0" />
+            <span className="text-sm text-ink-700">
+              The selected changes are skin-level (lines and texture), so the
+              live geometric preview stays unchanged. Generate with AI to
+              render them on the photo.
             </span>
           </GlassCard>
         )}

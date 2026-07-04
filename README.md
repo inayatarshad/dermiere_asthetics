@@ -2,7 +2,7 @@
 
 The consultation system for modern aesthetic clinics: role-based clinic access, patient registration with consent capture, a parametric **3D face canvas**, identity-preserving **AI before/after visualization**, template-driven **treatment plans**, and a glassmorphic **patient report** that exports to PDF.
 
-Built from the Contour knowledge base for the IPAAC 2026 demo. Rhinoplasty is the fully wired vertical; every additional procedure is one template object away (slider schema + prompt template + plan checklist), with no new engine code.
+Built from the Contour knowledge base for the IPAAC 2026 demo. Four procedures are fully wired end to end: **Rhinoplasty** (7 sliders), **Lip Filler** (8 sliders: vermilion volumes, upper:lower balance, cupid's bow, border, corners, projection, philtral columns), **Chin Filler** (6 sliders: E-line projection, length, taper, labiomental crease, prejowl blend, texture) and **Botox** (6 sliders: forehead, glabella, crow's feet, brow lift, masseter slimming, lip flip). Every additional procedure is one template object away (slider schema + prompt template + canvas handles + plan checklist), with no new engine code.
 
 ## The consultation spine
 

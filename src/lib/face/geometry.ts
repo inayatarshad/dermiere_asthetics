@@ -30,6 +30,12 @@ export const ANCHOR = {
   eyeOuterL: 263,
   mouthCornerR: 61,
   mouthCornerL: 291,
+  upperLipTop: 0, // upper vermilion top center
+  lowerLipBottom: 17, // lower vermilion bottom center
+  upperLipInner: 13, // oral line, upper
+  lowerLipInner: 14, // oral line, lower
+  bowPeakR: 37, // cupid's bow peaks flanking the top center
+  bowPeakL: 267,
 };
 
 // ---------------------------------------------------------------------
@@ -241,11 +247,178 @@ function radixWeight(p: Pt, f: NoseFrame): number {
   return fall(d, 0.14 * f.noseH, 0.4 * f.noseH);
 }
 
+/** Soft round blob weight: 1 near (cx, cy), fading to 0 at radius r. */
+function blobW(p: Pt, cx: number, cy: number, r: number): number {
+  return fall(Math.hypot(p.x - cx, p.y - cy), 0.35 * r, r);
+}
+
+// ---------------------------------------------------------------------
+// Lip frame — drives the lip-filler morph fields: vermilion volume,
+// upper/lower ratio, cupid's bow, border, corners, projection, philtrum,
+// and the botox lip flip.
+// ---------------------------------------------------------------------
+
+export interface LipFrame {
+  centerX: number;
+  innerY: number; // the oral line between the lips
+  lipW: number; // corner-to-corner width
+  lipH: number; // top of upper vermilion to bottom of lower vermilion
+  cornerR: Pt;
+  cornerL: Pt;
+  peakR: Pt;
+  peakL: Pt;
+  top: Pt;
+  bot: Pt;
+}
+
+export function lipFrame(px: Pt[]): LipFrame {
+  const cornerR = px[ANCHOR.mouthCornerR];
+  const cornerL = px[ANCHOR.mouthCornerL];
+  const top = px[ANCHOR.upperLipTop];
+  const bot = px[ANCHOR.lowerLipBottom];
+  const innerY =
+    (px[ANCHOR.upperLipInner].y + px[ANCHOR.lowerLipInner].y) / 2;
+  return {
+    centerX: (cornerR.x + cornerL.x) / 2,
+    innerY,
+    lipW: Math.max(1, Math.hypot(cornerL.x - cornerR.x, cornerL.y - cornerR.y)),
+    lipH: Math.max(1, bot.y - top.y),
+    cornerR,
+    cornerL,
+    peakR: px[ANCHOR.bowPeakR],
+    peakL: px[ANCHOR.bowPeakL],
+    top,
+    bot,
+  };
+}
+
+/** Soft elliptical membership of a point in the lip region (0..1). */
+function lipMemberWeight(p: Pt, lf: LipFrame): number {
+  const ex = (p.x - lf.centerX) / (0.62 * lf.lipW);
+  const ey = (p.y - lf.innerY) / (0.95 * lf.lipH);
+  return fall(Math.hypot(ex, ey), 0.5, 1.1);
+}
+
+/** 1 above the oral line, smoothly crossing to 0 below (and the reverse). */
+function upperSide(p: Pt, lf: LipFrame): number {
+  return smoothstep(-0.1 * lf.lipH, 0.1 * lf.lipH, lf.innerY - p.y);
+}
+function lowerSide(p: Pt, lf: LipFrame): number {
+  return smoothstep(-0.1 * lf.lipH, 0.1 * lf.lipH, p.y - lf.innerY);
+}
+
+// ---------------------------------------------------------------------
+// Chin frame — drives the chin-filler fields: projection, vertical length,
+// width/taper, labiomental crease, prejowl blend. The chin unit L is the
+// lower-lip-to-menton distance, so magnitudes scale with the face.
+// ---------------------------------------------------------------------
+
+export interface ChinFrame {
+  menton: Pt;
+  axisX: number;
+  L: number;
+}
+
+export function chinFrame(px: Pt[]): ChinFrame {
+  const menton = px[ANCHOR.chin];
+  const lipBot = px[ANCHOR.lowerLipBottom];
+  return {
+    menton,
+    axisX: menton.x,
+    L: Math.max(1, menton.y - lipBot.y),
+  };
+}
+
+/** Soft blob over the chin pad, centered slightly above the menton. */
+function chinPadWeight(p: Pt, cf: ChinFrame): number {
+  return blobW(p, cf.menton.x, cf.menton.y - 0.3 * cf.L, 1.35 * cf.L);
+}
+
+// ---------------------------------------------------------------------
+// Brow + jaw frame — drives the geometric botox fields: chemical brow lift
+// (brow tails from the eyebrow landmark sets) and masseter slimming (the
+// widest jawline points between mouth and chin height on the face oval).
+// ---------------------------------------------------------------------
+
+export interface BrowJawFrame {
+  browTailR: Pt;
+  browTailL: Pt;
+  browMidR: Pt;
+  browMidL: Pt;
+  gonialR: Pt | null;
+  gonialL: Pt | null;
+  axisX: number;
+  faceH: number;
+}
+
+export function browJawFrame(px: Pt[]): BrowJawFrame {
+  const axisX = px[ANCHOR.noseTip].x;
+  const chin = px[ANCHOR.chin];
+  const faceH = Math.abs(chin.y - px[ANCHOR.nasion].y) * 1.8 || 1;
+  const mouthY = px[ANCHOR.lowerLipBottom].y;
+
+  const browSide = (conns: { start: number; end: number }[]) => {
+    const set = new Set<number>();
+    for (const { start, end } of conns) {
+      set.add(start);
+      set.add(end);
+    }
+    let tail: Pt = px[ANCHOR.nasion];
+    let cx = 0,
+      cy = 0,
+      n = 0;
+    set.forEach((i) => {
+      const q = px[i];
+      if (!q) return;
+      cx += q.x;
+      cy += q.y;
+      n++;
+      if (Math.abs(q.x - axisX) > Math.abs(tail.x - axisX)) tail = q;
+    });
+    return { tail, mid: { x: cx / (n || 1), y: cy / (n || 1), z: 0 } };
+  };
+  const r = browSide(FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW);
+  const l = browSide(FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW);
+
+  // gonial (jaw-angle) point per side: widest oval point between the mouth
+  // line and just above the chin tip
+  let gR: Pt | null = null;
+  let gL: Pt | null = null;
+  ovalIndexSet().forEach((i) => {
+    const q = px[i];
+    if (!q) return;
+    if (q.y < mouthY - 0.12 * faceH || q.y > chin.y - 0.03 * faceH) return;
+    if (q.x < axisX) {
+      if (!gR || q.x < gR.x) gR = q;
+    } else if (!gL || q.x > gL.x) {
+      gL = q;
+    }
+  });
+
+  return {
+    browTailR: r.tail,
+    browTailL: l.tail,
+    browMidR: r.mid,
+    browMidL: l.mid,
+    gonialR: gR,
+    gonialL: gL,
+    axisX,
+    faceH,
+  };
+}
+
 // ---------------------------------------------------------------------
 // Other feature regions (for highlight + feature-scale tools)
 // ---------------------------------------------------------------------
 
-export type FeatureId = "nose" | "lips" | "cheeks" | "jaw" | "chin" | "under_eye";
+export type FeatureId =
+  | "nose"
+  | "lips"
+  | "cheeks"
+  | "jaw"
+  | "chin"
+  | "under_eye"
+  | "brow";
 
 export interface FeatureFrame {
   px: Pt[];
@@ -255,6 +428,8 @@ export interface FeatureFrame {
   lipCenter: Pt;
   lipRadius: number;
   faceH: number;
+  browMidR: { x: number; y: number };
+  browMidL: { x: number; y: number };
 }
 
 export function featureFrame(px: Pt[]): FeatureFrame {
@@ -280,7 +455,37 @@ export function featureFrame(px: Pt[]): FeatureFrame {
   });
   const chin = px[ANCHOR.chin];
   const faceH = Math.abs(chin.y - px[ANCHOR.nasion].y) * 1.8 || 1;
-  return { px, nose, lipSet, ovalSet, lipCenter, lipRadius, faceH };
+
+  const browMid = (conns: { start: number; end: number }[]) => {
+    const set = new Set<number>();
+    for (const { start, end } of conns) {
+      set.add(start);
+      set.add(end);
+    }
+    let bx = 0,
+      by = 0,
+      n = 0;
+    set.forEach((i) => {
+      const q = px[i];
+      if (!q) return;
+      bx += q.x;
+      by += q.y;
+      n++;
+    });
+    return { x: bx / (n || 1), y: by / (n || 1) };
+  };
+
+  return {
+    px,
+    nose,
+    lipSet,
+    ovalSet,
+    lipCenter,
+    lipRadius,
+    faceH,
+    browMidR: browMid(FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW),
+    browMidL: browMid(FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW),
+  };
 }
 
 export function featureWeight(i: number, p: Pt, ff: FeatureFrame): Record<FeatureId, number> {
@@ -317,6 +522,13 @@ export function featureWeight(i: number, p: Pt, ff: FeatureFrame): Record<Featur
     fall(Math.hypot(p.x - ueR.x, p.y - ueR.y), ueRad * 0.5, ueRad * 1.4)
   );
 
+  // brow: two soft blobs over the eyebrow regions
+  const browR = faceH * 0.13;
+  const brow = Math.max(
+    fall(Math.hypot(p.x - ff.browMidR.x, p.y - ff.browMidR.y), browR * 0.5, browR * 1.4),
+    fall(Math.hypot(p.x - ff.browMidL.x, p.y - ff.browMidL.y), browR * 0.5, browR * 1.4)
+  );
+
   return {
     nose: noseWeight(p, nose),
     lips,
@@ -324,6 +536,7 @@ export function featureWeight(i: number, p: Pt, ff: FeatureFrame): Record<Featur
     jaw,
     chin: chinW,
     under_eye,
+    brow,
   };
 }
 
@@ -351,9 +564,35 @@ export function applyMorphs(basePx: Pt[], params: MorphParams): Pt[] {
   const active = Object.entries(params).filter(([, v]) => Math.abs(v) > 0.5);
   if (active.length === 0) return basePx;
 
+  const keys = new Set(active.map(([key]) => key));
+  const has = (...ks: string[]) => ks.some((kk) => keys.has(kk));
+
   const f = noseFrame(basePx);
   const ff =
     active.some(([k]) => k.startsWith("scale_")) ? featureFrame(basePx) : null;
+  const lf = has(
+    "lip_upper_volume",
+    "lip_lower_volume",
+    "lip_ratio",
+    "cupids_bow",
+    "lip_definition",
+    "lip_corners",
+    "lip_projection",
+    "philtrum",
+    "lip_flip"
+  )
+    ? lipFrame(basePx)
+    : null;
+  const cf = has(
+    "chin_projection",
+    "chin_length",
+    "chin_width",
+    "labiomental",
+    "prejowl"
+  )
+    ? chinFrame(basePx)
+    : null;
+  const bf = has("brow_lift", "masseter_slim") ? browJawFrame(basePx) : null;
 
   const k = (key: string) => (params[key] ?? 0) / 100;
 
@@ -420,6 +659,171 @@ export function applyMorphs(basePx: Pt[], params: MorphParams): Pt[] {
       }
     }
 
+    // =================================================================
+    // LIP FILLER fields (05: lip architecture control set)
+    // =================================================================
+    if (lf) {
+      const mw = lipMemberWeight(p, lf);
+      if (mw > 0.001) {
+        const up = upperSide(p, lf);
+        const lo = lowerSide(p, lf);
+
+        // Volumes + upper:lower balance. Vertical vermilion expansion about
+        // the oral line plus gentle forward eversion (the "soft pillow"
+        // read of settled HA filler).
+        const rat = k("lip_ratio");
+        const uv = Math.min(
+          1.2,
+          Math.max(0, k("lip_upper_volume")) + Math.max(0, -rat) * 0.55
+        );
+        const lv = Math.min(
+          1.2,
+          Math.max(0, k("lip_lower_volume")) + Math.max(0, rat) * 0.55
+        );
+        if (uv > 0) {
+          const w = mw * up;
+          y = lf.innerY + (y - lf.innerY) * (1 + 0.3 * uv * w);
+          z -= 0.13 * lf.lipH * uv * w;
+        }
+        if (lv > 0) {
+          const w = mw * lo;
+          y = lf.innerY + (y - lf.innerY) * (1 + 0.3 * lv * w);
+          z -= 0.13 * lf.lipH * lv * w;
+        }
+
+        // Cupid's bow: lift and sharpen the two peaks, keep the central dip
+        const cb = k("cupids_bow");
+        if (cb > 0) {
+          const rp = 0.17 * lf.lipW;
+          const gPeak = Math.max(
+            blobW(p, lf.peakR.x, lf.peakR.y, rp),
+            blobW(p, lf.peakL.x, lf.peakL.y, rp)
+          );
+          const gDip = blobW(p, lf.top.x, lf.top.y, 0.1 * lf.lipW);
+          y -= 0.14 * lf.lipH * cb * gPeak * up;
+          y += 0.05 * lf.lipH * cb * gDip * up;
+          z -= 0.05 * lf.lipH * cb * gPeak;
+        }
+
+        // Mouth corners: downturn correction (or relaxed droop)
+        const cc = k("lip_corners");
+        if (cc !== 0) {
+          const rc = 0.3 * lf.lipW;
+          const g = Math.max(
+            blobW(p, lf.cornerR.x, lf.cornerR.y, rc),
+            blobW(p, lf.cornerL.x, lf.cornerL.y, rc)
+          );
+          y -= 0.16 * lf.lipH * cc * g;
+        }
+
+        // Projection / pout: whole lip body toward the camera
+        const pj = k("lip_projection");
+        if (pj > 0) z -= 0.2 * lf.lipH * pj * mw;
+
+        // Vermilion border: slight outward crisping of the outline
+        const df = k("lip_definition");
+        if (df > 0) {
+          const s = 0.05 * df * mw;
+          x += (x - lf.centerX) * s;
+          y += (y - lf.innerY) * s * 0.7;
+        }
+
+        // Botox lip flip: slight upper-lip eversion, no volume
+        const fl = k("lip_flip");
+        if (fl > 0) {
+          const w = mw * up;
+          y = lf.innerY + (y - lf.innerY) * (1 + 0.1 * fl * w);
+          z -= 0.06 * lf.lipH * fl * w;
+        }
+      }
+
+      // Philtral columns: two soft ridges above the bow peaks (outside the
+      // vermilion blob, so evaluated independently of lip membership)
+      const ph = k("philtrum");
+      if (ph > 0) {
+        const ry = 0.45 * lf.lipH;
+        const gy = lf.top.y - 0.5 * lf.lipH;
+        const g = Math.max(
+          blobW(p, lf.peakR.x, gy, ry),
+          blobW(p, lf.peakL.x, gy, ry)
+        );
+        if (g > 0.001) z -= 0.06 * lf.lipH * ph * g;
+      }
+    }
+
+    // =================================================================
+    // CHIN FILLER fields (projection / length / width / crease / prejowl)
+    // =================================================================
+    if (cf) {
+      const w = chinPadWeight(p, cf);
+      if (w > 0.001) {
+        // Forward projection toward the E-line (deep, on-bone support)
+        const pr = k("chin_projection");
+        if (pr > 0) {
+          z -= 0.5 * cf.L * pr * w;
+          y += 0.05 * cf.L * pr * w;
+        }
+        // Vertical lengthening, biased toward the lower half of the pad
+        const ln = k("chin_length");
+        if (ln > 0) {
+          const lowBias = smoothstep(
+            -0.6 * cf.L,
+            0.3 * cf.L,
+            p.y - (cf.menton.y - 0.5 * cf.L)
+          );
+          y += 0.42 * cf.L * ln * w * lowBias;
+        }
+        // Width: taper toward a point or broaden the base
+        const wd = k("chin_width");
+        if (wd !== 0) {
+          x = cf.axisX + (x - cf.axisX) * (1 + 0.16 * wd * w);
+        }
+        // Labiomental crease fill (just under the lower lip)
+        const lb = k("labiomental");
+        if (lb > 0) {
+          const g = blobW(p, cf.axisX, cf.menton.y - 0.8 * cf.L, 0.6 * cf.L);
+          z -= 0.25 * cf.L * lb * g;
+        }
+      }
+      // Prejowl sulcus fill, lateral of the chin along the jawline
+      const pjw = k("prejowl");
+      if (pjw > 0) {
+        const r = 0.85 * cf.L;
+        const g = Math.max(
+          blobW(p, cf.axisX - 1.5 * cf.L, cf.menton.y - 0.45 * cf.L, r),
+          blobW(p, cf.axisX + 1.5 * cf.L, cf.menton.y - 0.45 * cf.L, r)
+        );
+        if (g > 0.001) z -= 0.22 * cf.L * pjw * g;
+      }
+    }
+
+    // =================================================================
+    // BOTOX geometric fields (brow lift + masseter slimming; the line
+    // sliders are texture effects rendered by the AI pass)
+    // =================================================================
+    if (bf) {
+      const bl = k("brow_lift");
+      if (bl > 0) {
+        const r = 0.14 * bf.faceH;
+        const g = Math.max(
+          blobW(p, bf.browTailR.x, bf.browTailR.y, r),
+          blobW(p, bf.browTailL.x, bf.browTailL.y, r),
+          0.55 * blobW(p, bf.browMidR.x, bf.browMidR.y, r),
+          0.55 * blobW(p, bf.browMidL.x, bf.browMidL.y, r)
+        );
+        y -= 0.045 * bf.faceH * bl * g; // tails lift most, mids follow
+      }
+      const ms = k("masseter_slim");
+      if (ms > 0 && bf.gonialR && bf.gonialL) {
+        const r = 0.2 * bf.faceH;
+        const g = Math.max(
+          blobW(p, bf.gonialR.x, bf.gonialR.y, r),
+          blobW(p, bf.gonialL.x, bf.gonialL.y, r)
+        );
+        x += (bf.axisX - x) * 0.16 * ms * g;
+      }
+    }
+
     // --- Feature scale tools (canvas Scale tool) -----------------------
     if (ff) {
       for (const [key, raw] of active) {
@@ -454,6 +858,11 @@ function featureCentroid(feature: FeatureId, ff: FeatureFrame): { x: number; y: 
       return { x: ff.nose.axisX, y: ff.lipCenter.y - ff.faceH * 0.18 };
     case "under_eye":
       return { x: ff.nose.axisX, y: ff.nose.nasion.y + ff.faceH * 0.08 };
+    case "brow":
+      return {
+        x: ff.nose.axisX,
+        y: (ff.browMidR.y + ff.browMidL.y) / 2,
+      };
   }
 }
 
@@ -463,23 +872,21 @@ function featureCentroid(feature: FeatureId, ff: FeatureFrame): { x: number; y: 
  * (04_consultation-canvas-3d.md §4 handoff).
  */
 export function canvasMorphsToAiParams(
-  morphs: MorphParams
+  morphs: MorphParams,
+  /** The active template's slider keys — the handoff is procedure-agnostic. */
+  allowedKeys: string[]
 ): Record<string, number> {
   const out: Record<string, number> = {};
-  const passthrough = [
-    "alar_width",
-    "tip_rotation",
-    "tip_projection",
-    "tip_refinement",
-    "dorsum",
-    "radix",
-    "overall_size",
-  ];
-  for (const key of passthrough) {
+  for (const key of allowedKeys) {
     const v = morphs[key];
     if (v !== undefined && Math.abs(v) > 2) out[key] = Math.round(v);
   }
-  if (morphs["scale_nose"] !== undefined && Math.abs(morphs["scale_nose"]) > 2) {
+  // Legacy nicety: the whole-nose Scale tool folds into rhinoplasty's size
+  if (
+    allowedKeys.includes("overall_size") &&
+    morphs["scale_nose"] !== undefined &&
+    Math.abs(morphs["scale_nose"]) > 2
+  ) {
     out["overall_size"] = Math.round(
       Math.max(-100, Math.min(100, (out["overall_size"] ?? 0) + morphs["scale_nose"]))
     );

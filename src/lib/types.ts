@@ -179,13 +179,25 @@ export interface PlanTemplateItem {
   offset_days?: number; // suggested due date offset from plan creation
 }
 
+/** A slider surfaced on the 3D canvas rail — the geometric subset of the schema. */
+export interface CanvasHandle {
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  negLabel?: string;
+  posLabel?: string;
+}
+
 export interface TreatmentTemplate {
   id: string;
   name: string;
   category: ProcedureCategory;
   region: string; // primary face region
-  available: boolean; // rhinoplasty first; others come later
+  available: boolean;
   slider_schema: SliderDef[];
+  /** Which sliders appear as live morph handles on the 3D canvas. */
+  canvas_handles: CanvasHandle[];
   prompt_template: string; // with {assembled_slider_phrases} placeholder
   plan_template: PlanTemplateItem[];
   model: string; // preferred image model

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useFaceData } from "@/lib/hooks";
+import { getTemplate } from "@/lib/templates";
 import type { AnnotationStroke, Consultation, Patient } from "@/lib/types";
 import type { FeatureId } from "@/lib/face/geometry";
 import { GlassCard, Chip, EmptyState, Spinner } from "@/components/ui";
@@ -43,21 +44,25 @@ const FaceScene = dynamic(
 
 const DRAW_COLORS = ["#34D3B0", "#E7B549", "#E06A6A", "#0E2A26"];
 
-const MORPH_HANDLES: { key: string; label: string; negLabel: string; posLabel: string }[] = [
-  { key: "dorsum", label: "Bridge / hump", negLabel: "Reduce", posLabel: "Augment" },
-  { key: "tip_rotation", label: "Tip rotation", negLabel: "Down", posLabel: "Up" },
-  { key: "alar_width", label: "Nostril width", negLabel: "Narrow", posLabel: "Wide" },
-  { key: "tip_refinement", label: "Tip refinement", negLabel: "As is", posLabel: "Refined" },
-];
-
 const FEATURES: { id: FeatureId; label: string }[] = [
   { id: "nose", label: "Nose" },
   { id: "lips", label: "Lips" },
   { id: "cheeks", label: "Cheeks" },
   { id: "jaw", label: "Jawline" },
   { id: "chin", label: "Chin" },
+  { id: "brow", label: "Brow" },
   { id: "under_eye", label: "Under-eye" },
 ];
+
+/** Template region -> canvas feature highlight. */
+const REGION_TO_FEATURE: Record<string, FeatureId> = {
+  nose: "nose",
+  lips: "lips",
+  chin: "chin",
+  jaw: "jaw",
+  forehead: "brow",
+  under_eye: "under_eye",
+};
 
 export function CanvasStep({
   consultation,
@@ -71,6 +76,11 @@ export function CanvasStep({
   const assets = useStore((s) => s.assets);
   const addAsset = useStore((s) => s.addAsset);
   const saveCanvasState = useStore((s) => s.saveCanvasState);
+
+  // The brief arms the canvas: the primary procedure supplies the morph
+  // handles and the default region emphasis (03_consultation-brief.md §3).
+  const template = getTemplate(consultation.brief.primary_interest);
+  const handles = template?.available ? template.canvas_handles : [];
 
   const frontPhoto = useMemo(() => {
     const all = assets
@@ -87,7 +97,7 @@ export function CanvasStep({
   const [sculptStrength, setSculptStrength] = useState(45);
   const [sculptDirection, setSculptDirection] = useState<1 | -1>(-1);
   const [highlight, setHighlight] = useState<FeatureId | null>(
-    consultation.brief.primary_interest === "rhinoplasty" ? "nose" : null
+    template ? (REGION_TO_FEATURE[template.region] ?? null) : null
   );
   const [morphs, setMorphs] = useState<Record<string, number>>(
     consultation.canvas_state.morphs ?? {}
@@ -309,25 +319,35 @@ export function CanvasStep({
       {/* Right rail: morph handles + handoff */}
       <div className="space-y-4">
         <GlassCard className="p-5">
-          <h3 className="h2 text-ink-900 mb-1">Morph handles</h3>
+          <h3 className="h2 text-ink-900 mb-1">
+            {template?.available ? `${template.name} handles` : "Morph handles"}
+          </h3>
           <p className="caption mb-4">
-            Semantic controls on the nose region. Clinically plausible ranges
-            only.
+            {template?.available
+              ? `Semantic controls for the ${template.region.replace(/_/g, "-")} region. Clinically plausible ranges only.`
+              : "Set a primary interest in the Brief to load procedure-specific handles."}
           </p>
-          <div className="space-y-4">
-            {MORPH_HANDLES.map((h) => (
-              <MintSlider
-                key={h.key}
-                label={h.label}
-                min={h.key === "tip_refinement" ? 0 : -100}
-                max={100}
-                value={morphs[h.key] ?? 0}
-                negLabel={h.negLabel}
-                posLabel={h.posLabel}
-                onChange={(v) => setMorph(h.key, v)}
-              />
-            ))}
-          </div>
+          {handles.length > 0 ? (
+            <div className="space-y-4">
+              {handles.map((h) => (
+                <MintSlider
+                  key={h.key}
+                  label={h.label}
+                  min={h.min}
+                  max={h.max}
+                  value={morphs[h.key] ?? 0}
+                  negLabel={h.negLabel}
+                  posLabel={h.posLabel}
+                  onChange={(v) => setMorph(h.key, v)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-ink-700">
+              The feature chips below still highlight and scale any region
+              while you talk.
+            </p>
+          )}
         </GlassCard>
 
         {highlight && scaleKey && (

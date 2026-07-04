@@ -47,7 +47,7 @@ Enforced in the UI (controls hidden or locked per role) and by route guards. Ses
 
 ### The AI loop (05_ai-before-after.md)
 
-- Each procedure is a `TreatmentTemplate`: slider schema + prompt template + plan checklist + preferred model. Rhinoplasty ships fully wired (7 sliders per the spec).
+- Each procedure is a `TreatmentTemplate`: slider schema + prompt template + canvas morph handles + plan checklist + preferred model. Four ship fully wired: Rhinoplasty (7 sliders), Lip Filler (8), Chin Filler (6), Botox (6). The lip/chin/brow morph fields are anchored to canonical landmarks (oral line, cupid's bow peaks, menton, eyebrow sets, gonial oval points) so geometry moves anatomically in both the 3D canvas and the 2D preview; skin-level sliders (lines, texture) are rendered by the AI pass and flagged honestly in the UI.
 - Slider values map to phrase bands (under 15 neutral, 15-40 "very slightly", 40-70 "moderately", 70-100 "noticeably") assembled into the identity-preserving edit instruction.
 - Every generation stores `params` and `prompt_used` on the `Visualization` record for reproducibility and audit.
 - Consent gating: no capture or generation without a granted photography consent record.
