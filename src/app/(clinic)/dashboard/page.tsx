@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const plans = useStore((s) => s.plans);
   const createConsultation = useStore((s) => s.createConsultation);
   const users = useStore((s) => s.users);
+  const newArrivals = useStore((s) => s.newArrivals);
 
   const openConsults = consultations.filter((c) => c.status === "open");
   const waiting = patients.filter(
@@ -167,6 +168,11 @@ export default function DashboardPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-ink-900">{p.name}</span>
+                    {newArrivals.includes(p.id) && (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-mint-500 text-white pulse-mint">
+                        NEW
+                      </span>
+                    )}
                     <span className="chip chip-static text-xs">Waiting</span>
                     <span className="chip chip-static text-xs">
                       {SOURCE_LABELS[p.source]}

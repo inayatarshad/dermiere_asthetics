@@ -63,7 +63,9 @@ function ReportPageInner() {
             Back
           </button>
           <span className="caption hidden sm:block px-1">
-            Consultation report
+            {searchParams.get("pack") === "consent"
+              ? "Consent pack"
+              : "Consultation report"}
           </span>
           <button className="btn btn-primary btn-sm" onClick={() => window.print()}>
             <Printer size={14} />
@@ -73,7 +75,10 @@ function ReportPageInner() {
       </div>
 
       <div className="overflow-x-auto pt-12 print:pt-0 print:overflow-visible">
-        <ReportView consultationId={id} />
+        <ReportView
+          consultationId={id}
+          consentPack={searchParams.get("pack") === "consent"}
+        />
       </div>
     </div>
   );

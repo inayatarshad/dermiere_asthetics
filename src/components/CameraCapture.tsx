@@ -15,6 +15,7 @@ import {
   Check,
   AlertTriangle,
   ImageOff,
+  SwitchCamera,
 } from "lucide-react";
 import { detectLandmarks } from "@/lib/face/landmarker";
 import { downscale, canvasToBlob, loadImage } from "@/lib/img";
@@ -83,6 +84,10 @@ export function CameraCapture({
   >("starting");
   const [poseIndex, setPoseIndex] = useState(0);
   const [shots, setShots] = useState<Record<string, ShotState>>({});
+  // Booth default (T4): rear camera, so staff photograph the patient.
+  // Laptops without a rear camera fall back to whatever is available.
+  const [facing, setFacing] = useState<"environment" | "user">("environment");
+  const [mirrored, setMirrored] = useState(false);
 
   const pose = POSES[poseIndex];
   const shot = shots[pose.kind];
@@ -95,7 +100,11 @@ export function CameraCapture({
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 1280 }, facingMode: "user" },
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 1280 },
+            facingMode: { ideal: facing },
+          },
           audio: false,
         });
         if (cancelled) {
@@ -103,6 +112,10 @@ export function CameraCapture({
           return;
         }
         streamRef.current = stream;
+        // mirror the preview only for a true selfie camera
+        const actual =
+          stream.getVideoTracks()[0]?.getSettings().facingMode ?? facing;
+        setMirrored(actual === "user");
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
@@ -117,7 +130,7 @@ export function CameraCapture({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, [open]);
+  }, [open, facing]);
 
   useEffect(() => {
     if (!open) {
@@ -160,12 +173,14 @@ export function CameraCapture({
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d")!;
-    // mirror back to true orientation (preview is mirrored)
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
+    if (mirrored) {
+      // un-mirror selfie previews back to true orientation
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(video, 0, 0);
     processCanvas(canvas, pose.kind);
-  }, [pose.kind, processCanvas]);
+  }, [pose.kind, processCanvas, mirrored]);
 
   const onFile = useCallback(
     async (file: File) => {
@@ -252,8 +267,18 @@ export function CameraCapture({
                 playsInline
                 muted
                 className="w-full h-full object-cover"
-                style={{ transform: "scaleX(-1)" }}
+                style={{ transform: mirrored ? "scaleX(-1)" : "none" }}
               />
+              <button
+                className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center backdrop-blur-md hover:bg-black/60 transition-colors"
+                onClick={() =>
+                  setFacing((f) => (f === "user" ? "environment" : "user"))
+                }
+                title="Switch camera"
+                aria-label="Switch camera"
+              >
+                <SwitchCamera size={17} />
+              </button>
               {cameraState === "starting" && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Spinner className="w-7 h-7" />

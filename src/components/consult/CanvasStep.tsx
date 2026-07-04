@@ -22,12 +22,13 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useFaceData } from "@/lib/hooks";
-import { getTemplate } from "@/lib/templates";
+import { activeTemplatesFor } from "@/lib/templates";
 import type { AnnotationStroke, Consultation, Patient } from "@/lib/types";
 import type { FeatureId } from "@/lib/face/geometry";
 import { GlassCard, Chip, EmptyState, Spinner } from "@/components/ui";
 import { CameraCapture } from "@/components/CameraCapture";
 import { MintSlider } from "@/components/MintSlider";
+import { BotoxZoneMap } from "@/components/BotoxZoneMap";
 import type { CanvasTool } from "@/components/canvas/FaceScene";
 
 const FaceScene = dynamic(
@@ -77,10 +78,20 @@ export function CanvasStep({
   const addAsset = useStore((s) => s.addAsset);
   const saveCanvasState = useStore((s) => s.saveCanvasState);
 
-  // The brief arms the canvas: the primary procedure supplies the morph
-  // handles and the default region emphasis (03_consultation-brief.md §3).
-  const template = getTemplate(consultation.brief.primary_interest);
-  const handles = template?.available ? template.canvas_handles : [];
+  // The brief arms the canvas: every active procedure supplies its morph
+  // handles (union, grouped), the primary supplies the region emphasis.
+  const activeTemplates = useMemo(
+    () =>
+      activeTemplatesFor(
+        consultation.brief.interests,
+        consultation.brief.primary_interest
+      ),
+    [consultation.brief.interests, consultation.brief.primary_interest]
+  );
+  const template = activeTemplates[0];
+  const handleGroups = activeTemplates.filter(
+    (t) => t.canvas_handles.length > 0
+  );
 
   const frontPhoto = useMemo(() => {
     const all = assets
@@ -320,26 +331,51 @@ export function CanvasStep({
       <div className="space-y-4">
         <GlassCard className="p-5">
           <h3 className="h2 text-ink-900 mb-1">
-            {template?.available ? `${template.name} handles` : "Morph handles"}
+            {activeTemplates.length > 1
+              ? "Combined handles"
+              : template
+                ? `${template.name} handles`
+                : "Morph handles"}
           </h3>
           <p className="caption mb-4">
-            {template?.available
-              ? `Semantic controls for the ${template.region.replace(/_/g, "-")} region. Clinically plausible ranges only.`
+            {template
+              ? activeTemplates.length > 1
+                ? `Live morph handles for ${activeTemplates
+                    .map((t) => t.name)
+                    .join(" + ")}. Clinically plausible ranges only.`
+                : `Semantic controls for the ${template.region.replace(/_/g, "-")} region. Clinically plausible ranges only.`
               : "Set a primary interest in the Brief to load procedure-specific handles."}
           </p>
-          {handles.length > 0 ? (
-            <div className="space-y-4">
-              {handles.map((h) => (
-                <MintSlider
-                  key={h.key}
-                  label={h.label}
-                  min={h.min}
-                  max={h.max}
-                  value={morphs[h.key] ?? 0}
-                  negLabel={h.negLabel}
-                  posLabel={h.posLabel}
-                  onChange={(v) => setMorph(h.key, v)}
-                />
+          {handleGroups.length > 0 ? (
+            <div className="space-y-5">
+              {handleGroups.map((t) => (
+                <div key={t.id}>
+                  {activeTemplates.length > 1 && (
+                    <div className="field-label mb-2.5">{t.name}</div>
+                  )}
+                  {t.id === "botox" ? (
+                    <BotoxZoneMap
+                      compact
+                      values={morphs}
+                      onChange={setMorph}
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      {t.canvas_handles.map((h) => (
+                        <MintSlider
+                          key={h.key}
+                          label={h.label}
+                          min={h.min}
+                          max={h.max}
+                          value={morphs[h.key] ?? 0}
+                          negLabel={h.negLabel}
+                          posLabel={h.posLabel}
+                          onChange={(v) => setMorph(h.key, v)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           ) : (

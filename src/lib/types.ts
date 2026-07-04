@@ -63,6 +63,8 @@ export interface Patient {
   language: Language;
   source: PatientSource;
   clinical_flags: ClinicalFlags;
+  /** Booth handoff id — set when this record travelled via the booth inbox. */
+  booth_id?: string;
   created_at: string;
 }
 
@@ -143,6 +145,13 @@ export interface Consultation {
   canvas_state: CanvasState;
   doctor_note: string;
   status: "open" | "completed";
+  /** Botox units planning (T3): zones, units, totals. See botoxUnits.ts */
+  toxin_plan?: {
+    zones: Record<string, { intensity: number; units: number }>;
+    total_units: number;
+    total_cost: number;
+    price_per_unit: number;
+  } | null;
 }
 
 export interface Visualization {

@@ -11,12 +11,21 @@ import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useStore } from "@/lib/store";
 import { useAssetUrl } from "@/lib/hooks";
-import { getTemplate } from "@/lib/templates";
+import { activeTemplatesFor, getTemplate, TEMPLATES } from "@/lib/templates";
+import { zoneByKey } from "@/lib/botoxUnits";
 import { magnitudeBand } from "@/lib/prompt";
-import { formatDate, firstName } from "@/lib/format";
-import { AI_DISCLAIMER } from "@/lib/types";
+import { formatDate, formatDateTime, firstName } from "@/lib/format";
+import { AI_DISCLAIMER, CONSENT_COPY, type ConsentType } from "@/lib/types";
+import { CONSENT_ACK_PARAGRAPH, RISKS_BY_CATEGORY } from "@/lib/consentPack";
 
-export function ReportView({ consultationId }: { consultationId: string }) {
+export function ReportView({
+  consultationId,
+  consentPack = false,
+}: {
+  consultationId: string;
+  /** T5: render ONLY the one-sheet consent pack instead of the report. */
+  consentPack?: boolean;
+}) {
   const consultation = useStore((s) =>
     s.consultations.find((c) => c.id === consultationId)
   );
@@ -68,6 +77,15 @@ export function ReportView({ consultationId }: { consultationId: string }) {
   }
 
   const template = getTemplate(consultation.brief.primary_interest);
+  // Multi-procedure (T2): cover + chips state every active procedure
+  const activeProcedures = activeTemplatesFor(
+    consultation.brief.interests,
+    consultation.brief.primary_interest
+  );
+  const procedureTitle =
+    activeProcedures.length > 0
+      ? activeProcedures.map((t) => t.name).join(" + ")
+      : template?.name;
   const milestones = planItems.filter((i) => i.kind === "milestone");
   const medicines = planItems.filter((i) => i.kind === "medicine");
   const followups = planItems.filter((i) => i.kind === "followup");
@@ -80,8 +98,135 @@ export function ReportView({ consultationId }: { consultationId: string }) {
     ? Object.entries(viz.params).filter(([, v]) => Math.abs(v) >= 15)
     : [];
 
-  const sliderLabel = (key: string) =>
-    template?.slider_schema.find((s) => s.key === key)?.label ?? key;
+  // Slider keys are globally unique, so label lookup spans all templates
+  const sliderLabel = (key: string) => {
+    for (const t of TEMPLATES) {
+      const def = t.slider_schema.find((s) => s.key === key);
+      if (def) return def.label;
+    }
+    return key;
+  };
+
+  // ================= T5: one-sheet consent pack =================
+  if (consentPack) {
+    const categories = [
+      ...new Set(
+        activeProcedures.map((t) =>
+          t.category === "surgical" ? "surgical" : "injectable"
+        )
+      ),
+    ] as ("injectable" | "surgical")[];
+    const grantedConsents = consents.filter((c) => c.granted);
+    return (
+      <div className="report-root">
+        <section className="report-sheet report-body">
+          <SheetHeader clinic={clinic.name} title="Consent summary" />
+
+          {/* 1 — who / when / what */}
+          <div className="rb-panel cp-tight">
+            <div className="rb-tl-head">
+              <span className="rb-list-label">{patient.name}</span>
+              <span className="rb-tl-due">{formatDate(consultation.date)}</span>
+            </div>
+            <div className="rb-meta-row" style={{ marginTop: "8px" }}>
+              {activeProcedures.map((t) => (
+                <span key={t.id} className="rb-chip rb-chip-mint">
+                  {t.name}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* 2 — the simulation viewed */}
+          <div className="rb-panel cp-tight">
+            <div className="rb-label">The visualization you were shown</div>
+            {beforeUrl && afterUrl ? (
+              <div className="cp-ba">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={beforeUrl} alt="Before" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={afterUrl} alt="Simulated outcome" />
+              </div>
+            ) : (
+              <p className="rb-note" style={{ marginTop: 0 }}>
+                Visualization to be generated and attached at the clinic.
+              </p>
+            )}
+            <div className="cp-caption">
+              ILLUSTRATIVE SIMULATION: not a guaranteed outcome
+            </div>
+          </div>
+
+          {/* 3 — acknowledgement */}
+          <div className="rb-panel cp-tight">
+            <div className="rb-label">Acknowledgement</div>
+            <p className="cp-body">{CONSENT_ACK_PARAGRAPH}</p>
+          </div>
+
+          {/* 4 — risks checklist */}
+          <div className={categories.length > 1 ? "rb-two-col" : ""}>
+            {categories.map((cat) => (
+              <div key={cat} className="rb-panel cp-tight">
+                <div className="rb-label">{RISKS_BY_CATEGORY[cat].title}</div>
+                <ul className="cp-risks">
+                  {RISKS_BY_CATEGORY[cat].risks.map((r) => (
+                    <li key={r}>
+                      <span className="cp-check" />
+                      {r}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* 5 — consents actually captured */}
+          <div className="rb-panel cp-tight" style={{ marginTop: categories.length > 1 ? "14px" : undefined }}>
+            <div className="rb-label">Consents on record</div>
+            <ul className="cp-consents">
+              {grantedConsents.map((c) => (
+                <li key={c.id}>
+                  <span className="cp-check cp-check-done" />
+                  <span>
+                    <b>{CONSENT_COPY[c.type as ConsentType]?.title ?? c.type}.</b>{" "}
+                    {CONSENT_COPY[c.type as ConsentType]?.body}{" "}
+                    <span className="cp-stamp">
+                      Recorded {formatDateTime(c.granted_at)} · wording{" "}
+                      {c.text_version}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* 6 — signatures */}
+          <div className="cp-signatures">
+            <div>
+              <div className="cp-sign-line" />
+              <div className="cp-sign-label">
+                Patient signature · {patient.name}
+              </div>
+              <div className="cp-sign-date">Date:</div>
+            </div>
+            <div>
+              <div className="cp-sign-line" />
+              <div className="cp-sign-label">
+                Practitioner · {doctor?.name}
+                {doctor?.title ? `, ${doctor.title}` : ""}
+              </div>
+              <div className="cp-sign-date">Date:</div>
+            </div>
+          </div>
+
+          <SheetFooter
+            left={`${patient.name} · Consent summary · ${clinic.name}`}
+            page="01 / 01"
+          />
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="report-root">
@@ -112,7 +257,7 @@ export function ReportView({ consultationId }: { consultationId: string }) {
         <div className="rc-center">
           <div className="rc-prepared">Prepared for</div>
           <h1 className="rc-name">{firstName(patient.name)}</h1>
-          {template && <div className="rc-procedure">{template.name}</div>}
+          {procedureTitle && <div className="rc-procedure">{procedureTitle}</div>}
           <div className="rc-date">{formatDate(consultation.date)}</div>
         </div>
 
@@ -134,11 +279,13 @@ export function ReportView({ consultationId }: { consultationId: string }) {
             "{consultation.brief.goal_text || "Discussed during consultation."}"
           </blockquote>
           <div className="rb-meta-row">
-            {template && (
-              <span className="rb-chip rb-chip-mint">{template.name}</span>
-            )}
+            {activeProcedures.map((t) => (
+              <span key={t.id} className="rb-chip rb-chip-mint">
+                {t.name}
+              </span>
+            ))}
             {consultation.brief.interests
-              .filter((i) => i !== consultation.brief.primary_interest)
+              .filter((i) => !activeProcedures.some((t) => t.id === i))
               .map((i) => (
                 <span key={i} className="rb-chip">
                   {getTemplate(i)?.name ?? i}
@@ -293,6 +440,39 @@ export function ReportView({ consultationId }: { consultationId: string }) {
               Your personalised treatment plan will be finalised with your
               doctor at the clinic.
             </p>
+          </div>
+        )}
+
+        {/* Toxin plan (T3): botox zones, units and cost */}
+        {consultation.toxin_plan && (
+          <div className="rb-panel">
+            <div className="rb-label">Botox unit plan</div>
+            <ul className="rb-list">
+              {Object.entries(consultation.toxin_plan.zones).map(([key, z]) => (
+                <li key={key}>
+                  <span className="rb-tl-head">
+                    <span className="rb-list-label">
+                      {zoneByKey(key)?.label ?? key}
+                    </span>
+                    <span className="rb-tl-due">{z.units} units</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div
+              className="rb-tl-head"
+              style={{
+                marginTop: "10px",
+                paddingTop: "10px",
+                borderTop: "1px solid rgba(20,80,70,0.1)",
+              }}
+            >
+              <span className="rb-list-label">Total</span>
+              <span className="rb-list-label">
+                {consultation.toxin_plan.total_units} units · PKR{" "}
+                {consultation.toxin_plan.total_cost.toLocaleString("en-PK")}
+              </span>
+            </div>
           </div>
         )}
 

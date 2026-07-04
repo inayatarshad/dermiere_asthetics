@@ -8,7 +8,7 @@
  */
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Camera,
@@ -23,14 +23,19 @@ import {
   MapPin,
   Globe,
   AlertCircle,
+  Send,
+  Trash2,
+  Check,
+  RefreshCcw,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useStore, useSessionUser, can, usePatientConsents } from "@/lib/store";
+import { pushPatientToBooth, deleteBoothServerCopy } from "@/lib/booth";
 import { formatDate, formatDateTime, relativeDay, SOURCE_LABELS } from "@/lib/format";
 import { getTemplate } from "@/lib/templates";
 import { CONSENT_COPY, type Asset, type ConsentType } from "@/lib/types";
 import { useAssetUrl } from "@/lib/hooks";
-import { GlassCard, EmptyState, StatusChip, Toggle, Chip } from "@/components/ui";
+import { GlassCard, EmptyState, StatusChip, Toggle, Chip, Modal, Spinner } from "@/components/ui";
 import { PatientAvatar } from "@/components/PatientAvatar";
 import { CameraCapture } from "@/components/CameraCapture";
 
@@ -67,9 +72,19 @@ export default function PatientProfilePage() {
   const createConsultation = useStore((s) => s.createConsultation);
   const setConsent = useStore((s) => s.setConsent);
   const addAsset = useStore((s) => s.addAsset);
+  const boothSync = useStore((s) => s.boothSync[id]);
+  const clearNewArrival = useStore((s) => s.clearNewArrival);
+  const deletePatientAction = useStore((s) => s.deletePatient);
 
   const [tab, setTab] = useState<TabId>("overview");
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // opening the profile clears the booth "NEW" badge
+  useEffect(() => {
+    clearNewArrival(id);
+  }, [id, clearNewArrival]);
 
   const latestConsult = consultations[0];
   const openConsult = consultations.find((c) => c.status === "open");
@@ -187,8 +202,42 @@ export default function PatientProfilePage() {
                 Report
               </Link>
             )}
+            <button
+              className="btn btn-secondary"
+              onClick={() => void pushPatientToBooth(patient.id)}
+              disabled={boothSync?.status === "sending"}
+              title="Send this record and photos to the booth screen"
+            >
+              {boothSync?.status === "sending" ? (
+                <Spinner className="w-4 h-4" />
+              ) : boothSync?.status === "sent" ? (
+                <Check size={16} className="text-mint-500" />
+              ) : boothSync?.status === "error" ? (
+                <RefreshCcw size={16} />
+              ) : (
+                <Send size={16} />
+              )}
+              {boothSync?.status === "sent"
+                ? "On booth screen"
+                : boothSync?.status === "sending"
+                  ? "Sending..."
+                  : boothSync?.status === "error"
+                    ? "Retry send"
+                    : "Send to booth screen"}
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={() => setDeleteOpen(true)}
+              title="Delete this patient and their photos"
+              aria-label="Delete patient"
+            >
+              <Trash2 size={16} />
+            </button>
           </div>
         </div>
+        {boothSync?.status === "error" && boothSync.error && (
+          <p className="caption mt-3 text-warning">{boothSync.error}</p>
+        )}
       </GlassCard>
 
       {/* Tabs */}
@@ -523,6 +572,41 @@ export default function PatientProfilePage() {
           setTab("timeline");
         }}
       />
+
+      {/* Delete patient + photos (T1 privacy path) */}
+      <Modal
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title={`Delete ${patient.name}?`}
+      >
+        <p className="text-sm text-ink-700 leading-relaxed">
+          This permanently removes the patient record, consents, photos,
+          consultations, visualizations and plans from this device
+          {patient.booth_id || boothSync?.boothId
+            ? ", and deletes the copies from the booth server"
+            : ""}
+          . This cannot be undone.
+        </p>
+        <div className="flex gap-2 justify-end mt-6">
+          <button className="btn btn-ghost" onClick={() => setDeleteOpen(false)}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-danger"
+            disabled={deleting}
+            onClick={async () => {
+              setDeleting(true);
+              const boothId = patient.booth_id ?? boothSync?.boothId;
+              if (boothId) await deleteBoothServerCopy(boothId);
+              deletePatientAction(patient.id);
+              router.replace("/patients");
+            }}
+          >
+            {deleting ? <Spinner className="w-4 h-4" /> : <Trash2 size={15} />}
+            Delete everywhere
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

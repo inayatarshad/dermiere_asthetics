@@ -29,6 +29,7 @@ import type {
 import { CONSENT_TEXT_VERSION } from "./types";
 import { buildSeed, fetchSeedManifest } from "./seed";
 import { getTemplate } from "./templates";
+import { deleteImage } from "./db";
 
 const uid = () => crypto.randomUUID();
 const nowISO = () => new Date().toISOString();
@@ -40,6 +41,14 @@ const today = () => new Date().toISOString().slice(0, 10);
  * (on-device simulation only). Keys always stay server-side.
  */
 export type AiProviderSetting = "auto" | "none" | "gemini" | "openai" | "flux";
+
+/** Per-patient state of the phone -> booth push (T1). */
+export interface BoothSyncState {
+  status: "pending" | "sending" | "sent" | "error";
+  boothId?: string;
+  error?: string;
+  updated_at: string;
+}
 
 interface StoreState {
   seeded: boolean;
@@ -56,10 +65,26 @@ interface StoreState {
   sessionUserId: string | null;
   aiProvider: AiProviderSetting;
 
+  // booth handoff (T1)
+  boothLink: boolean; // desktop: poll the booth inbox
+  boothSync: Record<string, BoothSyncState>; // patientId -> push state
+  mergedBoothIds: string[]; // inbox ids already merged (or pushed) here
+  newArrivals: string[]; // patient ids to badge as NEW
+  boothToast: { name: string; at: number } | null;
+
   // lifecycle
   seedIfNeeded: () => Promise<void>;
   resetDemo: () => Promise<void>;
   setAiProvider: (p: AiProviderSetting) => void;
+
+  // booth actions
+  setBoothLink: (on: boolean) => void;
+  setBoothSync: (patientId: string, patch: Partial<BoothSyncState>) => void;
+  addMergedBoothId: (id: string) => void;
+  clearNewArrival: (patientId: string) => void;
+  addNewArrival: (patientId: string) => void;
+  setBoothToast: (t: { name: string; at: number } | null) => void;
+  deletePatient: (patientId: string) => void;
 
   // auth
   login: (email: string, password: string) => User | null;
@@ -94,6 +119,13 @@ interface StoreState {
     consultationId: string,
     status: Consultation["status"]
   ) => void;
+  setToxinPlan: (
+    consultationId: string,
+    plan: Consultation["toxin_plan"]
+  ) => void;
+  /** Per-unit toxin price (admin Settings), used for botox cost totals. */
+  toxinPricePerUnit: number;
+  setToxinPricePerUnit: (v: number) => void;
 
   // visualizations
   addVisualization: (
@@ -106,6 +138,7 @@ interface StoreState {
     templateId: string | null,
     summary?: string
   ) => TreatmentPlan;
+  appendTemplateToPlan: (planId: string, templateId: string) => void;
   updatePlan: (planId: string, patch: Partial<TreatmentPlan>) => void;
   setPlanStatus: (planId: string, status: PlanStatus) => void;
   addPlanItem: (
@@ -147,8 +180,90 @@ export const useStore = create<StoreState>()(
       reports: [],
       sessionUserId: null,
       aiProvider: "auto",
+      boothLink: false,
+      boothSync: {},
+      mergedBoothIds: [],
+      newArrivals: [],
+      boothToast: null,
 
       setAiProvider: (p) => set({ aiProvider: p }),
+
+      setBoothLink: (on) => set({ boothLink: on }),
+
+      setBoothSync: (patientId, patch) =>
+        set((s) => {
+          const prev = s.boothSync[patientId];
+          const next: BoothSyncState = {
+            status: patch.status ?? prev?.status ?? "pending",
+            boothId: patch.boothId ?? prev?.boothId,
+            error: "error" in patch ? patch.error : prev?.error,
+            updated_at: new Date().toISOString(),
+          };
+          return { boothSync: { ...s.boothSync, [patientId]: next } };
+        }),
+
+      addMergedBoothId: (id) =>
+        set((s) => ({
+          mergedBoothIds: s.mergedBoothIds.includes(id)
+            ? s.mergedBoothIds
+            : [...s.mergedBoothIds, id].slice(-300),
+        })),
+
+      addNewArrival: (patientId) =>
+        set((s) => ({
+          newArrivals: s.newArrivals.includes(patientId)
+            ? s.newArrivals
+            : [...s.newArrivals, patientId],
+        })),
+
+      clearNewArrival: (patientId) =>
+        set((s) => ({
+          newArrivals: s.newArrivals.filter((id) => id !== patientId),
+        })),
+
+      setBoothToast: (t) => set({ boothToast: t }),
+
+      deletePatient: (patientId) => {
+        const s = get();
+        const consultIds = s.consultations
+          .filter((c) => c.patient_id === patientId)
+          .map((c) => c.id);
+        const planIds = s.plans
+          .filter((p) => consultIds.includes(p.consultation_id))
+          .map((p) => p.id);
+        // device-local image cleanup, fire-and-forget
+        s.assets
+          .filter(
+            (a) => a.patient_id === patientId && a.storage_url.startsWith("idb:")
+          )
+          .forEach((a) => {
+            deleteImage(a.storage_url.slice(4)).catch(() => {});
+          });
+        set((st) => {
+          const sync = { ...st.boothSync };
+          delete sync[patientId];
+          return {
+            patients: st.patients.filter((p) => p.id !== patientId),
+            consents: st.consents.filter((c) => c.patient_id !== patientId),
+            assets: st.assets.filter((a) => a.patient_id !== patientId),
+            consultations: st.consultations.filter(
+              (c) => c.patient_id !== patientId
+            ),
+            visualizations: st.visualizations.filter(
+              (v) => !consultIds.includes(v.consultation_id)
+            ),
+            plans: st.plans.filter(
+              (p) => !consultIds.includes(p.consultation_id)
+            ),
+            planItems: st.planItems.filter((i) => !planIds.includes(i.plan_id)),
+            reports: st.reports.filter(
+              (r) => !consultIds.includes(r.consultation_id)
+            ),
+            newArrivals: st.newArrivals.filter((id) => id !== patientId),
+            boothSync: sync,
+          };
+        });
+      },
 
       seedIfNeeded: async () => {
         if (get().seeded) return;
@@ -308,6 +423,17 @@ export const useStore = create<StoreState>()(
           ),
         })),
 
+      setToxinPlan: (consultationId, plan) =>
+        set((s) => ({
+          consultations: s.consultations.map((c) =>
+            c.id === consultationId ? { ...c, toxin_plan: plan } : c
+          ),
+        })),
+
+      toxinPricePerUnit: 1500,
+      setToxinPricePerUnit: (v) =>
+        set({ toxinPricePerUnit: Math.max(0, Math.round(v)) }),
+
       addVisualization: (v) => {
         const full: Visualization = { ...v, id: uid(), created_at: nowISO() };
         set((s) => ({ visualizations: [...s.visualizations, full] }));
@@ -350,6 +476,36 @@ export const useStore = create<StoreState>()(
           planItems: [...s.planItems, ...items],
         }));
         return plan;
+      },
+
+      appendTemplateToPlan: (planId, templateId) => {
+        const template = getTemplate(templateId);
+        if (!template) return;
+        set((s) => {
+          let order =
+            Math.max(
+              -1,
+              ...s.planItems
+                .filter((i) => i.plan_id === planId)
+                .map((i) => i.order)
+            ) + 1;
+          const items: PlanItem[] = template.plan_template.map((item) => ({
+            id: uid(),
+            plan_id: planId,
+            kind: item.kind,
+            label: item.label,
+            detail: item.detail,
+            due:
+              item.offset_days !== undefined
+                ? new Date(Date.now() + item.offset_days * 86400000)
+                    .toISOString()
+                    .slice(0, 10)
+                : undefined,
+            done: false,
+            order: order++,
+          }));
+          return { planItems: [...s.planItems, ...items] };
+        });
       },
 
       updatePlan: (planId, patch) =>

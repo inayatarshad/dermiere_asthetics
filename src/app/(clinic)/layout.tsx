@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStore, useSessionUser } from "@/lib/store";
 import { useIdleLock, useMounted } from "@/lib/hooks";
 import { TopNav } from "@/components/TopNav";
+import { BoothAgent } from "@/components/BoothAgent";
 import { Spinner } from "@/components/ui";
 
 export default function ClinicLayout({
@@ -40,6 +41,7 @@ export default function ClinicLayout({
     <div className="min-h-screen pb-16">
       <TopNav />
       <main className="mx-auto max-w-7xl px-4 pt-6">{children}</main>
+      <BoothAgent />
     </div>
   );
 }

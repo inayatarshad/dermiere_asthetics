@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Settings, LogOut, RadioTower } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { ROLE_LABELS } from "@/lib/format";
 import { Logo } from "./ui";
@@ -13,6 +13,8 @@ export function TopNav() {
   const user = useSessionUser();
   const clinic = useStore((s) => s.clinic);
   const logout = useStore((s) => s.logout);
+  const boothLink = useStore((s) => s.boothLink);
+  const setBoothLink = useStore((s) => s.setBoothLink);
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -50,6 +52,27 @@ export function TopNav() {
         </nav>
 
         <div className="flex-1" />
+
+        {/* Booth link: poll the booth inbox for phone-registered patients */}
+        <button
+          onClick={() => setBoothLink(!boothLink)}
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+            boothLink
+              ? "bg-mint-500 text-white shadow-md"
+              : "text-ink-700 hover:bg-mint-100 border border-white/70"
+          }`}
+          title={
+            boothLink
+              ? "Booth link is ON: this screen receives patients registered on other devices"
+              : "Turn on to receive patients registered on the booth phone"
+          }
+          aria-pressed={boothLink}
+        >
+          <RadioTower size={13} className={boothLink ? "animate-pulse" : ""} />
+          <span className="hidden sm:inline">
+            Booth link{boothLink ? ": ON" : ""}
+          </span>
+        </button>
 
         {clinic && (
           <span className="hidden md:inline-flex chip chip-static text-xs">

@@ -60,6 +60,56 @@ export function hasActiveParams(
   return schema.some((def) => Math.abs(params[def.key] ?? 0) >= 15);
 }
 
+// ---------------------------------------------------------------------
+// Multi-procedure prompt assembly (T2): several treatments, ONE combined
+// instruction with ONE merged preservation footer. A single active
+// template returns assemblePrompt() output byte-identical, so the
+// single-procedure pipeline (and its cache) is untouched.
+// ---------------------------------------------------------------------
+
+/** Area-scoping language per procedure, used in the labeled blocks. */
+const AREA_SCOPE: Record<string, string> = {
+  rhinoplasty: "the nose",
+  lip_filler: "the lips and immediate perioral area",
+  chin_filler: "the chin and lower jawline",
+  botox:
+    "the specific botox treatment areas described, as settled about two weeks after injection",
+};
+
+const MULTI_OPENING =
+  "Edit ONLY the following facial areas to visualize the combined, fully settled result of these aesthetic treatments:";
+
+const MULTI_FOOTER = `Preserve exactly, with no changes: the person's identity, every untreated facial feature, natural skin tone and texture with visible pores (do NOT blur, airbrush or beautify the whole face; only the specific changes described above), facial proportions, hairstyle, lighting, camera angle, and background. The result must look like the SAME person with every described change healed and fully settled: natural, proportionate and believable, never overfilled, frozen or artificial. Photorealistic, consistent lighting, no artifacts.`;
+
+/**
+ * Combined instruction for the active templates. Templates whose sliders
+ * are all neutral are skipped; if exactly one template remains active the
+ * output is byte-identical to assemblePrompt for that template.
+ */
+export function assembleMultiPrompt(
+  templates: TreatmentTemplate[],
+  params: Record<string, number>
+): string {
+  const withPhrases = templates
+    .map((t) => ({ t, phrases: assembleSliderPhrases(t.slider_schema, params) }))
+    .filter((x) => x.phrases.length > 0);
+
+  if (withPhrases.length === 0) {
+    // nothing active: fall back to the primary's own template (neutral copy)
+    return templates.length > 0 ? assemblePrompt(templates[0], params) : "";
+  }
+  if (withPhrases.length === 1) {
+    return assemblePrompt(withPhrases[0].t, params);
+  }
+
+  const blocks = withPhrases.map(({ t, phrases }) => {
+    const scope = AREA_SCOPE[t.id] ?? `the ${t.region.replace(/_/g, " ")} area`;
+    return `${t.name.toUpperCase()} (edit ${scope}): ${phrases}`;
+  });
+
+  return `${MULTI_OPENING}\n\n${blocks.join("\n\n")}\n\n${MULTI_FOOTER}`;
+}
+
 /** Stable hash of params — used to cache generations per setting. */
 export function paramsHash(
   procedure: string,

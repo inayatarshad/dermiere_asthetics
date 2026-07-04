@@ -58,12 +58,19 @@ Set `AI_PROVIDER` to `gemini` \| `openai` \| `flux` to force one for a like-for-
 
 The provider can also be switched at runtime from the app itself: **Settings -> AI generation** (admin role) selects Auto / Gemini / OpenAI / FLUX or **None**, which turns photoreal generation off clinic-wide and keeps the visualization fully on-device. The GUI shows which providers have keys configured on the server; keys themselves never reach the browser.
 
+## Booth link (phone -> desktop handoff)
+
+Register a patient on the booth phone; they appear on the booth laptop within ~5 seconds. Photos and consents travel through a demo-grade Vercel Blob inbox (`/api/booth/*`), merge into the receiving device's local store, and work with the 3D canvas and AI generation immediately. Turn on **Booth link** in the top nav on the receiving screen. Deleting a patient removes the server copies too, and inbox items self-expire after 24 hours.
+
+Setup: Vercel -> Storage -> Create -> **Blob** -> connect to the project (this injects `BLOB_READ_WRITE_TOKEN`). Locally, with no token, a file-based inbox under `.booth-dev-store/` keeps the whole flow testable.
+
 ## Deploy to Vercel
 
 1. Push this folder to a GitHub repository.
 2. In Vercel: **Add New Project** -> import the repo. Framework auto-detects as Next.js; no build settings needed (`postinstall` handles the WASM assets).
 3. Add the environment variables from `.env.example` (at minimum `GEMINI_API_KEY` for live AI).
-4. Deploy. The camera capture requires HTTPS, which Vercel provides by default.
+4. Storage -> Create -> Blob -> connect to the project (enables the booth link).
+5. Deploy. The camera capture requires HTTPS, which Vercel provides by default.
 
 ## Stack
 

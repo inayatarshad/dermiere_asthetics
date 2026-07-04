@@ -6,7 +6,7 @@
  */
 
 import { useRouter } from "next/navigation";
-import { FileText, Printer } from "lucide-react";
+import { FileSignature, FileText, Printer } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Consultation, Patient } from "@/lib/types";
 import { GlassCard } from "@/components/ui";
@@ -53,6 +53,17 @@ export function ReportStep({
           >
             <Printer size={16} />
             Print / PDF
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              ensureReport(consultation.id);
+              router.push(`/report/${consultation.id}?pack=consent&print=1`);
+            }}
+            title="One-page consent summary: the simulation viewed, risks discussed, consents on record, signature lines"
+          >
+            <FileSignature size={16} />
+            Print consent pack
           </button>
         </div>
       </GlassCard>

@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useStore } from "@/lib/store";
-import { getTemplate } from "@/lib/templates";
+import { activeTemplatesFor } from "@/lib/templates";
+import { zoneByKey } from "@/lib/botoxUnits";
 import { formatDate } from "@/lib/format";
 import type { Consultation, PlanItem, PlanStatus } from "@/lib/types";
 import { GlassCard, EmptyState, Field } from "@/components/ui";
@@ -56,6 +57,7 @@ export function PlanStep({
     )
   );
   const createPlanFromTemplate = useStore((s) => s.createPlanFromTemplate);
+  const appendTemplateToPlan = useStore((s) => s.appendTemplateToPlan);
   const updatePlan = useStore((s) => s.updatePlan);
   const setPlanStatus = useStore((s) => s.setPlanStatus);
   const togglePlanItem = useStore((s) => s.togglePlanItem);
@@ -63,7 +65,13 @@ export function PlanStep({
   const addPlanItem = useStore((s) => s.addPlanItem);
   const setDoctorNote = useStore((s) => s.setDoctorNote);
 
-  const template = getTemplate(consultation.brief.primary_interest);
+  // Multi-procedure (T2): each active procedure offers its plan template,
+  // addable individually.
+  const activeTemplates = activeTemplatesFor(
+    consultation.brief.interests,
+    consultation.brief.primary_interest
+  );
+  const template = activeTemplates[0];
 
   const [summary, setSummary] = useState(plan?.summary ?? "");
   const [note, setNote] = useState(consultation.doctor_note);
@@ -109,19 +117,25 @@ export function PlanStep({
           </span>
           <h2 className="h1 text-ink-900 mt-4">Create the treatment plan</h2>
           <p className="text-ink-700 mt-2 leading-relaxed">
-            {template?.available
-              ? `The ${template.name} template pre-fills milestones, typical medicines and the follow-up schedule. You edit from there.`
+            {template
+              ? `Each procedure template pre-fills milestones, typical medicines and the follow-up schedule. Start with one; add the others onto the same plan.`
               : "Start from a template or build a custom checklist."}
           </p>
           <div className="flex justify-center gap-2 mt-6 flex-wrap">
-            {template?.available && (
+            {activeTemplates.map((t, i) => (
               <button
-                className="btn btn-primary"
-                onClick={() => createPlanFromTemplate(consultation.id, template.id)}
+                key={t.id}
+                className={i === 0 ? "btn btn-primary" : "btn btn-secondary"}
+                onClick={() => {
+                  const p = createPlanFromTemplate(consultation.id, t.id);
+                  // a combined consult starts from one template; the rest
+                  // are one click away via "Add template items"
+                  void p;
+                }}
               >
-                Use {template.name} template
+                Use {t.name} template
               </button>
-            )}
+            ))}
             <button
               className="btn btn-secondary"
               onClick={() => createPlanFromTemplate(consultation.id, null, "")}
@@ -133,6 +147,15 @@ export function PlanStep({
       </div>
     );
   }
+
+  // Templates not yet represented in this plan (matched on their signature
+  // first milestone, so appending is one-shot per procedure)
+  const pendingTemplates = activeTemplates.filter(
+    (t) =>
+      t.id !== plan.template_id &&
+      t.plan_template.length > 0 &&
+      !items.some((i) => i.label === t.plan_template[0].label)
+  );
 
   const doneCount = items.filter((i) => i.done).length;
 
@@ -206,6 +229,31 @@ export function PlanStep({
             title="Empty plan"
             body="Add milestones, medicines and follow-ups below."
           />
+        )}
+
+        {/* Add another procedure's template items (T2 combined plans) */}
+        {pendingTemplates.length > 0 && (
+          <GlassCard className="p-5">
+            <div className="text-sm font-medium text-ink-900 mb-1">
+              Add procedure items
+            </div>
+            <p className="caption mb-3">
+              Append another active procedure's milestones, medicines and
+              follow-ups to this plan.
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {pendingTemplates.map((t) => (
+                <button
+                  key={t.id}
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => appendTemplateToPlan(plan.id, t.id)}
+                >
+                  <Plus size={14} />
+                  Add {t.name} items
+                </button>
+              ))}
+            </div>
+          </GlassCard>
         )}
 
         {/* Add item */}
@@ -283,6 +331,35 @@ export function PlanStep({
 
       {/* Right rail */}
       <div className="space-y-4">
+        {/* Toxin plan (T3): zones + units + cost from the Visualize step */}
+        {consultation.toxin_plan && (
+          <GlassCard className="p-5">
+            <h3 className="h2 text-ink-900 mb-1">Toxin plan</h3>
+            <p className="caption mb-3">
+              Botox units mapped during visualization.
+            </p>
+            <div className="space-y-1.5">
+              {Object.entries(consultation.toxin_plan.zones).map(([key, z]) => (
+                <div key={key} className="flex justify-between text-sm">
+                  <span className="text-ink-700">
+                    {zoneByKey(key)?.label ?? key}
+                  </span>
+                  <span className="font-medium text-ink-900 tabular-nums">
+                    {z.units}u
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 pt-3 border-t border-white/60 flex justify-between text-sm">
+              <span className="font-medium text-ink-900">Total</span>
+              <span className="font-semibold text-ink-900 tabular-nums">
+                {consultation.toxin_plan.total_units}u · PKR{" "}
+                {consultation.toxin_plan.total_cost.toLocaleString("en-PK")}
+              </span>
+            </div>
+          </GlassCard>
+        )}
+
         <GlassCard className="p-5">
           <h3 className="h2 text-ink-900 mb-3">Plan status</h3>
           <div className="flex gap-1.5 flex-wrap">

@@ -746,3 +746,41 @@ export function getTemplate(id: string | null | undefined) {
   if (!id) return undefined;
   return TEMPLATES.find((t) => t.id === id);
 }
+
+/**
+ * Active templates for a brief: available selections, primary first.
+ * The multi-procedure pipeline (T2) rests on slider keys staying flat and
+ * globally unique across live templates.
+ */
+export function activeTemplatesFor(
+  interests: string[],
+  primary: string | null
+): TreatmentTemplate[] {
+  const ordered = [primary, ...interests.filter((i) => i !== primary)];
+  const seen = new Set<string>();
+  const out: TreatmentTemplate[] = [];
+  for (const id of ordered) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const t = getTemplate(id);
+    if (t?.available) out.push(t);
+  }
+  return out;
+}
+
+// Dev assertion: the flat-params design requires globally unique slider
+// keys across live templates. Fails loudly in development if violated.
+if (process.env.NODE_ENV !== "production") {
+  const seen = new Map<string, string>();
+  for (const t of TEMPLATES.filter((x) => x.available)) {
+    for (const s of t.slider_schema) {
+      const prior = seen.get(s.key);
+      if (prior && prior !== t.id) {
+        console.error(
+          `[templates] DUPLICATE slider key "${s.key}" in ${prior} and ${t.id}. Multi-procedure params will collide.`
+        );
+      }
+      seen.set(s.key, t.id);
+    }
+  }
+}

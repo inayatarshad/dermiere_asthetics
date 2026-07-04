@@ -37,6 +37,9 @@ yarn-error.log*
 # generated at postinstall from node_modules (scripts/setup-assets.mjs)
 /public/mediapipe/wasm
 
+# local dev booth inbox (T1 fallback store)
+/.booth-dev-store
+
 # vercel
 .vercel
 

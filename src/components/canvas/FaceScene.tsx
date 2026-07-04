@@ -10,7 +10,7 @@
  *   - Morph sliders + feature scaling flow in via the shared morph engine
  */
 
-import { useEffect, useMemo, useRef, useCallback } from "react";
+import { useEffect, useMemo, useRef, useCallback, useState } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -63,28 +63,48 @@ interface FaceSceneProps {
 const SUBDIV_LEVELS = 2;
 
 export function FaceScene(props: FaceSceneProps) {
+  // Mobile (T4): with Draw/Sculpt active, a second finger must still
+  // orbit/zoom — no tool traps. Track live pointer count; two or more
+  // switches the gesture to navigation and cancels any live stroke.
+  const pointers = useRef(new Set<number>());
+  const [multiTouch, setMultiTouch] = useState(false);
+  const track = (e: React.PointerEvent, down: boolean) => {
+    if (down) pointers.current.add(e.pointerId);
+    else pointers.current.delete(e.pointerId);
+    const multi = pointers.current.size >= 2;
+    setMultiTouch((m) => (m === multi ? m : multi));
+  };
+
   return (
-    <Canvas
-      dpr={[1, 2]}
-      gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
-      camera={{ position: [0, 0.05, 3.1], fov: 35 }}
-      style={{ touchAction: "none" }}
+    <div
+      className="w-full h-full"
+      onPointerDownCapture={(e) => track(e, true)}
+      onPointerUpCapture={(e) => track(e, false)}
+      onPointerCancelCapture={(e) => track(e, false)}
+      onPointerLeave={(e) => track(e, false)}
     >
-      <FaceMeshObject {...props} />
-      <StageShadow />
-      <OrbitControls
-        enabled={props.tool === "move"}
-        enableDamping
-        dampingFactor={0.08}
-        minDistance={1.7}
-        maxDistance={6}
-        minAzimuthAngle={-Math.PI * 0.42}
-        maxAzimuthAngle={Math.PI * 0.42}
-        minPolarAngle={Math.PI * 0.3}
-        maxPolarAngle={Math.PI * 0.68}
-        makeDefault
-      />
-    </Canvas>
+      <Canvas
+        dpr={[1, 2]}
+        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+        camera={{ position: [0, 0.05, 3.1], fov: 35 }}
+        style={{ touchAction: "none" }}
+      >
+        <FaceMeshObject {...props} multiTouch={multiTouch} />
+        <StageShadow />
+        <OrbitControls
+          enabled={props.tool === "move" || multiTouch}
+          enableDamping
+          dampingFactor={0.08}
+          minDistance={1.7}
+          maxDistance={6}
+          minAzimuthAngle={-Math.PI * 0.42}
+          maxAzimuthAngle={Math.PI * 0.42}
+          minPolarAngle={Math.PI * 0.3}
+          maxPolarAngle={Math.PI * 0.68}
+          makeDefault
+        />
+      </Canvas>
+    </div>
   );
 }
 
@@ -99,8 +119,11 @@ function FaceMeshObject({
   annotations,
   onStrokeCommit,
   resetToken,
-}: FaceSceneProps) {
+  multiTouch = false,
+}: FaceSceneProps & { multiTouch?: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const multiTouchRef = useRef(multiTouch);
+  multiTouchRef.current = multiTouch;
 
   // ---- static frame ---------------------------------------------------
   const frame = useMemo(() => {
@@ -299,6 +322,15 @@ function FaceMeshObject({
   // ---- interaction -------------------------------------------------------
   const pointerActive = useRef(false);
 
+  // A second finger landing mid-stroke cancels the stroke (no commit) and
+  // hands the gesture to OrbitControls (T4: no tool traps on touch).
+  useEffect(() => {
+    if (multiTouch) {
+      pointerActive.current = false;
+      liveStroke.current = null;
+    }
+  }, [multiTouch]);
+
   const applySculptAt = useCallback(
     (point: THREE.Vector3) => {
       const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
@@ -335,7 +367,7 @@ function FaceMeshObject({
   );
 
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
-    if (tool === "move") return;
+    if (tool === "move" || multiTouchRef.current) return;
     e.stopPropagation();
     (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
     pointerActive.current = true;
@@ -352,7 +384,8 @@ function FaceMeshObject({
   };
 
   const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (!pointerActive.current || tool === "move") return;
+    if (!pointerActive.current || tool === "move" || multiTouchRef.current)
+      return;
     e.stopPropagation();
     if (tool === "draw" && e.uv && liveStroke.current) {
       liveStroke.current.points.push({ u: e.uv.x, v: e.uv.y });

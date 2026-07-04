@@ -14,12 +14,15 @@ export function BeforeAfterSlider({
   beforeLabel = "Before",
   afterLabel = "After",
   aspect = "4 / 4.4",
+  overlay,
 }: {
   beforeSrc: string;
   afterSrc: string | null;
   beforeLabel?: string;
   afterLabel?: string;
   aspect?: string;
+  /** Non-interactive layer above the images (e.g. treatment-zone wash). */
+  overlay?: React.ReactNode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState(50);
@@ -65,6 +68,8 @@ export function BeforeAfterSlider({
         className="absolute inset-0 w-full h-full object-cover"
         draggable={false}
       />
+
+      {overlay}
 
       {afterSrc ? (
         <>

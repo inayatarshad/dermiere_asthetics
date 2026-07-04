@@ -76,6 +76,8 @@ export default function SettingsPage() {
   const resetDemo = useStore((s) => s.resetDemo);
   const aiProvider = useStore((s) => s.aiProvider);
   const setAiProvider = useStore((s) => s.setAiProvider);
+  const toxinPricePerUnit = useStore((s) => s.toxinPricePerUnit);
+  const setToxinPricePerUnit = useStore((s) => s.setToxinPricePerUnit);
 
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -407,6 +409,21 @@ export default function SettingsPage() {
                 value={clinic?.branding.address ?? ""}
                 onChange={(e) =>
                   updateClinic({ branding: { address: e.target.value } })
+                }
+              />
+            </Field>
+            <Field
+              label="Toxin price per unit (PKR)"
+              hint="Drives the cost total on botox unit planning"
+            >
+              <input
+                className="input"
+                inputMode="numeric"
+                value={String(toxinPricePerUnit)}
+                onChange={(e) =>
+                  setToxinPricePerUnit(
+                    parseInt(e.target.value.replace(/\D/g, "") || "0", 10)
+                  )
                 }
               />
             </Field>

@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Check, ChevronRight, ShieldCheck, UserPlus } from "lucide-react";
 import { useStore, useSessionUser } from "@/lib/store";
+import { queueBoothPush } from "@/lib/booth";
 import { CONSENT_COPY, CONSENT_TEXT_VERSION, type ConsentType, type PatientSource } from "@/lib/types";
 import { CameraCapture, type CapturedPhoto } from "@/components/CameraCapture";
 import { GlassCard, Field, Toggle } from "@/components/ui";
@@ -104,6 +105,10 @@ export default function RegisterPatientPage() {
         storage_url: photo.storageUrl,
       });
     }
+
+    // Booth handoff: fire the push now; the background agent retries if
+    // the venue wifi drops (visible pending state on the profile)
+    queueBoothPush(patient.id);
 
     router.push(`/patients/${patient.id}?registered=1`);
   };

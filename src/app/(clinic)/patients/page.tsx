@@ -12,6 +12,7 @@ import { PatientAvatar } from "@/components/PatientAvatar";
 export default function PatientsPage() {
   const patients = useStore((s) => s.patients);
   const consultations = useStore((s) => s.consultations);
+  const newArrivals = useStore((s) => s.newArrivals);
   const [query, setQuery] = useState("");
 
   const q = query.trim().toLowerCase();
@@ -92,6 +93,11 @@ export default function PatientsPage() {
                     </div>
                   </div>
                   <div className="mt-4 flex items-center gap-1.5 flex-wrap">
+                    {newArrivals.includes(p.id) && (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-mint-500 text-white pulse-mint">
+                        NEW
+                      </span>
+                    )}
                     {template && (
                       <span className="chip chip-static text-xs">
                         {template.name}

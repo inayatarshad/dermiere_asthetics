@@ -14,15 +14,18 @@ export function GlassCard({
   strong = false,
   hover = false,
   onClick,
+  ref,
 }: {
   children: ReactNode;
   className?: string;
   strong?: boolean;
   hover?: boolean;
   onClick?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
 }) {
   return (
     <div
+      ref={ref}
       onClick={onClick}
       className={`${strong ? "glass-strong" : "glass"} ${
         hover ? "card-hover cursor-pointer" : ""
