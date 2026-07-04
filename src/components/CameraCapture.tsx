@@ -33,26 +33,29 @@ const POSES: {
   kind: AssetKind;
   label: string;
   instruction: string;
-  angle: number; // ghost rotation hint
+  /** yaw direction the head ROTATES (turns), not a tilt: -1 right, +1 left, 0 front */
+  turn: -1 | 0 | 1;
 }[] = [
   {
     kind: "photo_front",
     label: "Front",
     instruction:
       "Straight on, neutral expression, hair off the face, even lighting",
-    angle: 0,
+    turn: 0,
   },
   {
     kind: "photo_right",
-    label: "Tilted right",
-    instruction: "Turn your head about 35 degrees to your right",
-    angle: -28,
+    label: "Turned right",
+    instruction:
+      "Rotate your head to YOUR RIGHT about 35 degrees, like checking your shoulder. Keep the chin level, do not tilt",
+    turn: -1,
   },
   {
     kind: "photo_left",
-    label: "Tilted left",
-    instruction: "Turn your head about 35 degrees to your left",
-    angle: 28,
+    label: "Turned left",
+    instruction:
+      "Rotate your head to YOUR LEFT about 35 degrees, like checking your shoulder. Keep the chin level, do not tilt",
+    turn: 1,
   },
 ];
 
@@ -284,43 +287,101 @@ export function CameraCapture({
                   <Spinner className="w-7 h-7" />
                 </div>
               )}
-              {/* ghost overlay guide */}
+              {/* ghost overlay guide: for side poses this communicates a
+                  head ROTATION (yaw), never a tilt — narrower oval, facial
+                  midline swung toward the nose direction, and a turn arrow.
+                  Mirrored preview flips the on-screen direction. */}
               <svg
                 viewBox="0 0 100 100"
                 className="absolute inset-0 w-full h-full pointer-events-none"
                 preserveAspectRatio="xMidYMid meet"
               >
-                <g
-                  transform={`rotate(${pose.angle} 50 52)`}
-                  opacity="0.75"
-                >
-                  <ellipse
-                    cx="50"
-                    cy="46"
-                    rx="20"
-                    ry="26"
-                    fill="none"
-                    stroke="#8BE8D5"
-                    strokeWidth="0.7"
-                    strokeDasharray="2.4 2"
-                  />
-                  <line
-                    x1="50"
-                    y1="22"
-                    x2="50"
-                    y2="70"
-                    stroke="#8BE8D5"
-                    strokeWidth="0.35"
-                    strokeDasharray="1.4 2"
-                  />
-                  <path
-                    d="M36 74 Q50 82 64 74"
-                    fill="none"
-                    stroke="#8BE8D5"
-                    strokeWidth="0.5"
-                    strokeDasharray="2 2"
-                  />
-                </g>
+                {pose.turn === 0 ? (
+                  <g opacity="0.75">
+                    <ellipse
+                      cx="50"
+                      cy="46"
+                      rx="20"
+                      ry="26"
+                      fill="none"
+                      stroke="#8BE8D5"
+                      strokeWidth="0.7"
+                      strokeDasharray="2.4 2"
+                    />
+                    <line
+                      x1="50"
+                      y1="22"
+                      x2="50"
+                      y2="70"
+                      stroke="#8BE8D5"
+                      strokeWidth="0.35"
+                      strokeDasharray="1.4 2"
+                    />
+                    <path
+                      d="M36 74 Q50 82 64 74"
+                      fill="none"
+                      stroke="#8BE8D5"
+                      strokeWidth="0.5"
+                      strokeDasharray="2 2"
+                    />
+                  </g>
+                ) : (
+                  (() => {
+                    const d = (mirrored ? -1 : 1) * pose.turn;
+                    const mid = 50 + d * 10; // facial midline swings with the nose
+                    return (
+                      <g opacity="0.8">
+                        {/* narrower head oval, slightly shifted */}
+                        <ellipse
+                          cx={50 + d * 2}
+                          cy="46"
+                          rx="16.5"
+                          ry="26"
+                          fill="none"
+                          stroke="#8BE8D5"
+                          strokeWidth="0.7"
+                          strokeDasharray="2.4 2"
+                        />
+                        {/* swung facial midline stays VERTICAL: chin level */}
+                        <line
+                          x1={mid}
+                          y1="24"
+                          x2={mid}
+                          y2="68"
+                          stroke="#8BE8D5"
+                          strokeWidth="0.4"
+                          strokeDasharray="1.4 2"
+                        />
+                        {/* nose wedge pointing the turn direction */}
+                        <path
+                          d={`M ${mid} 44 L ${mid + d * 5.5} 49 L ${mid} 52 Z`}
+                          fill="rgba(139,232,213,0.55)"
+                          stroke="#8BE8D5"
+                          strokeWidth="0.4"
+                        />
+                        {/* rotation arrow over the head */}
+                        <path
+                          d={`M ${50 - d * 13} 15 A 14 7 0 0 ${d > 0 ? 1 : 0} ${50 + d * 12} 13.5`}
+                          fill="none"
+                          stroke="#8BE8D5"
+                          strokeWidth="0.9"
+                        />
+                        <path
+                          d={`M ${50 + d * 12} 13.5 l ${-d * 3.4} -2.2 l ${d * 0.6} 3.6 Z`}
+                          fill="#8BE8D5"
+                        />
+                        {/* shoulders stay square to the camera */}
+                        <path
+                          d="M36 74 Q50 82 64 74"
+                          fill="none"
+                          stroke="#8BE8D5"
+                          strokeWidth="0.5"
+                          strokeDasharray="2 2"
+                        />
+                      </g>
+                    );
+                  })()
+                )}
               </svg>
             </>
           )}

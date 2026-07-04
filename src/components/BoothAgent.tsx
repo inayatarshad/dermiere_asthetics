@@ -27,7 +27,9 @@ export function BoothAgent() {
   useEffect(() => {
     const retry = () => {
       const s = useStore.getState();
+      if (s.boothAvailable === false) return; // feature dormant, no spam
       for (const [patientId, sync] of Object.entries(s.boothSync)) {
+        if (sync.code === "not_configured") continue; // never auto-retried
         if (sync.status === "pending" || sync.status === "error") {
           void pushPatientToBooth(patientId);
         }
@@ -48,7 +50,12 @@ export function BoothAgent() {
       if (pulling.current) return;
       pulling.current = true;
       try {
-        await pullBoothInbox();
+        const result = await pullBoothInbox();
+        // No storage on the server: switch the toggle off instead of
+        // polling a 501 every 4 seconds.
+        if (result.code === "not_configured") {
+          useStore.getState().setBoothLink(false);
+        }
       } finally {
         pulling.current = false;
       }

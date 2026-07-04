@@ -19,6 +19,7 @@ import {
   Undo2,
   Trash2,
   ScanFace,
+  ChevronDown,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useFaceData } from "@/lib/hooks";
@@ -93,14 +94,22 @@ export function CanvasStep({
     (t) => t.canvas_handles.length > 0
   );
 
-  const frontPhoto = useMemo(() => {
+  const photoOfKind = (kind: string) => {
     const all = assets
-      .filter((a) => a.patient_id === patient.id && a.kind === "photo_front")
+      .filter((a) => a.patient_id === patient.id && a.kind === kind)
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
     return all.find((a) => a.consultation_id === consultation.id) ?? all[0];
-  }, [assets, patient.id, consultation.id]);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const frontPhoto = useMemo(() => photoOfKind("photo_front"), [assets, patient.id, consultation.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const leftPhoto = useMemo(() => photoOfKind("photo_left"), [assets, patient.id, consultation.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rightPhoto = useMemo(() => photoOfKind("photo_right"), [assets, patient.id, consultation.id]);
 
-  const face = useFaceData(frontPhoto);
+  // The turned photos refine true depth (multiview.ts); front-only falls
+  // back to the single-view relief automatically.
+  const face = useFaceData(frontPhoto, { left: leftPhoto, right: rightPhoto });
 
   const [tool, setTool] = useState<CanvasTool>("move");
   const [drawColor, setDrawColor] = useState(DRAW_COLORS[0]);
@@ -118,6 +127,11 @@ export function CanvasStep({
   );
   const [resetToken, setResetToken] = useState(0);
   const [captureOpen, setCaptureOpen] = useState(false);
+  // Combined-procedure rail: exclusive accordion so the list stays short
+  // and the 3D never scrolls out of reach
+  const [openGroup, setOpenGroup] = useState<string | null>(
+    activeTemplates[0]?.id ?? null
+  );
 
   // persist canvas state (debounced)
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -160,8 +174,12 @@ export function CanvasStep({
 
   return (
     <div className="grid lg:grid-cols-[1fr_300px] gap-4 fade-up">
-      {/* Stage */}
-      <GlassCard className="relative overflow-hidden" strong>
+      {/* Stage: sticky on desktop so the 3D never scrolls away while the
+          doctor works the rail */}
+      <GlassCard
+        className="relative overflow-hidden lg:sticky lg:top-[84px] self-start w-full"
+        strong
+      >
         <div
           className="relative"
           style={{
@@ -324,6 +342,26 @@ export function CanvasStep({
                   : "Drag on the surface to sculpt with soft falloff"}
             </span>
           </div>
+
+          {/* Depth provenance: the whole point of the 3-photo capture */}
+          {face.status === "ready" && (
+            <div className="absolute top-3 right-3">
+              <span
+                className={`chip chip-static text-xs ${
+                  face.depth === "multi" ? "chip-active" : ""
+                }`}
+                title={
+                  face.depth === "multi"
+                    ? `Depth triangulated from the turned photos (${(face.depthViews ?? [])
+                        .map((v) => `${v.side}: ${Math.abs(v.yawDeg).toFixed(0)} deg`)
+                        .join(", ")})`
+                    : "Depth from the front photo only. Capture the turned-left and turned-right photos for an accurate side profile"
+                }
+              >
+                {face.depth === "multi" ? "3-view depth" : "Front-photo depth"}
+              </span>
+            </div>
+          )}
         </div>
       </GlassCard>
 
@@ -347,18 +385,16 @@ export function CanvasStep({
               : "Set a primary interest in the Brief to load procedure-specific handles."}
           </p>
           {handleGroups.length > 0 ? (
-            <div className="space-y-5">
-              {handleGroups.map((t) => (
-                <div key={t.id}>
-                  {activeTemplates.length > 1 && (
-                    <div className="field-label mb-2.5">{t.name}</div>
-                  )}
-                  {t.id === "botox" ? (
-                    <BotoxZoneMap
-                      compact
-                      values={morphs}
-                      onChange={setMorph}
-                    />
+            <div className="space-y-2.5">
+              {handleGroups.map((t) => {
+                const single = handleGroups.length === 1;
+                const isOpen = single || openGroup === t.id;
+                const activeCount = t.canvas_handles.filter(
+                  (h) => Math.abs(morphs[h.key] ?? 0) > 2
+                ).length;
+                const body =
+                  t.id === "botox" ? (
+                    <BotoxZoneMap compact values={morphs} onChange={setMorph} />
                   ) : (
                     <div className="space-y-4">
                       {t.canvas_handles.map((h) => (
@@ -374,9 +410,39 @@ export function CanvasStep({
                         />
                       ))}
                     </div>
-                  )}
-                </div>
-              ))}
+                  );
+                if (single) return <div key={t.id}>{body}</div>;
+                return (
+                  <div
+                    key={t.id}
+                    className={`glass-subtle ${isOpen ? "p-3.5" : ""}`}
+                  >
+                    <button
+                      className={`w-full flex items-center gap-2 text-left ${
+                        isOpen ? "mb-3" : "px-3.5 py-2.5"
+                      }`}
+                      onClick={() => setOpenGroup(isOpen ? null : t.id)}
+                      aria-expanded={isOpen}
+                    >
+                      <ChevronDown
+                        size={15}
+                        className={`text-ink-400 shrink-0 transition-transform ${
+                          isOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                      <span className="text-sm font-medium text-ink-900 flex-1 truncate">
+                        {t.name}
+                      </span>
+                      {activeCount > 0 && (
+                        <span className="chip chip-static text-[11px] shrink-0">
+                          {activeCount} active
+                        </span>
+                      )}
+                    </button>
+                    {isOpen && body}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-ink-700">

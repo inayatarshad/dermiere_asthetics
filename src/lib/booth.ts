@@ -32,8 +32,12 @@ export interface BoothPullItem {
 // Push (phone side)
 // ---------------------------------------------------------------------
 
+const NOT_CONFIGURED_MSG =
+  "Booth link is not set up on this deployment. In Vercel: Storage, Create, Blob, connect to the project. Everything else works without it.";
+
 export async function pushPatientToBooth(
-  patientId: string
+  patientId: string,
+  opts: { manual?: boolean } = {}
 ): Promise<{ ok: boolean; error?: string }> {
   const st = useStore.getState();
   const patient = st.patients.find((p) => p.id === patientId);
@@ -92,24 +96,54 @@ export async function pushPatientToBooth(
       message?: string;
     };
     if (!res.ok || !data.ok) {
+      // Booth storage absent: the feature is dormant, not broken. Auto
+      // pushes vanish silently; a manual send explains the setup once.
+      if (data.error === "not_configured") {
+        st.setBoothAvailable(false);
+        if (opts.manual) {
+          st.setBoothSync(patientId, {
+            status: "error",
+            code: "not_configured",
+            error: NOT_CONFIGURED_MSG,
+          });
+        } else {
+          st.clearBoothSync(patientId);
+        }
+        return { ok: false, error: NOT_CONFIGURED_MSG };
+      }
       const message = data.message ?? `Push failed (${res.status}).`;
-      st.setBoothSync(patientId, { status: "error", error: message });
+      st.setBoothSync(patientId, {
+        status: "error",
+        code: data.error,
+        error: message,
+      });
       return { ok: false, error: message };
     }
     // Own pushes must never merge back on this device
+    st.setBoothAvailable(true);
     st.addMergedBoothId(boothId);
     st.updatePatient(patientId, { booth_id: boothId });
-    st.setBoothSync(patientId, { status: "sent", error: undefined });
+    st.setBoothSync(patientId, {
+      status: "sent",
+      error: undefined,
+      code: undefined,
+    });
     return { ok: true };
   } catch {
     const message = "No connection. Queued; will retry automatically.";
-    useStore.getState().setBoothSync(patientId, { status: "error", error: message });
+    useStore.getState().setBoothSync(patientId, {
+      status: "error",
+      code: "network",
+      error: message,
+    });
     return { ok: false, error: message };
   }
 }
 
 /** Queue a push (used right after registration); the agent retries it. */
 export function queueBoothPush(patientId: string) {
+  // Feature dormant on this deployment: skip quietly
+  if (useStore.getState().boothAvailable === false) return;
   useStore.getState().setBoothSync(patientId, { status: "pending" });
   void pushPatientToBooth(patientId);
 }
@@ -182,14 +216,26 @@ export async function mergeBoothItem(item: BoothPullItem): Promise<void> {
 export async function pullBoothInbox(): Promise<{
   merged: number;
   error?: string;
+  code?: string;
 }> {
   try {
     const res = await fetch("/api/booth/pull", { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as {
       items?: BoothPullItem[];
+      error?: string;
       message?: string;
     };
-    if (!res.ok) return { merged: 0, error: data.message ?? `Pull failed (${res.status}).` };
+    if (!res.ok) {
+      if (data.error === "not_configured") {
+        useStore.getState().setBoothAvailable(false);
+      }
+      return {
+        merged: 0,
+        code: data.error,
+        error: data.message ?? `Pull failed (${res.status}).`,
+      };
+    }
+    useStore.getState().setBoothAvailable(true);
     const fresh = (data.items ?? []).filter(
       (item) => !useStore.getState().mergedBoothIds.includes(item.id)
     );

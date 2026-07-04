@@ -461,8 +461,8 @@ export function VisualizeStep({
         </div>
       )}
 
-      {/* Reveal stage */}
-      <div className="space-y-3">
+      {/* Reveal stage: sticky on desktop so the compare never scrolls away */}
+      <div className="space-y-3 lg:sticky lg:top-[84px] self-start">
         <GlassCard strong className="p-5" ref={stageRef}>
           {beforeUrl ? (
             <BeforeAfterSlider

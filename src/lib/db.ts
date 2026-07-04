@@ -50,6 +50,16 @@ export async function loadLandmarks(
   return lm ?? null;
 }
 
+/** Small JSON cache (multi-view depth metadata etc.). */
+export async function saveJson(key: string, value: unknown) {
+  await set(`json:${key}`, value);
+}
+
+export async function loadJson<T>(key: string): Promise<T | null> {
+  const v = (await get(`json:${key}`)) as T | undefined;
+  return v ?? null;
+}
+
 export async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   const res = await fetch(dataUrl);
   return res.blob();

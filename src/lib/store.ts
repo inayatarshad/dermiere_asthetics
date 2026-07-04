@@ -47,6 +47,8 @@ export interface BoothSyncState {
   status: "pending" | "sending" | "sent" | "error";
   boothId?: string;
   error?: string;
+  /** machine-readable failure kind, e.g. "not_configured" (never retried) */
+  code?: string;
   updated_at: string;
 }
 
@@ -71,6 +73,8 @@ interface StoreState {
   mergedBoothIds: string[]; // inbox ids already merged (or pushed) here
   newArrivals: string[]; // patient ids to badge as NEW
   boothToast: { name: string; at: number } | null;
+  /** null = unknown, false = server has no Blob store (feature dormant) */
+  boothAvailable: boolean | null;
 
   // lifecycle
   seedIfNeeded: () => Promise<void>;
@@ -80,6 +84,8 @@ interface StoreState {
   // booth actions
   setBoothLink: (on: boolean) => void;
   setBoothSync: (patientId: string, patch: Partial<BoothSyncState>) => void;
+  clearBoothSync: (patientId: string) => void;
+  setBoothAvailable: (v: boolean | null) => void;
   addMergedBoothId: (id: string) => void;
   clearNewArrival: (patientId: string) => void;
   addNewArrival: (patientId: string) => void;
@@ -185,6 +191,7 @@ export const useStore = create<StoreState>()(
       mergedBoothIds: [],
       newArrivals: [],
       boothToast: null,
+      boothAvailable: null,
 
       setAiProvider: (p) => set({ aiProvider: p }),
 
@@ -197,10 +204,20 @@ export const useStore = create<StoreState>()(
             status: patch.status ?? prev?.status ?? "pending",
             boothId: patch.boothId ?? prev?.boothId,
             error: "error" in patch ? patch.error : prev?.error,
+            code: "code" in patch ? patch.code : prev?.code,
             updated_at: new Date().toISOString(),
           };
           return { boothSync: { ...s.boothSync, [patientId]: next } };
         }),
+
+      clearBoothSync: (patientId) =>
+        set((s) => {
+          const sync = { ...s.boothSync };
+          delete sync[patientId];
+          return { boothSync: sync };
+        }),
+
+      setBoothAvailable: (v) => set({ boothAvailable: v }),
 
       addMergedBoothId: (id) =>
         set((s) => ({

@@ -204,7 +204,7 @@ export default function PatientProfilePage() {
             )}
             <button
               className="btn btn-secondary"
-              onClick={() => void pushPatientToBooth(patient.id)}
+              onClick={() => void pushPatientToBooth(patient.id, { manual: true })}
               disabled={boothSync?.status === "sending"}
               title="Send this record and photos to the booth screen"
             >
@@ -236,7 +236,13 @@ export default function PatientProfilePage() {
           </div>
         </div>
         {boothSync?.status === "error" && boothSync.error && (
-          <p className="caption mt-3 text-warning">{boothSync.error}</p>
+          <p
+            className={`caption mt-3 ${
+              boothSync.code === "not_configured" ? "" : "text-warning"
+            }`}
+          >
+            {boothSync.error}
+          </p>
         )}
       </GlassCard>
 
