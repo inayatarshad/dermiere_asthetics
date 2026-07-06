@@ -58,9 +58,15 @@ function findBlobToken(): string | undefined {
   return undefined;
 }
 
-function mode(): { kind: "blob"; token: string } | { kind: "dev" } {
+function mode(): { kind: "blob"; token?: string } | { kind: "dev" } {
   const token = findBlobToken();
   if (token) return { kind: "blob", token };
+  // Newer Vercel connect flows attach the store via BLOB_STORE_ID and
+  // platform-issued credentials (no static token env). Recent @vercel/blob
+  // SDKs resolve those automatically on Vercel, so run token-less.
+  if (process.env.BLOB_STORE_ID && process.env.VERCEL) {
+    return { kind: "blob" };
+  }
   if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
     return { kind: "dev" };
   }
@@ -74,6 +80,13 @@ function mode(): { kind: "blob"; token: string } | { kind: "dev" } {
       candidates.length > 0 ? candidates.join(", ") : "none"
     }.`
   );
+}
+
+/** Wrap SDK failures so routes forward a diagnosable message. */
+function asStoreError(err: unknown): BoothStoreError {
+  if (err instanceof BoothStoreError) return err;
+  const msg = err instanceof Error ? err.message : String(err);
+  return new BoothStoreError("store_error", `Blob operation failed: ${msg}`);
 }
 
 // ---------------------------------------------------------------------
@@ -121,10 +134,15 @@ function dataUrlToBuffer(dataUrl: string): { buf: Buffer; mime: string } {
   return { buf: Buffer.from(m[2], "base64"), mime: m[1] };
 }
 
+/** SDK option bag: explicit token when we have one, platform auth otherwise. */
+function tok(token?: string): { token?: string } {
+  return token ? { token } : {};
+}
+
 async function blobPut(
   itemBase: Omit<BoothItem, "photos">,
   photos: BoothPhotoIn[],
-  token: string
+  token?: string
 ): Promise<void> {
   const stored: { kind: string; url: string }[] = [];
   for (const photo of photos) {
@@ -133,7 +151,7 @@ async function blobPut(
     const blob = await put(
       `booth/photos/${itemBase.id}/${photo.kind}.${ext}`,
       buf,
-      { access: "public", addRandomSuffix: false, contentType: mime, token }
+      { access: "public", addRandomSuffix: false, contentType: mime, ...tok(token) }
     );
     stored.push({ kind: photo.kind, url: blob.url });
   }
@@ -142,12 +160,12 @@ async function blobPut(
     access: "public",
     addRandomSuffix: false,
     contentType: "application/json",
-    token,
+    ...tok(token),
   });
 }
 
-async function blobList(token: string): Promise<BoothItem[]> {
-  const { blobs } = await list({ prefix: "booth/inbox/", limit: 100, token });
+async function blobList(token?: string): Promise<BoothItem[]> {
+  const { blobs } = await list({ prefix: "booth/inbox/", limit: 100, ...tok(token) });
   const items: BoothItem[] = [];
   for (const b of blobs) {
     try {
@@ -166,13 +184,13 @@ async function blobList(token: string): Promise<BoothItem[]> {
   return items;
 }
 
-async function blobDelete(id: string, token: string): Promise<void> {
+async function blobDelete(id: string, token?: string): Promise<void> {
   const urls: string[] = [];
-  const inbox = await list({ prefix: `booth/inbox/${id}`, token });
+  const inbox = await list({ prefix: `booth/inbox/${id}`, ...tok(token) });
   urls.push(...inbox.blobs.map((b) => b.url));
-  const photos = await list({ prefix: `booth/photos/${id}/`, token });
+  const photos = await list({ prefix: `booth/photos/${id}/`, ...tok(token) });
   urls.push(...photos.blobs.map((b) => b.url));
-  if (urls.length > 0) await del(urls, { token });
+  if (urls.length > 0) await del(urls, { ...tok(token) });
 }
 
 // ---------------------------------------------------------------------
@@ -184,25 +202,37 @@ export async function putBoothItem(
   photos: BoothPhotoIn[]
 ): Promise<void> {
   const m = mode();
-  if (m.kind === "blob") {
-    await blobPut(itemBase, photos, m.token);
-  } else {
-    devPut({
-      ...itemBase,
-      photos: photos.map((p) => ({ kind: p.kind, url: p.dataUrl })),
-    });
+  try {
+    if (m.kind === "blob") {
+      await blobPut(itemBase, photos, m.token);
+    } else {
+      devPut({
+        ...itemBase,
+        photos: photos.map((p) => ({ kind: p.kind, url: p.dataUrl })),
+      });
+    }
+  } catch (err) {
+    throw asStoreError(err);
   }
 }
 
 export async function listBoothItems(): Promise<BoothItem[]> {
   const m = mode();
-  return m.kind === "blob" ? blobList(m.token) : devList();
+  try {
+    return m.kind === "blob" ? await blobList(m.token) : devList();
+  } catch (err) {
+    throw asStoreError(err);
+  }
 }
 
 export async function deleteBoothItem(id: string): Promise<void> {
   const m = mode();
-  if (m.kind === "blob") await blobDelete(id, m.token);
-  else devDelete(id);
+  try {
+    if (m.kind === "blob") await blobDelete(id, m.token);
+    else devDelete(id);
+  } catch (err) {
+    throw asStoreError(err);
+  }
 }
 
 export function boothStorageInfo(): { mode: "blob" | "dev" } {
