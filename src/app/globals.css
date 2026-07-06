@@ -710,6 +710,21 @@ input[type="range"].mint-slider::-moz-range-track {
   gap: 4px;
   margin-bottom: 18px;
 }
+.rb-header-branded {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.rb-header-branded > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rb-header-mark {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
 .rb-header-clinic {
   font-size: 11px;
   letter-spacing: 0.16em;

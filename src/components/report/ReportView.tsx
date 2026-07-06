@@ -516,9 +516,18 @@ export function ReportView({
 
 function SheetHeader({ clinic, title }: { clinic: string; title: string }) {
   return (
-    <header className="rb-header">
-      <span className="rb-header-clinic">{clinic}</span>
-      <h2 className="rb-header-title">{title}</h2>
+    <header className="rb-header rb-header-branded">
+      <div>
+        <span className="rb-header-clinic">{clinic}</span>
+        <h2 className="rb-header-title">{title}</h2>
+      </div>
+      {/* Contour mark, co-branded top-right (prints on the white sheet) */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/contour-mark-192.png"
+        alt="Contour"
+        className="rb-header-mark"
+      />
     </header>
   );
 }

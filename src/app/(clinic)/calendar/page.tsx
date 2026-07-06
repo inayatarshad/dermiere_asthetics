@@ -110,7 +110,9 @@ export default function CalendarPage() {
     const key = dateKey(d);
     const dayAppts = appointmentsOn(appointments, key);
     return (
-      <div key={key} className="relative flex-1 min-w-0">
+      // absolute-fill so the %-height slot cells and %-top appointment
+      // blocks resolve against the column's definite height
+      <div key={key} className="absolute inset-0">
         {/* slot grid (click to book) */}
         {offsets.map((o) => {
           const free = slotIsFree(appointments, key, o, clinicHours);

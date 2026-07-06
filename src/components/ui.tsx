@@ -276,23 +276,25 @@ export function StatusChip({ status }: { status: string }) {
   );
 }
 
+/**
+ * Brand lockup: the Contour mark (half face, half wireframe — transparent
+ * PNG derived from the owner's master in Design Assets) + the wordmark
+ * with its bold-Con / light-tour contrast.
+ */
 export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const dims = size === "lg" ? "w-10 h-10" : size === "sm" ? "w-7 h-7" : "w-8 h-8";
+  const dims =
+    size === "lg" ? "w-12 h-12" : size === "sm" ? "w-8 h-8" : "w-9 h-9";
   const text =
     size === "lg" ? "text-xl" : size === "sm" ? "text-sm" : "text-base";
   return (
-    <span className="inline-flex items-center gap-2.5 select-none">
-      <span
-        className={`${dims} rounded-xl bg-mint-500 text-white flex items-center justify-center shadow-lg`}
-        style={{ boxShadow: "0 6px 18px rgba(52, 211, 176, 0.45)" }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" className="w-[60%] h-[60%]">
-          <path
-            d="M12 2l2.4 6.2L21 10l-6.6 1.8L12 18l-2.4-6.2L3 10l6.6-1.8L12 2z"
-            fill="currentColor"
-          />
-        </svg>
-      </span>
+    <span className="inline-flex items-center gap-2 select-none">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/contour-mark-192.png"
+        alt=""
+        className={`${dims} shrink-0`}
+        draggable={false}
+      />
       <span className={`font-semibold tracking-tight text-ink-900 ${text}`}>
         Con<span className="font-light">tour</span>
       </span>
