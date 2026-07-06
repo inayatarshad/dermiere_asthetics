@@ -29,13 +29,25 @@ export function cachedGeneration(key: string): GenerateSuccess | undefined {
   return cache.get(key);
 }
 
+/** Stable cache-key fragment for the admin model choices. */
+export function modelsKey(models?: Record<string, string>): string {
+  const entries = Object.entries(models ?? {}).sort(([a], [b]) =>
+    a.localeCompare(b)
+  );
+  return entries.length === 0
+    ? "default"
+    : entries.map(([k, v]) => `${k}:${v}`).join(",");
+}
+
 export async function generateAfterImage(
   beforeSrc: string,
   prompt: string,
   cacheKey: string,
   procedure: string,
   /** Admin-selected provider; omit or "auto" for server auto-detect. */
-  provider?: string
+  provider?: string,
+  /** Admin-selected model per provider (Settings model picker). */
+  models?: Record<string, string>
 ): Promise<GenerateOutcome> {
   const hit = cache.get(cacheKey);
   if (hit) return hit;
@@ -60,6 +72,8 @@ export async function generateAfterImage(
         prompt,
         procedure,
         provider: provider && provider !== "auto" ? provider : undefined,
+        models:
+          models && Object.keys(models).length > 0 ? models : undefined,
       }),
     });
     const data = (await res.json().catch(() => ({}))) as {

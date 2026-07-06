@@ -9,6 +9,7 @@ import {
   activeProvider,
   generateAfter,
   GenerationError,
+  MODEL_OPTIONS,
   providerStatus,
   type Provider,
 } from "@/lib/server/providers";
@@ -28,6 +29,8 @@ interface GenerateBody {
   procedure?: string;
   /** Admin-selected provider ("auto"/absent = server auto-detect). */
   provider?: string;
+  /** Admin-selected model per provider; validated against MODEL_OPTIONS. */
+  models?: Record<string, string>;
 }
 
 export async function POST(req: NextRequest) {
@@ -76,6 +79,17 @@ export async function POST(req: NextRequest) {
     ? (body.provider as Provider)
     : undefined;
 
+  // model choices: keep only known provider keys with whitelisted values
+  const modelChoices: Partial<Record<Provider, string>> = {};
+  if (body.models && typeof body.models === "object") {
+    for (const p of PROVIDERS) {
+      const m = body.models[p];
+      if (typeof m === "string" && MODEL_OPTIONS[p].includes(m)) {
+        modelChoices[p] = m;
+      }
+    }
+  }
+
   if (!requested && !activeProvider()) {
     return NextResponse.json(
       {
@@ -88,7 +102,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await generateAfter({ base64, mimeType }, prompt, requested);
+    const result = await generateAfter(
+      { base64, mimeType },
+      prompt,
+      requested,
+      modelChoices
+    );
     return NextResponse.json({
       image: `data:${result.mimeType};base64,${result.imageBase64}`,
       model: result.model,

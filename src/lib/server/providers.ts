@@ -78,6 +78,44 @@ function configuredProviders(): Provider[] {
   );
 }
 
+/**
+ * Selectable models per provider (admin GUI "model picker"). The first
+ * entry is the default when no env override is set. Server-side whitelist:
+ * client-requested models outside this list are ignored, so arbitrary
+ * strings can never reach a provider URL.
+ */
+export const MODEL_OPTIONS: Record<Provider, string[]> = {
+  gemini: ["gemini-2.5-flash-image", "gemini-3-pro-image"],
+  openai: ["gpt-image-1", "gpt-image-2"],
+  flux: ["flux-kontext-pro", "flux-kontext-max"],
+  // reve/edit = instruction-driven photo EDIT (closest to Nano Banana
+  // semantics on this router); soul modes are reference-guided renders.
+  higgsfield: [
+    "reve/edit",
+    "higgsfield-ai/soul/reference",
+    "higgsfield-ai/soul/character",
+  ],
+};
+
+const MODEL_ENV: Record<Provider, string | undefined> = {
+  get gemini() {
+    return process.env.GEMINI_IMAGE_MODEL;
+  },
+  get openai() {
+    return process.env.OPENAI_IMAGE_MODEL;
+  },
+  get flux() {
+    return process.env.BFL_MODEL;
+  },
+  get higgsfield() {
+    return process.env.HIGGSFIELD_IMAGE_MODEL;
+  },
+};
+
+function defaultModelFor(p: Provider): string {
+  return MODEL_ENV[p] || MODEL_OPTIONS[p][0];
+}
+
 export function activeProvider(): Provider | null {
   const forced = process.env.AI_PROVIDER as Provider | undefined;
   if (forced && keyFor(forced)) return forced;
@@ -99,18 +137,19 @@ export function providerStatus() {
     active: activeProvider(),
     envForced: (process.env.AI_PROVIDER as Provider | undefined) ?? null,
     models: {
-      gemini: process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image",
-      openai: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
-      flux: process.env.BFL_MODEL || "flux-kontext-pro",
-      higgsfield:
-        process.env.HIGGSFIELD_IMAGE_MODEL || "higgsfield-ai/soul/reference",
+      gemini: defaultModelFor("gemini"),
+      openai: defaultModelFor("openai"),
+      flux: defaultModelFor("flux"),
+      higgsfield: defaultModelFor("higgsfield"),
     },
+    /** Whitelisted choices for the admin model picker. */
+    options: MODEL_OPTIONS,
   };
 }
 
 const RUNNERS: Record<
   Provider,
-  (image: ImageInput, prompt: string) => Promise<GenerateResult>
+  (image: ImageInput, prompt: string, model?: string) => Promise<GenerateResult>
 > = {
   gemini: generateWithGemini,
   openai: generateWithOpenAI,
@@ -122,7 +161,9 @@ export async function generateAfter(
   image: ImageInput,
   prompt: string,
   /** Per-request provider choice from the admin GUI; overrides env. */
-  requested?: Provider
+  requested?: Provider,
+  /** Admin-selected model per provider; must be in MODEL_OPTIONS. */
+  modelChoices?: Partial<Record<Provider, string>>
 ): Promise<GenerateResult> {
   const envForced = process.env.AI_PROVIDER as Provider | undefined;
   // A GUI-requested provider runs alone (that's the point of a bake-off);
@@ -150,8 +191,12 @@ export async function generateAfter(
   }
   let lastErr: unknown;
   for (const p of chain) {
+    // whitelist enforcement: an unknown model string is silently dropped
+    const choice = modelChoices?.[p];
+    const model =
+      choice && MODEL_OPTIONS[p].includes(choice) ? choice : undefined;
     try {
-      return await RUNNERS[p](image, prompt);
+      return await RUNNERS[p](image, prompt, model);
     } catch (err) {
       lastErr = err;
       // A moderation block will recur on every provider — surface it now.
@@ -171,9 +216,10 @@ export async function generateAfter(
 
 async function generateWithGemini(
   image: ImageInput,
-  prompt: string
+  prompt: string,
+  modelChoice?: string
 ): Promise<GenerateResult> {
-  const model = process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
+  const model = modelChoice ?? defaultModelFor("gemini");
   const key = process.env.GEMINI_API_KEY!;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
@@ -247,10 +293,11 @@ async function generateWithGemini(
 
 async function generateWithOpenAI(
   image: ImageInput,
-  prompt: string
+  prompt: string,
+  modelChoice?: string
 ): Promise<GenerateResult> {
   const key = process.env.OPENAI_API_KEY!;
-  const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+  const model = modelChoice ?? defaultModelFor("openai");
 
   const buffer = Buffer.from(image.base64, "base64");
   const ext = image.mimeType === "image/png" ? "png" : "jpg";
@@ -319,7 +366,8 @@ async function generateWithOpenAI(
 
 const HF_BASE = "https://platform.higgsfield.ai";
 const HF_IMAGE_FIELDS = ["image_url", "image", "reference_image_url"] as const;
-let hfPinnedImageField: (typeof HF_IMAGE_FIELDS)[number] | undefined;
+// discovered per model (reve + soul both take image_url; do not assume)
+const hfPinnedImageField = new Map<string, (typeof HF_IMAGE_FIELDS)[number]>();
 
 function hfAuthHeaders(): Record<string, string> {
   return {
@@ -383,16 +431,15 @@ async function hfUploadImage(image: ImageInput): Promise<string> {
 
 async function generateWithHiggsfield(
   image: ImageInput,
-  prompt: string
+  prompt: string,
+  modelChoice?: string
 ): Promise<GenerateResult> {
-  const model =
-    process.env.HIGGSFIELD_IMAGE_MODEL || "higgsfield-ai/soul/reference";
+  const model = modelChoice ?? defaultModelFor("higgsfield");
   const imageUrl = await hfUploadImage(image);
 
   // submit, discovering the reference-image field name if not yet pinned
-  const fields = hfPinnedImageField
-    ? [hfPinnedImageField]
-    : [...HF_IMAGE_FIELDS];
+  const pinned = hfPinnedImageField.get(model);
+  const fields = pinned ? [pinned] : [...HF_IMAGE_FIELDS];
   let submitted: { request_id?: string; status_url?: string } | null = null;
   let lastDetail = "";
   for (const field of fields) {
@@ -402,7 +449,7 @@ async function generateWithHiggsfield(
       body: JSON.stringify({ prompt, [field]: imageUrl }),
     });
     if (res.ok) {
-      hfPinnedImageField = field;
+      hfPinnedImageField.set(model, field);
       submitted = (await res.json()) as {
         request_id?: string;
         status_url?: string;
@@ -410,12 +457,15 @@ async function generateWithHiggsfield(
       break;
     }
     const body = await res.text().catch(() => "");
-    if (res.status !== 422) throw hfError(res.status, body);
+    // Validation styles vary per model family: FastAPI 422 detail arrays
+    // (soul) or 400 "'x' is a required property" strings (reve). Anything
+    // else is a hard provider error.
+    if (res.status !== 422 && res.status !== 400) throw hfError(res.status, body);
     lastDetail = body;
-    // 422 = the model exists but this body shape is wrong; if the complaint
-    // is about our candidate image field, try the next name, else surface
-    // the validation detail (it lists exactly what the model expects).
-    if (!/missing|extra_forbidden|unexpected/i.test(body)) {
+    // If the complaint is about the request shape, try the next candidate
+    // image field name; otherwise surface the validation detail verbatim
+    // (it lists exactly what the model expects).
+    if (!/missing|required property|extra_forbidden|unexpected/i.test(body)) {
       throw new GenerationError(
         "provider_error",
         `Higgsfield rejected the request shape: ${body.slice(0, 400)}`
@@ -495,10 +545,11 @@ async function generateWithHiggsfield(
 
 async function generateWithFlux(
   image: ImageInput,
-  prompt: string
+  prompt: string,
+  modelChoice?: string
 ): Promise<GenerateResult> {
   const key = process.env.BFL_API_KEY!;
-  const model = process.env.BFL_MODEL || "flux-kontext-pro";
+  const model = modelChoice ?? defaultModelFor("flux");
 
   const submit = await fetch(`https://api.bfl.ai/v1/${model}`, {
     method: "POST",

@@ -31,7 +31,22 @@ interface ProviderStatus {
   active: string | null;
   envForced: string | null;
   models: Record<ProviderId, string>;
+  /** Whitelisted model choices per provider (server-defined). */
+  options?: Record<ProviderId, string[]>;
 }
+
+/** Friendly names for the model picker chips. */
+const MODEL_LABELS: Record<string, string> = {
+  "gemini-2.5-flash-image": "Nano Banana",
+  "gemini-3-pro-image": "Nano Banana Pro",
+  "gpt-image-1": "GPT Image 1",
+  "gpt-image-2": "GPT Image 2",
+  "flux-kontext-pro": "Kontext Pro",
+  "flux-kontext-max": "Kontext Max",
+  "reve/edit": "Reve Edit (photo editing)",
+  "higgsfield-ai/soul/reference": "Soul Reference",
+  "higgsfield-ai/soul/character": "Soul Character",
+};
 
 const AI_CHOICES: {
   id: AiProviderSetting;
@@ -83,6 +98,8 @@ export default function SettingsPage() {
   const resetDemo = useStore((s) => s.resetDemo);
   const aiProvider = useStore((s) => s.aiProvider);
   const setAiProvider = useStore((s) => s.setAiProvider);
+  const aiModels = useStore((s) => s.aiModels);
+  const setAiModel = useStore((s) => s.setAiModel);
   const toxinPricePerUnit = useStore((s) => s.toxinPricePerUnit);
   const setToxinPricePerUnit = useStore((s) => s.setToxinPricePerUnit);
 
@@ -276,9 +293,16 @@ export default function SettingsPage() {
               const configured = isProvider
                 ? providerStatus?.configured[choice.id as ProviderId]
                 : undefined;
-              const model = isProvider
+              const serverDefault = isProvider
                 ? providerStatus?.models[choice.id as ProviderId]
                 : undefined;
+              const chosen = isProvider
+                ? aiModels[choice.id as ProviderId]
+                : undefined;
+              const model = chosen ?? serverDefault;
+              const modelOptions = isProvider
+                ? (providerStatus?.options?.[choice.id as ProviderId] ?? [])
+                : [];
               return (
                 <button
                   key={choice.id}
@@ -308,6 +332,45 @@ export default function SettingsPage() {
                       )}
                     </span>
                     <span className="caption block">{choice.desc}</span>
+                    {modelOptions.length > 1 && (
+                      <span className="flex flex-wrap gap-1.5 mt-2">
+                        {modelOptions.map((opt) => {
+                          const optActive = model === opt;
+                          return (
+                            /* span, not button: cards are buttons and
+                               interactive nesting is invalid HTML */
+                            <span
+                              key={opt}
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAiModel(
+                                  choice.id as ProviderId,
+                                  opt === serverDefault ? null : opt
+                                );
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setAiModel(
+                                    choice.id as ProviderId,
+                                    opt === serverDefault ? null : opt
+                                  );
+                                }
+                              }}
+                              className={`chip text-[11px] ${
+                                optActive ? "chip-active" : ""
+                              }`}
+                              title={opt}
+                            >
+                              {MODEL_LABELS[opt] ?? opt}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    )}
                   </span>
                   {isProvider &&
                     providerStatus &&

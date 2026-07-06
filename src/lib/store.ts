@@ -72,6 +72,8 @@ interface StoreState {
   reports: Report[];
   sessionUserId: string | null;
   aiProvider: AiProviderSetting;
+  /** Admin-selected model per provider (empty = server default). */
+  aiModels: Partial<Record<"gemini" | "openai" | "flux" | "higgsfield", string>>;
 
   // booth handoff (T1)
   boothLink: boolean; // desktop: poll the booth inbox
@@ -86,6 +88,10 @@ interface StoreState {
   seedIfNeeded: () => Promise<void>;
   resetDemo: () => Promise<void>;
   setAiProvider: (p: AiProviderSetting) => void;
+  setAiModel: (
+    provider: "gemini" | "openai" | "flux" | "higgsfield",
+    model: string | null
+  ) => void;
 
   // booth actions
   setBoothLink: (on: boolean) => void;
@@ -192,6 +198,7 @@ export const useStore = create<StoreState>()(
       reports: [],
       sessionUserId: null,
       aiProvider: "auto",
+      aiModels: {},
       boothLink: false,
       boothSync: {},
       mergedBoothIds: [],
@@ -200,6 +207,14 @@ export const useStore = create<StoreState>()(
       boothAvailable: null,
 
       setAiProvider: (p) => set({ aiProvider: p }),
+
+      setAiModel: (provider, model) =>
+        set((s) => {
+          const next = { ...s.aiModels };
+          if (model === null) delete next[provider];
+          else next[provider] = model;
+          return { aiModels: next };
+        }),
 
       setBoothLink: (on) => set({ boothLink: on }),
 

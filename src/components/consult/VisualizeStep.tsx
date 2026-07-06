@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Check,
   CloudOff,
+  Download,
 } from "lucide-react";
 import { useStore, useSessionUser, usePatientConsents, consentGranted } from "@/lib/store";
 import { useAssetUrl, useFaceData } from "@/lib/hooks";
@@ -26,8 +27,8 @@ import { activeTemplatesFor, getTemplate, TEMPLATES } from "@/lib/templates";
 import { assembleMultiPrompt, assembleSliderPhrases, hasActiveParams, paramsHash } from "@/lib/prompt";
 import { canvasMorphsToAiParams, toPx } from "@/lib/face/geometry";
 import { warpPhoto, burnDisclaimer } from "@/lib/face/warp2d";
-import { generateAfterImage } from "@/lib/generateClient";
-import { canvasToBlob } from "@/lib/img";
+import { generateAfterImage, modelsKey } from "@/lib/generateClient";
+import { canvasToBlob, loadImage } from "@/lib/img";
 import { saveImage } from "@/lib/db";
 import { AI_DISCLAIMER, type Consultation, type Patient } from "@/lib/types";
 import { BOTOX_ZONES, buildToxinPlan } from "@/lib/botoxUnits";
@@ -58,6 +59,7 @@ export function VisualizeStep({
   const addAsset = useStore((s) => s.addAsset);
   const addVisualization = useStore((s) => s.addVisualization);
   const aiProvider = useStore((s) => s.aiProvider);
+  const aiModels = useStore((s) => s.aiModels);
   const consents = usePatientConsents(patient.id);
   const photographyOk = !!consentGranted(consents, "photography");
   const aiDisabled = aiProvider === "none";
@@ -340,14 +342,16 @@ export function VisualizeStep({
       return;
     setGenerating(true);
     setGenError(null);
-    // provider is part of the cache key: different models, different results
-    const key = `${aiProvider}|${frontPhoto.id}|${paramsHash(joinedId, params)}`;
+    // provider + model choices are part of the cache key: different
+    // models, different results
+    const key = `${aiProvider}|${modelsKey(aiModels)}|${frontPhoto.id}|${paramsHash(joinedId, params)}`;
     const outcome = await generateAfterImage(
       beforeUrl,
       prompt,
       key,
       joinedId,
-      aiProvider
+      aiProvider,
+      aiModels
     );
     setGenerating(false);
     if (outcome.ok) {
@@ -398,6 +402,66 @@ export function VisualizeStep({
       model: after.source,
     });
     setSaved(true);
+  };
+
+  // ---- download the result (booth takeaway) ------------------------------
+  const fileSlug = patient.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  const triggerDownload = async (canvas: HTMLCanvasElement, name: string) => {
+    const blob = await canvasToBlob(canvas, 0.92);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+
+  const downloadAfter = async () => {
+    if (!after) return;
+    const img = await loadImage(after.src);
+    await triggerDownload(
+      burnDisclaimer(img, AI_DISCLAIMER),
+      `${fileSlug}-after.jpg`
+    );
+  };
+
+  const downloadPair = async () => {
+    if (!after || !beforeUrl) return;
+    const [before, afterImg] = await Promise.all([
+      loadImage(beforeUrl),
+      loadImage(after.src),
+    ]);
+    // side-by-side composite at a shared height, labeled, disclaimer burned
+    const H = 1000;
+    const gap = 12;
+    const wB = Math.round((before.naturalWidth / before.naturalHeight) * H);
+    const wA = Math.round((afterImg.naturalWidth / afterImg.naturalHeight) * H);
+    const canvas = document.createElement("canvas");
+    canvas.width = wB + gap + wA;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(before, 0, 0, wB, H);
+    ctx.drawImage(afterImg, wB + gap, 0, wA, H);
+    const label = (text: string, x: number) => {
+      ctx.font = "600 26px system-ui, sans-serif";
+      const w = ctx.measureText(text).width + 36;
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.beginPath();
+      ctx.roundRect(x + 18, 18, w, 44, 22);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x + 36, 41);
+    };
+    label("BEFORE", 0);
+    label("AFTER", wB + gap);
+    await triggerDownload(
+      burnDisclaimer(canvas, AI_DISCLAIMER),
+      `${fileSlug}-before-after.jpg`
+    );
   };
 
   // ---------------- guard states ----------------
@@ -498,10 +562,28 @@ export function VisualizeStep({
               {AI_DISCLAIMER}
             </p>
             {after && (
-              <span className="chip chip-static text-xs">
-                {after.source === "simulation"
-                  ? "On-device simulation"
-                  : `Model: ${after.source}`}
+              <span className="flex items-center gap-1.5 flex-wrap">
+                <span className="chip chip-static text-xs">
+                  {after.source === "simulation"
+                    ? "On-device simulation"
+                    : `Model: ${after.source}`}
+                </span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => void downloadAfter()}
+                  title="Download the after photo (disclaimer included)"
+                >
+                  <Download size={14} />
+                  After
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => void downloadPair()}
+                  title="Download before and after side by side (disclaimer included)"
+                >
+                  <Download size={14} />
+                  Before + after
+                </button>
               </span>
             )}
           </div>

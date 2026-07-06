@@ -27,7 +27,7 @@ import {
   type AgingBranch,
   type AgingYears,
 } from "@/lib/agingPrompts";
-import { generateAfterImage } from "@/lib/generateClient";
+import { generateAfterImage, modelsKey } from "@/lib/generateClient";
 import { resolveImageUrl, saveImage } from "@/lib/db";
 import { burnDisclaimer } from "@/lib/face/warp2d";
 import { loadImage, canvasToBlob } from "@/lib/img";
@@ -46,6 +46,7 @@ export function TimelineStep({
 }) {
   const assets = useStore((s) => s.assets);
   const aiProvider = useStore((s) => s.aiProvider);
+  const aiModels = useStore((s) => s.aiModels);
   const consents = usePatientConsents(patient.id);
   const photographyOk = !!consentGranted(consents, "photography");
   const aiDisabled = aiProvider === "none";
@@ -95,9 +96,10 @@ export function TimelineStep({
       const outcome = await generateAfterImage(
         beforeUrl,
         agingPrompt(branch, y),
-        `timeline|${aiProvider}|${frontPhoto.id}|${branch}|${y}`,
+        `timeline|${aiProvider}|${modelsKey(aiModels)}|${frontPhoto.id}|${branch}|${y}`,
         `timeline_${branch}_${y}`,
-        aiProvider
+        aiProvider,
+        aiModels
       );
       if (!outcome.ok) {
         setGenError({ code: outcome.code, message: outcome.message });
@@ -113,7 +115,7 @@ export function TimelineStep({
       if (url) setVariants((m) => ({ ...m, [mapKey]: url }));
       return true;
     },
-    [frontPhoto, beforeUrl, variants, aiProvider]
+    [frontPhoto, beforeUrl, variants, aiProvider, aiModels]
   );
 
   const generatePair = async (y: AgingYears) => {
