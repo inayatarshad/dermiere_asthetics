@@ -39,6 +39,7 @@ yarn-error.log*
 
 # local dev booth inbox (T1 fallback store)
 /.booth-dev-store
+/.vybero-dev-store
 
 # vercel
 .vercel
