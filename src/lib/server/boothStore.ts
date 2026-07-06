@@ -16,7 +16,7 @@
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { put, del, list } from "@vercel/blob";
+import { put, del, list, get } from "@vercel/blob";
 
 export interface BoothPhotoIn {
   kind: string; // photo_front | photo_left | photo_right
@@ -139,6 +139,82 @@ function tok(token?: string): { token?: string } {
   return token ? { token } : {};
 }
 
+/**
+ * Stores can be created as PUBLIC or PRIVATE (the current Vercel default).
+ * We prefer private (medical photos) and adapt at runtime: the first
+ * successful operation pins the store's access mode for this instance.
+ * Photos are never exposed by URL; the /api/booth/photo route streams them
+ * same-origin after validating the path.
+ */
+let storeAccess: "public" | "private" | undefined;
+
+async function putAdaptive(
+  pathname: string,
+  body: Buffer | string,
+  contentType: string,
+  token?: string
+) {
+  const order: ("public" | "private")[] = storeAccess
+    ? [storeAccess]
+    : ["private", "public"];
+  let lastErr: unknown;
+  for (const access of order) {
+    try {
+      const blob = await put(pathname, body, {
+        access,
+        addRandomSuffix: false,
+        contentType,
+        ...tok(token),
+      });
+      storeAccess = access;
+      return blob;
+    } catch (err) {
+      lastErr = err;
+      if (order.length === 1) throw err;
+    }
+  }
+  throw lastErr;
+}
+
+async function readBlobResponse(
+  pathname: string,
+  token?: string
+): Promise<Response | null> {
+  const order: ("public" | "private")[] = storeAccess
+    ? [storeAccess]
+    : ["private", "public"];
+  let lastErr: unknown = null;
+  for (const access of order) {
+    try {
+      const res = await get(pathname, { access, ...tok(token) });
+      if (!res) return null;
+      storeAccess = access;
+      return new Response(res.stream);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) throw lastErr;
+  return null;
+}
+
+/** Same-origin streaming for the photo route. */
+export async function readBoothPhoto(
+  pathname: string
+): Promise<Response | null> {
+  const m = mode();
+  if (m.kind !== "blob") return null;
+  try {
+    return await readBlobResponse(pathname, m.token);
+  } catch (err) {
+    throw asStoreError(err);
+  }
+}
+
+function photoApiUrl(pathname: string): string {
+  return `/api/booth/photo?path=${encodeURIComponent(pathname)}`;
+}
+
 async function blobPut(
   itemBase: Omit<BoothItem, "photos">,
   photos: BoothPhotoIn[],
@@ -148,20 +224,18 @@ async function blobPut(
   for (const photo of photos) {
     const { buf, mime } = dataUrlToBuffer(photo.dataUrl);
     const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
-    const blob = await put(
-      `booth/photos/${itemBase.id}/${photo.kind}.${ext}`,
-      buf,
-      { access: "public", addRandomSuffix: false, contentType: mime, ...tok(token) }
-    );
-    stored.push({ kind: photo.kind, url: blob.url });
+    const pathname = `booth/photos/${itemBase.id}/${photo.kind}.${ext}`;
+    await putAdaptive(pathname, buf, mime, token);
+    // same-origin API path, streamed with store credentials on demand
+    stored.push({ kind: photo.kind, url: photoApiUrl(pathname) });
   }
   const item: BoothItem = { ...itemBase, photos: stored };
-  await put(`booth/inbox/${itemBase.id}.json`, JSON.stringify(item), {
-    access: "public",
-    addRandomSuffix: false,
-    contentType: "application/json",
-    ...tok(token),
-  });
+  await putAdaptive(
+    `booth/inbox/${itemBase.id}.json`,
+    JSON.stringify(item),
+    "application/json",
+    token
+  );
 }
 
 async function blobList(token?: string): Promise<BoothItem[]> {
@@ -169,8 +243,8 @@ async function blobList(token?: string): Promise<BoothItem[]> {
   const items: BoothItem[] = [];
   for (const b of blobs) {
     try {
-      const res = await fetch(b.url, { cache: "no-store" });
-      if (!res.ok) continue;
+      const res = await readBlobResponse(b.pathname, token);
+      if (!res) continue;
       const item = (await res.json()) as BoothItem;
       if (Date.now() - new Date(item.created_at).getTime() > EXPIRY_MS) {
         await blobDelete(item.id, token);
