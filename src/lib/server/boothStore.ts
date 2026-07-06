@@ -42,12 +42,37 @@ export class BoothStoreError extends Error {
   }
 }
 
-function mode(): "blob" | "dev" {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
-  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) return "dev";
+/**
+ * Find the Blob read-write token. Vercel's store-connect dialog allows a
+ * custom env prefix, so the variable is not always literally
+ * BLOB_READ_WRITE_TOKEN — accept any *_READ_WRITE_TOKEN that carries a
+ * Vercel Blob token value, and pass it explicitly to the SDK.
+ */
+function findBlobToken(): string | undefined {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  for (const [k, v] of Object.entries(process.env)) {
+    if (/_READ_WRITE_TOKEN$/.test(k) && v && v.startsWith("vercel_blob_rw_")) {
+      return v;
+    }
+  }
+  return undefined;
+}
+
+function mode(): { kind: "blob"; token: string } | { kind: "dev" } {
+  const token = findBlobToken();
+  if (token) return { kind: "blob", token };
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+    return { kind: "dev" };
+  }
+  // diagnostics: name (never value) of candidate keys, to debug connects
+  const candidates = Object.keys(process.env).filter((k) =>
+    /_READ_WRITE_TOKEN$|^BLOB_/.test(k)
+  );
   throw new BoothStoreError(
     "not_configured",
-    "Booth link storage is not configured. Add the BLOB_READ_WRITE_TOKEN env var (Vercel: Storage, Create Blob store, connect to this project)."
+    `Booth link storage is not configured. Connect a Vercel Blob store to THIS project (Storage tab) and redeploy. Blob-like env keys visible to the runtime: ${
+      candidates.length > 0 ? candidates.join(", ") : "none"
+    }.`
   );
 }
 
@@ -98,7 +123,8 @@ function dataUrlToBuffer(dataUrl: string): { buf: Buffer; mime: string } {
 
 async function blobPut(
   itemBase: Omit<BoothItem, "photos">,
-  photos: BoothPhotoIn[]
+  photos: BoothPhotoIn[],
+  token: string
 ): Promise<void> {
   const stored: { kind: string; url: string }[] = [];
   for (const photo of photos) {
@@ -107,7 +133,7 @@ async function blobPut(
     const blob = await put(
       `booth/photos/${itemBase.id}/${photo.kind}.${ext}`,
       buf,
-      { access: "public", addRandomSuffix: false, contentType: mime }
+      { access: "public", addRandomSuffix: false, contentType: mime, token }
     );
     stored.push({ kind: photo.kind, url: blob.url });
   }
@@ -116,11 +142,12 @@ async function blobPut(
     access: "public",
     addRandomSuffix: false,
     contentType: "application/json",
+    token,
   });
 }
 
-async function blobList(): Promise<BoothItem[]> {
-  const { blobs } = await list({ prefix: "booth/inbox/", limit: 100 });
+async function blobList(token: string): Promise<BoothItem[]> {
+  const { blobs } = await list({ prefix: "booth/inbox/", limit: 100, token });
   const items: BoothItem[] = [];
   for (const b of blobs) {
     try {
@@ -128,7 +155,7 @@ async function blobList(): Promise<BoothItem[]> {
       if (!res.ok) continue;
       const item = (await res.json()) as BoothItem;
       if (Date.now() - new Date(item.created_at).getTime() > EXPIRY_MS) {
-        await blobDelete(item.id);
+        await blobDelete(item.id, token);
         continue;
       }
       items.push(item);
@@ -139,13 +166,13 @@ async function blobList(): Promise<BoothItem[]> {
   return items;
 }
 
-async function blobDelete(id: string): Promise<void> {
+async function blobDelete(id: string, token: string): Promise<void> {
   const urls: string[] = [];
-  const inbox = await list({ prefix: `booth/inbox/${id}` });
+  const inbox = await list({ prefix: `booth/inbox/${id}`, token });
   urls.push(...inbox.blobs.map((b) => b.url));
-  const photos = await list({ prefix: `booth/photos/${id}/` });
+  const photos = await list({ prefix: `booth/photos/${id}/`, token });
   urls.push(...photos.blobs.map((b) => b.url));
-  if (urls.length > 0) await del(urls);
+  if (urls.length > 0) await del(urls, { token });
 }
 
 // ---------------------------------------------------------------------
@@ -156,8 +183,9 @@ export async function putBoothItem(
   itemBase: Omit<BoothItem, "photos">,
   photos: BoothPhotoIn[]
 ): Promise<void> {
-  if (mode() === "blob") {
-    await blobPut(itemBase, photos);
+  const m = mode();
+  if (m.kind === "blob") {
+    await blobPut(itemBase, photos, m.token);
   } else {
     devPut({
       ...itemBase,
@@ -167,14 +195,16 @@ export async function putBoothItem(
 }
 
 export async function listBoothItems(): Promise<BoothItem[]> {
-  return mode() === "blob" ? blobList() : devList();
+  const m = mode();
+  return m.kind === "blob" ? blobList(m.token) : devList();
 }
 
 export async function deleteBoothItem(id: string): Promise<void> {
-  if (mode() === "blob") await blobDelete(id);
+  const m = mode();
+  if (m.kind === "blob") await blobDelete(id, m.token);
   else devDelete(id);
 }
 
 export function boothStorageInfo(): { mode: "blob" | "dev" } {
-  return { mode: mode() };
+  return { mode: mode().kind };
 }
