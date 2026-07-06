@@ -1,11 +1,34 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Settings, LogOut, RadioTower } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  LogOut,
+  RadioTower,
+  Check,
+  ExternalLink,
+} from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { ROLE_LABELS } from "@/lib/format";
-import { Logo } from "./ui";
+import { Logo, Modal, Spinner } from "./ui";
+
+/** true = booth storage reachable; false = server says not_configured */
+async function probeBoothStorage(): Promise<boolean> {
+  try {
+    const r = await fetch("/api/booth/pull", { cache: "no-store" });
+    if (r.ok) return true;
+    const d = (await r.json().catch(() => ({}))) as { error?: string };
+    return d.error !== "not_configured";
+  } catch {
+    // transient network problems should not block the toggle; the
+    // background agent copes with flaky wifi
+    return true;
+  }
+}
 
 export function TopNav() {
   const pathname = usePathname();
@@ -15,6 +38,42 @@ export function TopNav() {
   const logout = useStore((s) => s.logout);
   const boothLink = useStore((s) => s.boothLink);
   const setBoothLink = useStore((s) => s.setBoothLink);
+  const setBoothAvailable = useStore((s) => s.setBoothAvailable);
+  const [boothChecking, setBoothChecking] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [recheckState, setRecheckState] = useState<"idle" | "checking" | "still_missing">("idle");
+
+  const toggleBooth = async () => {
+    if (boothLink) {
+      setBoothLink(false);
+      return;
+    }
+    // Probe BEFORE enabling, so the toggle never flicks on-then-off.
+    setBoothChecking(true);
+    const ok = await probeBoothStorage();
+    setBoothChecking(false);
+    if (ok) {
+      setBoothAvailable(true);
+      setBoothLink(true);
+    } else {
+      setBoothAvailable(false);
+      setRecheckState("idle");
+      setSetupOpen(true);
+    }
+  };
+
+  const recheck = async () => {
+    setRecheckState("checking");
+    const ok = await probeBoothStorage();
+    if (ok) {
+      setBoothAvailable(true);
+      setBoothLink(true);
+      setSetupOpen(false);
+      setRecheckState("idle");
+    } else {
+      setRecheckState("still_missing");
+    }
+  };
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -55,7 +114,8 @@ export function TopNav() {
 
         {/* Booth link: poll the booth inbox for phone-registered patients */}
         <button
-          onClick={() => setBoothLink(!boothLink)}
+          onClick={() => void toggleBooth()}
+          disabled={boothChecking}
           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
             boothLink
               ? "bg-mint-500 text-white shadow-md"
@@ -68,7 +128,11 @@ export function TopNav() {
           }
           aria-pressed={boothLink}
         >
-          <RadioTower size={13} className={boothLink ? "animate-pulse" : ""} />
+          {boothChecking ? (
+            <Spinner className="w-3 h-3" />
+          ) : (
+            <RadioTower size={13} className={boothLink ? "animate-pulse" : ""} />
+          )}
           <span className="hidden sm:inline">
             Booth link{boothLink ? ": ON" : ""}
           </span>
@@ -104,6 +168,79 @@ export function TopNav() {
           </div>
         )}
       </div>
+
+      {/* One-time booth storage setup guide (shown instead of a toggle
+          that silently refuses to stay on) */}
+      <Modal
+        open={setupOpen}
+        onClose={() => setSetupOpen(false)}
+        title="Booth link: one-time setup"
+      >
+        <p className="text-sm text-ink-700 leading-relaxed">
+          The booth link moves patients between devices through a small
+          storage space on your Vercel project. This deployment does not have
+          one yet, so the link cannot switch on. It takes about two minutes:
+        </p>
+        <ol className="mt-4 space-y-2.5 text-sm text-ink-700 list-none">
+          {[
+            <>
+              Open{" "}
+              <a
+                className="text-mint-500 font-medium inline-flex items-center gap-1"
+                href="https://vercel.com"
+                target="_blank"
+                rel="noreferrer"
+              >
+                vercel.com <ExternalLink size={12} />
+              </a>{" "}
+              and open your <b>aesthetics</b> project.
+            </>,
+            <>
+              Go to the <b>Storage</b> tab, choose <b>Create Database</b>, and
+              pick <b>Blob</b>.
+            </>,
+            <>
+              Name it anything (e.g. <b>contour-booth</b>) and <b>Connect</b>{" "}
+              it to the project when asked.
+            </>,
+            <>
+              Redeploy so the new storage key takes effect: <b>Deployments</b>,
+              latest deployment, <b>Redeploy</b>. Or simply ask Claude to
+              trigger it.
+            </>,
+          ].map((step, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="w-6 h-6 rounded-full bg-mint-100 text-ink-700 text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                {i + 1}
+              </span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+        {recheckState === "still_missing" && (
+          <p className="caption mt-4">
+            Still not reachable. If you just connected the store, the redeploy
+            step is the missing piece; check again once it finishes.
+          </p>
+        )}
+        <div className="flex gap-2 justify-end mt-6">
+          <button className="btn btn-ghost" onClick={() => setSetupOpen(false)}>
+            Later
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => void recheck()}
+            disabled={recheckState === "checking"}
+          >
+            {recheckState === "checking" ? (
+              <Spinner className="w-4 h-4" />
+            ) : (
+              <Check size={15} />
+            )}
+            Check again
+          </button>
+        </div>
+      </Modal>
     </header>
   );
 }
