@@ -112,10 +112,14 @@ export function ReportView({
     const categories = [
       ...new Set(
         activeProcedures.map((t) =>
-          t.category === "surgical" ? "surgical" : "injectable"
+          t.category === "surgical"
+            ? "surgical"
+            : t.category === "hair"
+              ? "hair"
+              : "injectable"
         )
       ),
-    ] as ("injectable" | "surgical")[];
+    ] as ("injectable" | "surgical" | "hair")[];
     const grantedConsents = consents.filter((c) => c.granted);
     return (
       <div className="report-root">

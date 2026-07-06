@@ -109,7 +109,7 @@ export interface Asset {
   created_at: string;
 }
 
-export type ProcedureCategory = "surgical" | "injectable" | "skin" | "other";
+export type ProcedureCategory = "surgical" | "injectable" | "skin" | "hair" | "other";
 
 export interface Brief {
   primary_interest: string | null; // procedure id, e.g. "rhinoplasty"
@@ -179,6 +179,12 @@ export interface SliderDef {
   posPhrase: string;
   negLabel?: string; // end labels rendered on the slider
   posLabel?: string;
+  /**
+   * On/off choices (e.g. hairstyle try-on chips): the phrase enters the
+   * prompt verbatim, without the "very slightly / moderately / noticeably"
+   * magnitude adverb, which only makes sense for graded sliders.
+   */
+  bandless?: boolean;
 }
 
 export interface PlanTemplateItem {

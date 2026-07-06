@@ -97,8 +97,10 @@ export function FaceScene(props: FaceSceneProps) {
           dampingFactor={0.08}
           minDistance={1.7}
           maxDistance={6}
-          minAzimuthAngle={-Math.PI * 0.42}
-          maxAzimuthAngle={Math.PI * 0.42}
+          // A relief mesh from a front photo has no back of head; clamp just
+          // short of a full profile so the hollow side never faces the doctor.
+          minAzimuthAngle={-Math.PI * 0.46}
+          maxAzimuthAngle={Math.PI * 0.46}
           minPolarAngle={Math.PI * 0.3}
           maxPolarAngle={Math.PI * 0.68}
           makeDefault

@@ -35,6 +35,7 @@ import { GlassCard, Chip, EmptyState, Spinner } from "@/components/ui";
 import { MintSlider } from "@/components/MintSlider";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
 import { BotoxZoneMap } from "@/components/BotoxZoneMap";
+import { HairStyleChips, HAIR_STYLE_PREFIX } from "@/components/HairStyleChips";
 
 interface AfterState {
   src: string;
@@ -319,6 +320,20 @@ export function VisualizeStep({
     if (after?.source !== "simulation") setAfter(null);
   };
 
+  // Hairstyle try-on: styles are exclusive, so picking one clears the rest
+  const pickHairStyle = (styleKey: string | null) => {
+    setParams((p) => {
+      const next = { ...p };
+      for (const k of Object.keys(next)) {
+        if (k.startsWith(HAIR_STYLE_PREFIX)) delete next[k];
+      }
+      if (styleKey) next[styleKey] = 100;
+      return next;
+    });
+    setGenError(null);
+    if (after?.source !== "simulation") setAfter(null);
+  };
+
   // ---- the photoreal pass ------------------------------------------------
   const generate = async () => {
     if (!primary || !beforeUrl || !frontPhoto || generating || aiDisabled)
@@ -407,10 +422,10 @@ export function VisualizeStep({
             {wanted?.name ?? "This"} preset coming soon
           </h2>
           <p className="text-ink-700 mt-2 leading-relaxed">
-            Rhinoplasty, Lip Filler, Chin Filler and Botox are fully wired
-            today; each additional procedure is a slider schema and prompt
-            template away. Add a live procedure in the Brief to run the full
-            visualization now.
+            Rhinoplasty, Lip Filler, Chin Filler, Botox and Hair Transplant
+            are fully wired today; each additional procedure is a slider
+            schema and prompt template away. Add a live procedure in the
+            Brief to run the full visualization now.
           </p>
           <div className="flex justify-center gap-2 mt-5 flex-wrap">
             {TEMPLATES.filter((t) => t.available).map((t) => (
@@ -506,9 +521,9 @@ export function VisualizeStep({
           <GlassCard className="px-5 py-3.5 flex items-start gap-3">
             <Sparkles size={17} className="text-mint-500 mt-0.5 shrink-0" />
             <span className="text-sm text-ink-700">
-              The selected changes are skin-level (lines and texture), so the
-              live geometric preview stays unchanged. Generate with AI to
-              render them on the photo.
+              The selected changes are surface-level (skin texture or hair),
+              so the live geometric preview stays unchanged. Generate with AI
+              to render them on the photo.
             </span>
           </GlassCard>
         )}
@@ -603,7 +618,9 @@ export function VisualizeStep({
                   <p className="caption mt-1 mb-4">
                     {t.id === "botox"
                       ? "Tap the zones to treat. Geometric zones move the live preview; skin-level zones render in the AI pass."
-                      : "Sliders tune the instruction, not the pixels. The preview updates live; generate for the photoreal result."}
+                      : t.id === "hair_transplant"
+                        ? "Set the restoration goals, then try on a hairstyle. Hair renders in the AI pass; the live geometric preview does not change hair."
+                        : "Sliders tune the instruction, not the pixels. The preview updates live; generate for the photoreal result."}
                   </p>
                   {t.id === "botox" ? (
                     <BotoxZoneMap
@@ -620,6 +637,29 @@ export function VisualizeStep({
                       }
                       pricePerUnit={toxinPrice}
                     />
+                  ) : t.id === "hair_transplant" ? (
+                    <div className="space-y-4">
+                      {t.slider_schema
+                        .filter((def) => !def.key.startsWith(HAIR_STYLE_PREFIX))
+                        .map((def) => (
+                          <MintSlider
+                            key={def.key}
+                            label={def.label}
+                            hint={def.hint}
+                            min={def.min}
+                            max={def.max}
+                            value={params[def.key] ?? 0}
+                            negLabel={def.negLabel}
+                            posLabel={def.posLabel}
+                            onChange={(v) => setParam(def.key, v)}
+                          />
+                        ))}
+                      <HairStyleChips
+                        template={t}
+                        params={params}
+                        onPick={pickHairStyle}
+                      />
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       {t.slider_schema.map((def) => (

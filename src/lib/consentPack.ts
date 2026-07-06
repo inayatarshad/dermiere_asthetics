@@ -8,7 +8,7 @@ export const CONSENT_ACK_PARAGRAPH =
   "I confirm that during my consultation I was shown an AI-generated visualization of a possible treatment outcome on my own photograph. I understand that this image is an illustrative simulation only: it is not a promise, prediction or guarantee of my result. Actual outcomes vary with individual anatomy, tissue behaviour, healing and aftercare. I have had the opportunity to ask questions about the procedure(s), the expected recovery and the realistic range of results.";
 
 export const RISKS_BY_CATEGORY: Record<
-  "injectable" | "surgical",
+  "injectable" | "surgical" | "hair",
   { title: string; risks: string[] }
 > = {
   injectable: {
@@ -35,6 +35,19 @@ export const RISKS_BY_CATEGORY: Record<
       "Anesthesia-related risks",
       "Breathing changes (rhinoplasty-specific)",
       "Dissatisfaction with the aesthetic result despite correct technique",
+    ],
+  },
+  hair: {
+    title: "Hair transplant risks discussed",
+    risks: [
+      "Temporary shedding (shock loss) of transplanted and native hair, weeks 2 to 8",
+      "Final density visible only at 10 to 12 months; a second session may be needed",
+      "A percentage of grafts may not survive",
+      "Tiny dot scars in the donor area (FUE), visible with very short haircuts",
+      "Swelling of the forehead in the first days; itching and crusting while healing",
+      "Folliculitis or ingrown hairs during regrowth",
+      "Numbness of the scalp, usually temporary",
+      "Ongoing native hair loss may continue without medical maintenance therapy",
     ],
   },
 };

@@ -30,6 +30,10 @@ export const CHIN_FILLER_PROMPT_TEMPLATE = `Edit ONLY the chin and lower jawline
 
 Preserve exactly, with no changes: the person's identity and all other facial features, eyes, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. The result must look like the SAME person with a naturally balanced, structurally supported chin that blends smoothly into the jawline: healed, settled, no swelling. Keep the enhancement anatomically plausible and proportionate to the face. Photorealistic, consistent lighting, no artifacts.`;
 
+export const HAIR_TRANSPLANT_PROMPT_TEMPLATE = `Edit ONLY the hair, hairline and scalp in this photograph to visualize the final grown-in result of a hair transplant, approximately 12 months after the procedure. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, face and all facial features, skin tone and texture, eyebrows and any facial hair, expression, lighting, camera angle, framing, clothing and background. The restored hairline must look completely natural: a soft, slightly irregular front edge with fine single hairs at the border, an age-appropriate position, natural growth direction and a realistic density gradient. Use the person's own natural hair color and texture unless a different style is explicitly described above. The result must be unmistakably the SAME person, fully healed, with no scars, redness or transplant marks. Photorealistic, consistent lighting, no artifacts.`;
+
 export const BOTOX_PROMPT_TEMPLATE = `Edit ONLY the specific treatment areas described below in this photograph to visualize the settled result of a botulinum toxin (Botox) treatment, as it would look about two weeks after injection. {assembled_slider_phrases}
 
 Preserve exactly, with no changes: the person's identity, facial proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Critically: keep completely natural, realistic skin with visible pores and normal texture. Do NOT blur, airbrush or beautify the whole face; only relax and soften the specific lines and areas described. The result must look like the SAME person on a well-rested day, subtle and believable, never frozen or plastic. Photorealistic, consistent lighting, no artifacts.`;
@@ -652,6 +656,241 @@ export const TEMPLATES: TreatmentTemplate[] = [
   },
 
   // =====================================================================
+  // HAIR TRANSPLANT (hair restoration) — restoration goals + hairstyle
+  // try-on. Hair sits outside the face mesh, so this vertical is AI-pass
+  // only (no geometric canvas handles); the try-on chips are exclusive
+  // on/off params (style_* = 100, bandless phrases).
+  // =====================================================================
+  {
+    id: "hair_transplant",
+    name: "Hair Transplant",
+    category: "hair",
+    region: "hairline",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: HAIR_TRANSPLANT_PROMPT_TEMPLATE,
+    slider_schema: [
+      {
+        key: "hairline_restore",
+        label: "Hairline restore",
+        hint: "Bring the receded frontal hairline forward",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "lower and restore the receded frontal hairline to a natural, age-appropriate position",
+        negLabel: "As is",
+        posLabel: "Restored",
+      },
+      {
+        key: "temple_fill",
+        label: "Temple points",
+        hint: "Recession at the temples",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "fill in the recessed temple points so the hairline gently frames the face",
+        negLabel: "As is",
+        posLabel: "Filled",
+      },
+      {
+        key: "hair_density",
+        label: "Overall density",
+        hint: "Fullness across the top of the scalp",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "increase overall hair density and fullness across the top of the scalp",
+        negLabel: "As is",
+        posLabel: "Denser",
+      },
+      {
+        key: "crown_coverage",
+        label: "Crown coverage",
+        hint: "Thinning at the crown / vertex",
+        min: 0,
+        max: 100,
+        posPhrase: "restore natural coverage over the thinning crown",
+        negLabel: "As is",
+        posLabel: "Covered",
+      },
+      // ---- hairstyle try-on (exclusive chips, not sliders) ----
+      {
+        key: "style_classic_taper",
+        label: "Classic taper",
+        hint: "Hairstyle try-on",
+        min: 0,
+        max: 100,
+        bandless: true,
+        posPhrase:
+          "restyle the grown-in hair as a classic short tapered cut, neatly groomed",
+        negLabel: "Off",
+        posLabel: "On",
+      },
+      {
+        key: "style_textured_crop",
+        label: "Textured crop",
+        hint: "Hairstyle try-on",
+        min: 0,
+        max: 100,
+        bandless: true,
+        posPhrase:
+          "restyle the grown-in hair as a modern textured crop with a short textured fringe",
+        negLabel: "Off",
+        posLabel: "On",
+      },
+      {
+        key: "style_side_part",
+        label: "Side part",
+        hint: "Hairstyle try-on",
+        min: 0,
+        max: 100,
+        bandless: true,
+        posPhrase:
+          "restyle the grown-in hair as a medium-length cut with a clean side part",
+        negLabel: "Off",
+        posLabel: "On",
+      },
+      {
+        key: "style_slick_back",
+        label: "Slicked back",
+        hint: "Hairstyle try-on",
+        min: 0,
+        max: 100,
+        bandless: true,
+        posPhrase:
+          "restyle the grown-in hair swept straight back off the forehead",
+        negLabel: "Off",
+        posLabel: "On",
+      },
+      {
+        key: "style_pompadour",
+        label: "Pompadour",
+        hint: "Hairstyle try-on",
+        min: 0,
+        max: 100,
+        bandless: true,
+        posPhrase:
+          "restyle the grown-in hair as a soft pompadour with volume swept up and back",
+        negLabel: "Off",
+        posLabel: "On",
+      },
+      {
+        key: "style_curls",
+        label: "Natural curls",
+        hint: "Hairstyle try-on",
+        min: 0,
+        max: 100,
+        bandless: true,
+        posPhrase:
+          "restyle the grown-in hair as medium-length natural curls",
+        negLabel: "Off",
+        posLabel: "On",
+      },
+      {
+        key: "style_buzz",
+        label: "Buzz cut",
+        hint: "Hairstyle try-on",
+        min: 0,
+        max: 100,
+        bandless: true,
+        posPhrase:
+          "restyle the grown-in hair as a uniform short buzz cut that clearly shows the restored hairline",
+        negLabel: "Off",
+        posLabel: "On",
+      },
+      {
+        key: "style_long_flow",
+        label: "Long flow",
+        hint: "Hairstyle try-on",
+        min: 0,
+        max: 100,
+        bandless: true,
+        posPhrase:
+          "restyle the grown-in hair as longer, flowing hair swept back from the face",
+        negLabel: "Off",
+        posLabel: "On",
+      },
+    ],
+    canvas_handles: [], // hair sits outside the face mesh: AI pass only
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & scalp assessment",
+        detail:
+          "Trichoscopy, Norwood/Ludwig staging, donor area density check, graft estimate. Agree the hairline design from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail:
+          "Scalp conditions, keloid history, blood thinners, smoking status, diabetes. Baseline photos captured.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Procedure day (FUE)",
+        detail:
+          "Follicular units extracted from the donor area and implanted per the agreed hairline design. Local anesthesia, typically 4-8 hours.",
+        offset_days: 14,
+      },
+      {
+        kind: "milestone",
+        label: "First wash & graft check (day 3)",
+        detail:
+          "Supervised first wash at the clinic; graft take and donor healing reviewed.",
+        offset_days: 17,
+      },
+      {
+        kind: "followup",
+        label: "2-week review: photo capture",
+        detail:
+          "Shedding-phase counselling: shock loss of transplanted hairs from week 2-8 is normal and expected. Capture photos.",
+        offset_days: 28,
+      },
+      {
+        kind: "followup",
+        label: "4-month review: early regrowth",
+        detail:
+          "New growth typically starts at month 3-4. Capture timeline photos and compare progress.",
+        offset_days: 134,
+      },
+      {
+        kind: "followup",
+        label: "8-month review: density check",
+        detail:
+          "Most density visible by month 8. Photo capture; discuss any planned second session.",
+        offset_days: 254,
+      },
+      {
+        kind: "followup",
+        label: "12-month result review: before/after photo",
+        detail:
+          "Final grown-in result. Compare against the AI visualization; capture the result set.",
+        offset_days: 380,
+      },
+      {
+        kind: "medicine",
+        label: "Post-op course",
+        detail:
+          "Antibiotic and analgesia short course per clinician. Anti-swelling regime for the forehead in the first days.",
+      },
+      {
+        kind: "medicine",
+        label: "Graft care (first 10 days)",
+        detail:
+          "Saline spray on grafts every 2-3 hours while awake; gentle no-pressure wash technique. No caps or helmets for 2 weeks, no gym or heavy sweating for 2 weeks, protect the scalp from direct sun.",
+      },
+      {
+        kind: "medicine",
+        label: "Maintenance therapy",
+        detail:
+          "Finasteride and/or topical minoxidil per clinician's prescription to protect non-transplanted native hair.",
+      },
+    ],
+  },
+
+  // =====================================================================
   // Declared, not yet wired
   // =====================================================================
   {
@@ -727,6 +966,12 @@ export const PROCEDURE_CATEGORIES: {
     label: "Injectables / Non-invasive",
     blurb: "Lip filler, chin filler, botox",
     templateIds: ["lip_filler", "chin_filler", "botox"],
+  },
+  {
+    id: "hair",
+    label: "Hair Restoration",
+    blurb: "FUE hair transplant, hairline design",
+    templateIds: ["hair_transplant"],
   },
   {
     id: "surgical",

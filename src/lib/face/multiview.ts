@@ -58,6 +58,7 @@ export interface MultiViewResult {
 }
 
 const N_MESH = 468; // iris points excluded from the fit
+const NOSE_TIP = 1; // ANCHOR.noseTip in geometry.ts
 
 // ---------------------------------------------------------------------
 // small linear algebra: weighted least squares up to 4 unknowns
@@ -267,8 +268,20 @@ export function refineDepthMultiView(
 
     zSfm = zRaw.map((z) => z / best!.gammaD);
 
-    const yawA = (Math.atan2(best.sA * sinAbs[0], cosY[0]) * 180) / Math.PI;
-    const yawB = (Math.atan2(best.sB * sinAbs[1], cosY[1]) * 180) / Math.PI;
+    // The parallax equations admit a MIRROR solution (depth negated, both
+    // yaws negated) with IDENTICAL residuals — the classic two-view Necker
+    // ambiguity. The candidate loop above cannot break that tie, so which
+    // mirror wins depends on arbitrary photo/order conventions; the loser is
+    // an inside-out face. Anatomy breaks the tie: MediaPipe's relief is weak
+    // on magnitude but reliable on direction (the nose points toward the
+    // camera), so the global sign must agree with it.
+    const corrMp = corrCentered(zSfm, Zmp);
+    if (Math.abs(corrMp) < 0.15) return null; // cannot orient: fall back
+    const flip = corrMp < 0 ? -1 : 1;
+    if (flip < 0) zSfm = zSfm.map((z) => -z);
+
+    const yawA = (Math.atan2(flip * best.sA * sinAbs[0], cosY[0]) * 180) / Math.PI;
+    const yawB = (Math.atan2(flip * best.sB * sinAbs[1], cosY[1]) * 180) / Math.PI;
     const res = [fits[0]!.rms / faceH, fits[1]!.rms / faceH];
     views.push(
       {
@@ -320,6 +333,11 @@ export function refineDepthMultiView(
   const sfmWeight = prepped.length >= 2 ? 0.75 : 0.5;
   const zCentered = zSfm!;
   const zMed = [...zCentered].sort((a, b) => a - b)[N_MESH >> 1];
+  // Never ship an inside-out face: after sign resolution the nose tip must
+  // still sit toward the camera relative to the face median (negative z in
+  // the landmark convention). A fit that fails this is anatomically wrong no
+  // matter how small its residual — fall back to the single-view mesh.
+  if (zCentered[NOSE_TIP] > zMed - 0.02 * faceH) return null;
   const cap = 0.55 * faceH;
   const jump = 0.4 * faceH;
   const zPx = new Array<number>(frontLm.length);

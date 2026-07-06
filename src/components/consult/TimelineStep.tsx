@@ -162,8 +162,8 @@ export function TimelineStep({
       <div className="space-y-3">
         <GlassCard strong className="p-5">
           {/* year toggle */}
-          <div className="flex gap-2 justify-center mb-4">
-            {([0, 5, 10] as const).map((y) => (
+          <div className="flex flex-wrap gap-2 justify-center mb-4">
+            {([0, 5, 10, 20, 30] as const).map((y) => (
               <Chip
                 key={y}
                 active={years === y}
@@ -291,14 +291,18 @@ export function TimelineStep({
           </button>
           <button
             className="btn btn-secondary w-full"
-            disabled={!!working || aiDisabled || cachedCount === 4}
+            disabled={!!working || aiDisabled || cachedCount === AGING_VARIANTS.length}
             onClick={preGenerateAll}
-            title="Generate and cache all four variants on this device for offline booth use"
+            title="Generate and cache every variant on this device for offline booth use"
           >
-            {cachedCount === 4 ? <Check size={16} /> : <DownloadCloud size={16} />}
-            {cachedCount === 4
+            {cachedCount === AGING_VARIANTS.length ? (
+              <Check size={16} />
+            ) : (
+              <DownloadCloud size={16} />
+            )}
+            {cachedCount === AGING_VARIANTS.length
               ? "Booth cache complete"
-              : `Pre-generate booth cache (${cachedCount}/4)`}
+              : `Pre-generate booth cache (${cachedCount}/${AGING_VARIANTS.length})`}
           </button>
           <p className="caption">
             Variants are stored on this device with the disclaimer burned in,

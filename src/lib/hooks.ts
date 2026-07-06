@@ -130,8 +130,10 @@ export function useFaceData(
           return;
         }
 
-        // composite cache: refined landmarks + view reports (or a recorded miss)
-        const mvKey = `mv_${asset.id}_${leftId ?? "x"}_${rightId ?? "x"}`;
+        // composite cache: refined landmarks + view reports (or a recorded
+        // miss). The version prefix busts caches when the solver changes —
+        // v2: oriented sign resolution (pre-v2 fits could be inside-out).
+        const mvKey = `mv2_${asset.id}_${leftId ?? "x"}_${rightId ?? "x"}`;
         const cachedMv = await loadLandmarks(mvKey);
         if (cachedMv) {
           const meta = await loadJson<ViewReport[] | { none: true }>(

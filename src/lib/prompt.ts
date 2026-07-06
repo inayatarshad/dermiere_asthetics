@@ -25,7 +25,8 @@ export function phraseForSlider(
   if (!band) return null;
   const phrase = value < 0 ? def.negPhrase : def.posPhrase;
   if (!phrase) return null;
-  return `${band} ${phrase}`;
+  // on/off choices (bandless) read as instructions, not graded changes
+  return def.bandless ? phrase : `${band} ${phrase}`;
 }
 
 /** Comma-joined phrases from all non-neutral sliders, ending with a period. */
@@ -74,6 +75,8 @@ const AREA_SCOPE: Record<string, string> = {
   chin_filler: "the chin and lower jawline",
   botox:
     "the specific botox treatment areas described, as settled about two weeks after injection",
+  hair_transplant:
+    "the hair, hairline and scalp, shown fully grown in about 12 months after a hair transplant",
 };
 
 const MULTI_OPENING =
