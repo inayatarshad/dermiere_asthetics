@@ -40,7 +40,13 @@ const today = () => new Date().toISOString().slice(0, 10);
  * server's env priority; "none" disables photoreal generation entirely
  * (on-device simulation only). Keys always stay server-side.
  */
-export type AiProviderSetting = "auto" | "none" | "gemini" | "openai" | "flux";
+export type AiProviderSetting =
+  | "auto"
+  | "none"
+  | "gemini"
+  | "openai"
+  | "flux"
+  | "higgsfield";
 
 /** Per-patient state of the phone -> booth push (T1). */
 export interface BoothSyncState {

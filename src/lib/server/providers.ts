@@ -16,15 +16,22 @@
  *                          available on your account
  *   BFL_API_KEY          — enables the FLUX.1 Kontext provider
  *   BFL_MODEL            — default "flux-kontext-pro"
- *   AI_PROVIDER          — force "gemini" | "openai" | "flux" (optional).
- *                          Set this to run a like-for-like bake-off.
+ *   HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET
+ *                        — enable the Higgsfield Cloud provider
+ *                          (platform.higgsfield.ai; needs API credits, a
+ *                          separate wallet from the app subscription)
+ *   HIGGSFIELD_IMAGE_MODEL — default "higgsfield-ai/soul/reference"
+ *   AI_PROVIDER          — force "gemini" | "openai" | "flux" | "higgsfield"
+ *                          (optional). Set this to run a like-for-like
+ *                          bake-off.
  *
- * Auto-detect priority when AI_PROVIDER is unset: gemini → openai → flux.
- * Any others that are configured act as automatic fallbacks (except on a
- * content-moderation block, which is not retried across providers).
+ * Auto-detect priority when AI_PROVIDER is unset: gemini → openai → flux →
+ * higgsfield. Any others that are configured act as automatic fallbacks
+ * (except on a content-moderation block, which is not retried across
+ * providers).
  */
 
-export type Provider = "gemini" | "openai" | "flux";
+export type Provider = "gemini" | "openai" | "flux" | "higgsfield";
 
 export interface GenerateResult {
   imageBase64: string;
@@ -55,12 +62,20 @@ interface ImageInput {
 function keyFor(p: Provider): string | undefined {
   if (p === "gemini") return process.env.GEMINI_API_KEY;
   if (p === "openai") return process.env.OPENAI_API_KEY;
+  if (p === "higgsfield") {
+    // key id + secret travel as one "id:secret" credential
+    const id = process.env.HIGGSFIELD_API_KEY;
+    const secret = process.env.HIGGSFIELD_API_SECRET;
+    return id && secret ? `${id}:${secret}` : undefined;
+  }
   return process.env.BFL_API_KEY;
 }
 
 /** Configured providers in auto-detect priority order. */
 function configuredProviders(): Provider[] {
-  return (["gemini", "openai", "flux"] as Provider[]).filter((p) => keyFor(p));
+  return (["gemini", "openai", "flux", "higgsfield"] as Provider[]).filter(
+    (p) => keyFor(p)
+  );
 }
 
 export function activeProvider(): Provider | null {
@@ -79,6 +94,7 @@ export function providerStatus() {
       gemini: !!process.env.GEMINI_API_KEY,
       openai: !!process.env.OPENAI_API_KEY,
       flux: !!process.env.BFL_API_KEY,
+      higgsfield: !!keyFor("higgsfield"),
     },
     active: activeProvider(),
     envForced: (process.env.AI_PROVIDER as Provider | undefined) ?? null,
@@ -86,6 +102,8 @@ export function providerStatus() {
       gemini: process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image",
       openai: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
       flux: process.env.BFL_MODEL || "flux-kontext-pro",
+      higgsfield:
+        process.env.HIGGSFIELD_IMAGE_MODEL || "higgsfield-ai/soul/reference",
     },
   };
 }
@@ -97,6 +115,7 @@ const RUNNERS: Record<
   gemini: generateWithGemini,
   openai: generateWithOpenAI,
   flux: generateWithFlux,
+  higgsfield: generateWithHiggsfield,
 };
 
 export async function generateAfter(
@@ -281,6 +300,193 @@ async function generateWithOpenAI(
     model,
     provider: "openai",
   };
+}
+
+// ---------------------------------------------------------------------
+// Higgsfield Cloud (platform.higgsfield.ai) — upload + submit + poll.
+// Auth: "Authorization: Key {id}:{secret}". Input images travel as URLs
+// via the platform's presigned-upload flow (POST /files/generate-upload-url
+// -> PUT bytes -> reference public_url). Job lifecycle: POST /{model_id}
+// -> {request_id, status_url} -> GET status until
+// queued|in_progress -> completed|failed|nsfw|canceled.
+//
+// The public docs do not pin the reference-image field name for
+// soul/reference, so the submit tries a small ladder of candidate fields;
+// a FastAPI 422 names the offending field, the first accepted name is
+// pinned for the life of the server instance, and a hard failure surfaces
+// the validation detail verbatim for a one-line fix.
+// ---------------------------------------------------------------------
+
+const HF_BASE = "https://platform.higgsfield.ai";
+const HF_IMAGE_FIELDS = ["image_url", "image", "reference_image_url"] as const;
+let hfPinnedImageField: (typeof HF_IMAGE_FIELDS)[number] | undefined;
+
+function hfAuthHeaders(): Record<string, string> {
+  return {
+    Authorization: `Key ${keyFor("higgsfield")!}`,
+    "Content-Type": "application/json",
+  };
+}
+
+/** Map Higgsfield error bodies to actionable GenerationErrors. */
+function hfError(status: number, body: string): GenerationError {
+  if (/not_enough_credits/i.test(body)) {
+    return new GenerationError(
+      "provider_error",
+      "The Higgsfield account has no API credits. API credits are a separate wallet from the app subscription; top up under Billing at cloud.higgsfield.ai, then retry."
+    );
+  }
+  if (status === 401 || status === 403) {
+    return new GenerationError(
+      "no_api_key",
+      "Higgsfield rejected the API credentials. Check HIGGSFIELD_API_KEY / HIGGSFIELD_API_SECRET."
+    );
+  }
+  return new GenerationError(
+    "provider_error",
+    `Higgsfield API error ${status}: ${body.slice(0, 400)}`
+  );
+}
+
+async function hfUploadImage(image: ImageInput): Promise<string> {
+  const res = await fetch(`${HF_BASE}/files/generate-upload-url`, {
+    method: "POST",
+    headers: hfAuthHeaders(),
+    body: JSON.stringify({ content_type: image.mimeType }),
+  });
+  if (!res.ok) {
+    throw hfError(res.status, await res.text().catch(() => ""));
+  }
+  const { public_url, upload_url } = (await res.json()) as {
+    public_url?: string;
+    upload_url?: string;
+  };
+  if (!public_url || !upload_url) {
+    throw new GenerationError(
+      "provider_error",
+      "Higgsfield did not return an upload URL."
+    );
+  }
+  const put = await fetch(upload_url, {
+    method: "PUT",
+    headers: { "Content-Type": image.mimeType },
+    body: Buffer.from(image.base64, "base64"),
+  });
+  if (!put.ok) {
+    throw new GenerationError(
+      "provider_error",
+      `Higgsfield image upload failed (${put.status}).`
+    );
+  }
+  return public_url;
+}
+
+async function generateWithHiggsfield(
+  image: ImageInput,
+  prompt: string
+): Promise<GenerateResult> {
+  const model =
+    process.env.HIGGSFIELD_IMAGE_MODEL || "higgsfield-ai/soul/reference";
+  const imageUrl = await hfUploadImage(image);
+
+  // submit, discovering the reference-image field name if not yet pinned
+  const fields = hfPinnedImageField
+    ? [hfPinnedImageField]
+    : [...HF_IMAGE_FIELDS];
+  let submitted: { request_id?: string; status_url?: string } | null = null;
+  let lastDetail = "";
+  for (const field of fields) {
+    const res = await fetch(`${HF_BASE}/${model}`, {
+      method: "POST",
+      headers: hfAuthHeaders(),
+      body: JSON.stringify({ prompt, [field]: imageUrl }),
+    });
+    if (res.ok) {
+      hfPinnedImageField = field;
+      submitted = (await res.json()) as {
+        request_id?: string;
+        status_url?: string;
+      };
+      break;
+    }
+    const body = await res.text().catch(() => "");
+    if (res.status !== 422) throw hfError(res.status, body);
+    lastDetail = body;
+    // 422 = the model exists but this body shape is wrong; if the complaint
+    // is about our candidate image field, try the next name, else surface
+    // the validation detail (it lists exactly what the model expects).
+    if (!/missing|extra_forbidden|unexpected/i.test(body)) {
+      throw new GenerationError(
+        "provider_error",
+        `Higgsfield rejected the request shape: ${body.slice(0, 400)}`
+      );
+    }
+  }
+  if (!submitted) {
+    throw new GenerationError(
+      "provider_error",
+      `Higgsfield rejected all known request shapes. Last validation detail: ${lastDetail.slice(0, 400)}`
+    );
+  }
+  if (!submitted.request_id) {
+    throw new GenerationError(
+      "provider_error",
+      "Higgsfield returned no request id."
+    );
+  }
+
+  const statusUrl =
+    submitted.status_url ??
+    `${HF_BASE}/requests/${submitted.request_id}/status`;
+  const deadline = Date.now() + 50_000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 1500));
+    const poll = await fetch(statusUrl, {
+      headers: { Authorization: `Key ${keyFor("higgsfield")!}` },
+    });
+    if (!poll.ok) continue;
+    const status = (await poll.json()) as {
+      status: string;
+      images?: { url?: string }[];
+    };
+    if (status.status === "completed") {
+      const url = status.images?.[0]?.url;
+      if (!url) {
+        throw new GenerationError(
+          "no_image_returned",
+          "Higgsfield completed without an image."
+        );
+      }
+      const img = await fetch(url);
+      if (!img.ok) {
+        throw new GenerationError(
+          "provider_error",
+          `Could not download the Higgsfield result (${img.status}).`
+        );
+      }
+      const buf = Buffer.from(await img.arrayBuffer());
+      const mime = img.headers.get("content-type") ?? "image/jpeg";
+      return {
+        imageBase64: buf.toString("base64"),
+        mimeType: mime.split(";")[0],
+        model,
+        provider: "higgsfield",
+      };
+    }
+    if (status.status === "nsfw") {
+      throw new GenerationError(
+        "safety_blocked",
+        "Generation blocked by Higgsfield's content moderation."
+      );
+    }
+    if (status.status === "failed" || status.status === "canceled") {
+      throw new GenerationError(
+        "provider_error",
+        `Higgsfield generation ${status.status}.`
+      );
+    }
+  }
+  throw new GenerationError("timeout", "Higgsfield generation timed out.");
 }
 
 // ---------------------------------------------------------------------

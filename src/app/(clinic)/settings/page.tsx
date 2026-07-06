@@ -24,11 +24,13 @@ import { TEMPLATES } from "@/lib/templates";
 import type { Role } from "@/lib/types";
 import { GlassCard, EmptyState, Field, Toggle, SectionTitle, Modal, Spinner } from "@/components/ui";
 
+type ProviderId = "gemini" | "openai" | "flux" | "higgsfield";
+
 interface ProviderStatus {
-  configured: { gemini: boolean; openai: boolean; flux: boolean };
+  configured: Record<ProviderId, boolean>;
   active: string | null;
   envForced: string | null;
-  models: { gemini: string; openai: string; flux: string };
+  models: Record<ProviderId, string>;
 }
 
 const AI_CHOICES: {
@@ -55,6 +57,11 @@ const AI_CHOICES: {
     id: "flux",
     label: "FLUX.1 Kontext",
     desc: "Controllable instructed editing",
+  },
+  {
+    id: "higgsfield",
+    label: "Higgsfield (Soul)",
+    desc: "Reference-guided Soul renders via Higgsfield Cloud API credits",
   },
   {
     id: "none",
@@ -267,14 +274,10 @@ export default function SettingsPage() {
               const isProvider =
                 choice.id !== "auto" && choice.id !== "none";
               const configured = isProvider
-                ? providerStatus?.configured[
-                    choice.id as "gemini" | "openai" | "flux"
-                  ]
+                ? providerStatus?.configured[choice.id as ProviderId]
                 : undefined;
               const model = isProvider
-                ? providerStatus?.models[
-                    choice.id as "gemini" | "openai" | "flux"
-                  ]
+                ? providerStatus?.models[choice.id as ProviderId]
                 : undefined;
               return (
                 <button
@@ -333,9 +336,7 @@ export default function SettingsPage() {
           {aiProvider !== "none" &&
             aiProvider !== "auto" &&
             providerStatus &&
-            !providerStatus.configured[
-              aiProvider as "gemini" | "openai" | "flux"
-            ] && (
+            !providerStatus.configured[aiProvider as ProviderId] && (
               <p className="text-sm text-warning mt-4">
                 The selected provider has no key on the server, so generation
                 will fail until its env var is set (see .env.example). The

@@ -15,7 +15,7 @@ import {
 
 export const maxDuration = 60;
 
-const PROVIDERS: Provider[] = ["gemini", "openai", "flux"];
+const PROVIDERS: Provider[] = ["gemini", "openai", "flux", "higgsfield"];
 
 /** Provider availability for the admin Settings GUI. No key material. */
 export async function GET() {
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       {
         error: "no_api_key",
         message:
-          "No image model configured on the server. Set GEMINI_API_KEY (or OPENAI_API_KEY / BFL_API_KEY) to enable photoreal AI generation.",
+          "No image model configured on the server. Set GEMINI_API_KEY (or OPENAI_API_KEY / BFL_API_KEY / HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET) to enable photoreal AI generation.",
       },
       { status: 501 }
     );

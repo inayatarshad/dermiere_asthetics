@@ -46,17 +46,18 @@ GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
 
 Without a key the visualization runs in **simulation mode**: the on-device landmark warp still gives a live preview, and the UI explains that photoreal AI is not configured. With a key, "Generate with AI" produces the photoreal healed result on the patient's actual photo.
 
-Three providers are wired so you can run the model bake-off the knowledge base recommends (same rhinoplasty edit, same 3-4 faces, whichever holds identity best wins):
+Four providers are wired so you can run the model bake-off the knowledge base recommends (same rhinoplasty edit, same 3-4 faces, whichever holds identity best wins):
 
 | Provider | Env | Best at |
 |---|---|---|
 | **Google Gemini** (Nano Banana / Pro) | `GEMINI_API_KEY` | Identity preservation — the recommended default for "same face, new nose" |
 | **OpenAI GPT Image 2** | `OPENAI_API_KEY` | Complex spatial reasoning (profile balancing); sent with `input_fidelity=high` |
 | **FLUX.1 Kontext** | `BFL_API_KEY` | Controllable instructed editing, self-hosting later |
+| **Higgsfield Cloud** (Soul reference) | `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` | Reference-guided Soul renders; API credits are a separate wallet from the app subscription (top up at cloud.higgsfield.ai) |
 
-Set `AI_PROVIDER` to `gemini` \| `openai` \| `flux` to force one for a like-for-like comparison; leave it blank to auto-detect (priority gemini -> openai -> flux, others as fallbacks). The layer is model-agnostic (`src/lib/server/providers.ts`); point `GEMINI_IMAGE_MODEL` at `gemini-3-pro-image` (Nano Banana Pro) or `OPENAI_IMAGE_MODEL` at `gpt-image-2` as your keys gain access.
+Set `AI_PROVIDER` to `gemini` \| `openai` \| `flux` \| `higgsfield` to force one for a like-for-like comparison; leave it blank to auto-detect (priority gemini -> openai -> flux -> higgsfield, others as fallbacks). The layer is model-agnostic (`src/lib/server/providers.ts`); point `GEMINI_IMAGE_MODEL` at `gemini-3-pro-image` (Nano Banana Pro) or `OPENAI_IMAGE_MODEL` at `gpt-image-2` as your keys gain access.
 
-The provider can also be switched at runtime from the app itself: **Settings -> AI generation** (admin role) selects Auto / Gemini / OpenAI / FLUX or **None**, which turns photoreal generation off clinic-wide and keeps the visualization fully on-device. The GUI shows which providers have keys configured on the server; keys themselves never reach the browser.
+The provider can also be switched at runtime from the app itself: **Settings -> AI generation** (admin role) selects Auto / Gemini / OpenAI / FLUX / Higgsfield or **None**, which turns photoreal generation off clinic-wide and keeps the visualization fully on-device. The GUI shows which providers have keys configured on the server; keys themselves never reach the browser.
 
 ## Booth link (phone -> desktop handoff)
 
