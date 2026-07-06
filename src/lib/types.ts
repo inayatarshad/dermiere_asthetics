@@ -111,6 +111,85 @@ export interface Asset {
 
 export type ProcedureCategory = "surgical" | "injectable" | "skin" | "hair" | "other";
 
+// ---------------------------------------------------------------------
+// Appointments (Calendar module) + VYBERO voice-agent integration
+// ---------------------------------------------------------------------
+
+export type AppointmentType = "consultation" | "treatment" | "follow_up";
+export type AppointmentStatus =
+  | "booked"
+  | "confirmed"
+  | "completed"
+  | "cancelled"
+  | "no_show";
+/** Who created the booking. "vybero" = the phone voice agent. */
+export type AppointmentSource = "front_desk" | "vybero" | "booth";
+
+export interface Appointment {
+  id: string;
+  /** Linked patient when known; VYBERO bookings may arrive with a name only. */
+  patient_id?: string;
+  patient_name: string;
+  phone?: string;
+  start: string; // ISO datetime
+  duration_min: number;
+  type: AppointmentType;
+  procedure_interest?: string; // template id, e.g. "lip_filler"
+  source: AppointmentSource;
+  status: AppointmentStatus;
+  notes?: string;
+  /** Set when the booking came out of a VYBERO call. */
+  vybero_call_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Clinic opening pattern that defines bookable slots. */
+export interface ClinicHours {
+  open: string; // "10:00"
+  close: string; // "19:00"
+  slot_min: number; // grid + default booking length
+  days: number[]; // 0=Sun ... 6=Sat
+}
+
+export const DEFAULT_CLINIC_HOURS: ClinicHours = {
+  open: "10:00",
+  close: "19:00",
+  slot_min: 30,
+  days: [1, 2, 3, 4, 5, 6],
+};
+
+/**
+ * One VYBERO voice-agent call record (modeled on the VYBERO Analytics
+ * conversation schema, clinic-flavored). The agent may send topics and
+ * questions pre-labeled; otherwise they are keyword-detected from the
+ * summary on our side.
+ */
+export type CallOutcome =
+  | "booked"
+  | "info"
+  | "callback"
+  | "transferred"
+  | "missed";
+
+export interface VyberoCall {
+  id: string;
+  started_at: string; // ISO datetime
+  duration_secs: number;
+  direction: "inbound" | "outbound";
+  caller_name?: string;
+  caller_phone?: string;
+  language?: string;
+  outcome: CallOutcome;
+  /** Procedure/topic tags, e.g. "lip_filler", "pricing", "aftercare". */
+  topics: string[];
+  /** Notable patient questions, verbatim-ish. */
+  questions: string[];
+  summary?: string;
+  appointment_id?: string;
+  rating?: number; // 1..5 if collected
+}
+
 export interface Brief {
   primary_interest: string | null; // procedure id, e.g. "rhinoplasty"
   interests: string[]; // all selected procedure ids

@@ -100,6 +100,8 @@ export default function SettingsPage() {
   const setAiProvider = useStore((s) => s.setAiProvider);
   const aiModels = useStore((s) => s.aiModels);
   const setAiModel = useStore((s) => s.setAiModel);
+  const clinicHours = useStore((s) => s.clinicHours);
+  const setClinicHours = useStore((s) => s.setClinicHours);
   const toxinPricePerUnit = useStore((s) => s.toxinPricePerUnit);
   const setToxinPricePerUnit = useStore((s) => s.setToxinPricePerUnit);
 
@@ -413,6 +415,88 @@ export default function SettingsPage() {
             {providerStatus?.envForced
               ? ` Server env currently forces ${providerStatus.envForced} when Auto is selected.`
               : ""}
+          </p>
+        </GlassCard>
+      </section>
+
+      {/* Clinic hours (drives the Calendar grid + VYBERO availability) */}
+      <section className="fade-up-3">
+        <SectionTitle
+          title="Clinic hours"
+          sub="Defines the bookable slot grid on the Calendar and the availability VYBERO offers to callers"
+          className="mb-4"
+        />
+        <GlassCard className="p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl">
+            <Field label="Opens">
+              <input
+                type="time"
+                className="input"
+                value={clinicHours.open}
+                onChange={(e) =>
+                  e.target.value && setClinicHours({ open: e.target.value })
+                }
+              />
+            </Field>
+            <Field label="Closes">
+              <input
+                type="time"
+                className="input"
+                value={clinicHours.close}
+                onChange={(e) =>
+                  e.target.value && setClinicHours({ close: e.target.value })
+                }
+              />
+            </Field>
+            <Field label="Slot length">
+              <select
+                className="input"
+                value={clinicHours.slot_min}
+                onChange={(e) =>
+                  setClinicHours({ slot_min: Number(e.target.value) })
+                }
+              >
+                {[15, 30, 45, 60].map((m) => (
+                  <option key={m} value={m}>
+                    {m} min
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Open days">
+              <div className="flex gap-1 flex-wrap pt-1.5">
+                {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => {
+                  const active = clinicHours.days.includes(i);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() =>
+                        setClinicHours({
+                          days: active
+                            ? clinicHours.days.filter((x) => x !== i)
+                            : [...clinicHours.days, i].sort(),
+                        })
+                      }
+                      className={`w-7 h-7 rounded-full text-[11px] font-semibold transition-colors ${
+                        active
+                          ? "bg-mint-500 text-white"
+                          : "bg-white/60 text-ink-400 hover:bg-mint-100"
+                      }`}
+                      aria-pressed={active}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          </div>
+          <p className="caption mt-4">
+            The VYBERO phone agent reads availability from these hours via
+            GET /api/vybero/availability and books through POST
+            /api/vybero/book (authenticated with the VYBERO_API_KEY server
+            env var).
           </p>
         </GlassCard>
       </section>

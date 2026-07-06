@@ -333,3 +333,188 @@ export async function fetchSeedManifest(): Promise<SeedManifest | null> {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------
+// VYBERO demo story: two weeks of voice-agent calls + a populated
+// appointment book, so the Calendar and admin Analytics open alive.
+// Deterministic (seeded RNG) so every demo reset tells the same story.
+// ---------------------------------------------------------------------
+
+import type { Appointment, VyberoCall, CallOutcome, Patient as PatientT } from "./types";
+
+function mulberry32(a: number) {
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const CALLER_NAMES = [
+  "Fatima Sheikh", "Ali Nawaz", "Hira Butt", "Usman Tariq", "Sana Iqbal",
+  "Bilal Chaudhry", "Mehwish Khan", "Danish Raza", "Ayesha Siddiqui",
+  "Hamza Malik", "Rabia Aslam", "Faisal Mehmood", "Zara Hussain",
+  "Imran Qadir", "Noor Fatima", "Kashif Javed", "Amna Riaz", "Taimur Shah",
+  "Saba Anwar", "Adeel Akhtar", "Mahnoor Ali", "Junaid Aziz",
+];
+
+const TOPIC_QUESTIONS: Record<string, string[]> = {
+  lip_filler: [
+    "How much does lip filler cost?",
+    "How long does lip filler last?",
+    "Will my lips look natural after filler?",
+  ],
+  botox: [
+    "Is botox safe?",
+    "How many units of botox will I need?",
+    "How long does botox take to work?",
+  ],
+  rhinoplasty: [
+    "What is the price of a nose job?",
+    "How long is rhinoplasty recovery?",
+    "Can I see nose job results before surgery?",
+  ],
+  chin_filler: [
+    "Can chin filler fix my side profile?",
+    "How much does chin filler cost?",
+  ],
+  hair_transplant: [
+    "How much does a hair transplant cost?",
+    "When will transplanted hair grow?",
+    "Is FUE painful?",
+  ],
+  skin: ["Do you treat acne scars?", "How many laser sessions do I need?"],
+  pricing: ["Do you have installment plans?", "Is the consultation free?"],
+  availability: [
+    "Do you have evening slots?",
+    "Are you open on Saturday?",
+    "How soon can I get an appointment?",
+  ],
+  location: ["Where exactly is the clinic?", "Is there parking available?"],
+  aftercare: [
+    "How much downtime will I need?",
+    "What are the side effects?",
+  ],
+  doctor: ["Who performs the procedures?", "Is the doctor board certified?"],
+};
+
+const PROC_TOPICS = [
+  "lip_filler", "lip_filler", "lip_filler", "botox", "botox", "botox",
+  "rhinoplasty", "rhinoplasty", "hair_transplant", "hair_transplant",
+  "chin_filler", "skin",
+];
+const SIDE_TOPICS = [
+  "pricing", "pricing", "pricing", "availability", "availability",
+  "aftercare", "location", "doctor",
+];
+
+export interface VyberoSeed {
+  appointments: Appointment[];
+  vyberoCalls: VyberoCall[];
+}
+
+export function buildVyberoSeed(patients: PatientT[]): VyberoSeed {
+  const rnd = mulberry32(20260710);
+  const pick = <T,>(arr: T[]): T => arr[Math.floor(rnd() * arr.length)];
+  const calls: VyberoCall[] = [];
+  const appointments: Appointment[] = [];
+
+  const at = (dayOffset: number, hour: number, minute: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + dayOffset);
+    d.setHours(hour, minute, 0, 0);
+    return d;
+  };
+
+  // ---- calls: past 14 days ------------------------------------------
+  const HOURS = [9, 10, 11, 11, 12, 12, 13, 14, 15, 16, 17, 17, 18, 18, 19];
+  for (let day = -13; day <= 0; day++) {
+    const weekday = at(day, 12, 0).getDay();
+    if (weekday === 0) continue; // clinic closed Sunday
+    const n = 3 + Math.floor(rnd() * (weekday === 6 ? 6 : 5));
+    for (let i = 0; i < n; i++) {
+      const started = at(day, pick(HOURS), Math.floor(rnd() * 60));
+      if (started.getTime() > Date.now()) continue;
+      const roll = rnd();
+      const outcome: CallOutcome =
+        roll < 0.38 ? "booked" : roll < 0.72 ? "info" : roll < 0.84 ? "callback" : roll < 0.9 ? "transferred" : "missed";
+      const missed = outcome === "missed";
+      const topic = pick(PROC_TOPICS);
+      const side = pick(SIDE_TOPICS);
+      const topics = missed ? [] : rnd() < 0.75 ? [topic, side] : [topic];
+      const questions = missed
+        ? []
+        : topics.flatMap((t) =>
+            rnd() < 0.8 ? [pick(TOPIC_QUESTIONS[t] ?? [])].filter(Boolean) : []
+          );
+      calls.push({
+        id: crypto.randomUUID(),
+        started_at: started.toISOString(),
+        duration_secs: missed ? 0 : 45 + Math.floor(rnd() * 340),
+        direction: "inbound",
+        caller_name: missed ? undefined : pick(CALLER_NAMES),
+        caller_phone: missed
+          ? undefined
+          : `+92 3${Math.floor(rnd() * 90 + 10)} ${Math.floor(rnd() * 9000000 + 1000000)}`,
+        language: rnd() < 0.55 ? "Urdu" : rnd() < 0.8 ? "English" : "Punjabi",
+        outcome,
+        topics,
+        questions,
+        summary: missed
+          ? "Missed call, no answer."
+          : `Caller asked about ${topics.map((t) => t.replace(/_/g, " ")).join(" and ")}${outcome === "booked" ? "; booked a consultation." : "."}`,
+        rating: !missed && rnd() < 0.4 ? 4 + Math.round(rnd()) : undefined,
+      });
+    }
+  }
+
+  // ---- appointments: past week (done) + coming week (booked) ---------
+  const SLOT_STARTS = [10, 10.5, 11, 11.5, 12, 12.5, 14, 14.5, 15, 15.5, 16, 16.5, 17, 17.5, 18, 18.5];
+  const PROCS = ["lip_filler", "botox", "rhinoplasty", "chin_filler", "hair_transplant"];
+  const bookedCalls = calls.filter((c) => c.outcome === "booked");
+  let bookedIdx = 0;
+
+  for (let day = -6; day <= 7; day++) {
+    const weekday = at(day, 12, 0).getDay();
+    if (weekday === 0) continue;
+    const n = day < 0 ? 2 + Math.floor(rnd() * 3) : 3 + Math.floor(rnd() * 4);
+    const used = new Set<number>();
+    for (let i = 0; i < n; i++) {
+      let slot = pick(SLOT_STARTS);
+      let guard = 0;
+      while (used.has(slot) && guard++ < 20) slot = pick(SLOT_STARTS);
+      if (used.has(slot)) continue;
+      used.add(slot);
+      const start = at(day, Math.floor(slot), (slot % 1) * 60);
+      const srcRoll = rnd();
+      const source = srcRoll < 0.35 ? "vybero" : srcRoll < 0.9 ? "front_desk" : "booth";
+      const call = source === "vybero" ? bookedCalls[bookedIdx++ % Math.max(1, bookedCalls.length)] : undefined;
+      const patient = rnd() < 0.25 ? pick(patients) : undefined;
+      const past = start.getTime() < Date.now();
+      const typeRoll = rnd();
+      appointments.push({
+        id: crypto.randomUUID(),
+        patient_id: patient?.id,
+        patient_name: patient?.name ?? call?.caller_name ?? pick(CALLER_NAMES),
+        phone: call?.caller_phone,
+        start: start.toISOString(),
+        duration_min: typeRoll < 0.6 ? 30 : typeRoll < 0.9 ? 45 : 60,
+        type: typeRoll < 0.6 ? "consultation" : typeRoll < 0.9 ? "treatment" : "follow_up",
+        procedure_interest: call?.topics.find((t) => PROCS.includes(t)) ?? pick(PROCS),
+        source,
+        status: past ? (rnd() < 0.85 ? "completed" : "no_show") : rnd() < 0.4 ? "confirmed" : "booked",
+        notes: undefined,
+        vybero_call_id: call?.id,
+        created_at: new Date(start.getTime() - 86400000 * (1 + rnd() * 4)).toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      if (call) call.appointment_id = appointments[appointments.length - 1].id;
+    }
+  }
+
+  appointments.sort((a, b) => a.start.localeCompare(b.start));
+  calls.sort((a, b) => b.started_at.localeCompare(a.started_at));
+  return { appointments, vyberoCalls: calls };
+}

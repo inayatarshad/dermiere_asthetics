@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  CalendarDays,
+  ChartColumn,
   Settings,
   LogOut,
   RadioTower,
@@ -78,8 +80,12 @@ export function TopNav() {
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/patients", label: "Patients", icon: Users },
+    { href: "/calendar", label: "Calendar", icon: CalendarDays },
     ...(can.manageUsers(user?.role)
-      ? [{ href: "/settings", label: "Settings", icon: Settings }]
+      ? [
+          { href: "/analytics", label: "Analytics", icon: ChartColumn },
+          { href: "/settings", label: "Settings", icon: Settings },
+        ]
       : []),
   ];
 

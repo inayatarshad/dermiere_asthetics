@@ -10,10 +10,12 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 import type {
+  Appointment,
   Asset,
   Brief,
   CanvasState,
   Clinic,
+  ClinicHours,
   Consent,
   ConsentType,
   Consultation,
@@ -25,9 +27,10 @@ import type {
   TreatmentPlan,
   User,
   Visualization,
+  VyberoCall,
 } from "./types";
-import { CONSENT_TEXT_VERSION } from "./types";
-import { buildSeed, fetchSeedManifest } from "./seed";
+import { CONSENT_TEXT_VERSION, DEFAULT_CLINIC_HOURS } from "./types";
+import { buildSeed, buildVyberoSeed, fetchSeedManifest } from "./seed";
 import { getTemplate } from "./templates";
 import { deleteImage } from "./db";
 
@@ -75,6 +78,11 @@ interface StoreState {
   /** Admin-selected model per provider (empty = server default). */
   aiModels: Partial<Record<"gemini" | "openai" | "flux" | "higgsfield", string>>;
 
+  // calendar + VYBERO voice agent
+  appointments: Appointment[];
+  vyberoCalls: VyberoCall[];
+  clinicHours: ClinicHours;
+
   // booth handoff (T1)
   boothLink: boolean; // desktop: poll the booth inbox
   boothSync: Record<string, BoothSyncState>; // patientId -> push state
@@ -92,6 +100,19 @@ interface StoreState {
     provider: "gemini" | "openai" | "flux" | "higgsfield",
     model: string | null
   ) => void;
+
+  // calendar + VYBERO
+  addAppointment: (
+    a: Omit<Appointment, "id" | "created_at" | "updated_at" | "status"> & {
+      id?: string;
+      status?: Appointment["status"];
+    }
+  ) => Appointment;
+  updateAppointment: (id: string, patch: Partial<Appointment>) => void;
+  /** Merge server copies (VYBERO bookings / other devices); newest wins. */
+  mergeAppointments: (items: Appointment[]) => void;
+  mergeVyberoCalls: (items: VyberoCall[]) => void;
+  setClinicHours: (patch: Partial<ClinicHours>) => void;
 
   // booth actions
   setBoothLink: (on: boolean) => void;
@@ -199,6 +220,9 @@ export const useStore = create<StoreState>()(
       sessionUserId: null,
       aiProvider: "auto",
       aiModels: {},
+      appointments: [],
+      vyberoCalls: [],
+      clinicHours: DEFAULT_CLINIC_HOURS,
       boothLink: false,
       boothSync: {},
       mergedBoothIds: [],
@@ -215,6 +239,55 @@ export const useStore = create<StoreState>()(
           else next[provider] = model;
           return { aiModels: next };
         }),
+
+      addAppointment: (a) => {
+        const appt: Appointment = {
+          status: "booked",
+          ...a,
+          id: a.id ?? uid(),
+          created_at: nowISO(),
+          updated_at: nowISO(),
+        };
+        set((s) => ({ appointments: [...s.appointments, appt] }));
+        return appt;
+      },
+
+      updateAppointment: (id, patch) =>
+        set((s) => ({
+          appointments: s.appointments.map((a) =>
+            a.id === id ? { ...a, ...patch, updated_at: nowISO() } : a
+          ),
+        })),
+
+      mergeAppointments: (items) =>
+        set((s) => {
+          const byId = new Map(s.appointments.map((a) => [a.id, a]));
+          for (const item of items) {
+            const local = byId.get(item.id);
+            if (!local || item.updated_at > local.updated_at) {
+              byId.set(item.id, item);
+            }
+          }
+          return {
+            appointments: [...byId.values()].sort((a, b) =>
+              a.start.localeCompare(b.start)
+            ),
+          };
+        }),
+
+      mergeVyberoCalls: (items) =>
+        set((s) => {
+          const byId = new Map(s.vyberoCalls.map((c) => [c.id, c]));
+          for (const item of items) byId.set(item.id, item);
+          return {
+            vyberoCalls: [...byId.values()].sort((a, b) =>
+              b.started_at.localeCompare(a.started_at)
+            ),
+          };
+        }),
+
+      setClinicHours: (patch) =>
+        set((s) => ({ clinicHours: { ...s.clinicHours, ...patch } })),
 
       setBoothLink: (on) => set({ boothLink: on }),
 
@@ -304,11 +377,27 @@ export const useStore = create<StoreState>()(
       },
 
       seedIfNeeded: async () => {
-        if (get().seeded) return;
+        const current = get();
+        if (current.seeded) {
+          // Backfill modules added after this device first seeded: the
+          // calendar + VYBERO analytics demo story (2026-07-06).
+          if (
+            current.appointments.length === 0 &&
+            current.vyberoCalls.length === 0
+          ) {
+            const demo = buildVyberoSeed(current.patients);
+            set({
+              appointments: demo.appointments,
+              vyberoCalls: demo.vyberoCalls,
+            });
+          }
+          return;
+        }
         const manifest = await fetchSeedManifest();
         // Re-check post-await in case another tab seeded meanwhile.
         if (get().seeded) return;
         const seed = buildSeed(manifest);
+        const demo = buildVyberoSeed(seed.patients);
         set({
           seeded: true,
           clinic: seed.clinic,
@@ -321,12 +410,15 @@ export const useStore = create<StoreState>()(
           planItems: seed.planItems,
           visualizations: [],
           reports: [],
+          appointments: demo.appointments,
+          vyberoCalls: demo.vyberoCalls,
         });
       },
 
       resetDemo: async () => {
         const manifest = await fetchSeedManifest();
         const seed = buildSeed(manifest);
+        const demo = buildVyberoSeed(seed.patients);
         set({
           seeded: true,
           clinic: seed.clinic,
@@ -339,6 +431,8 @@ export const useStore = create<StoreState>()(
           planItems: seed.planItems,
           visualizations: [],
           reports: [],
+          appointments: demo.appointments,
+          vyberoCalls: demo.vyberoCalls,
           sessionUserId: null,
         });
       },
