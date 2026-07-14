@@ -2055,3 +2055,47 @@ input[type="range"].mint-slider::-moz-range-track {
     transform: translate(-50%, -50%) scale(1);
   }
 }
+
+/* ---- thanks page: Contour AI as the product, TechGIS sign-off ---- */
+.portal-product {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(14, 42, 38, 0.09);
+}
+.portal-product-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+.portal-product-head img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+.portal-product > p {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-700);
+  max-width: 40ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+.portal-madeby {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+.portal-madeby span {
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+.portal-madeby img {
+  width: 118px;
+  height: auto;
+}

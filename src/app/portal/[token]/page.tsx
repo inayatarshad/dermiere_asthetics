@@ -359,7 +359,30 @@ export default function PortalPage() {
             we&rsquo;ll review your answers and come back on WhatsApp with a
             proposal tailored to your clinic.
           </p>
-          <span className="portal-foot">{wordmark}</span>
+
+          {/* the product they can buy */}
+          <div className="portal-product">
+            <div className="portal-product-head">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/contour-mark-192.png" alt="" />
+              <span className="portal-wordmark">
+                Con<i>tour&nbsp;AI</i>
+              </span>
+            </div>
+            <p>
+              the aesthetic clinic operating system: 3D consultations, AI
+              before &amp; after previews, free assessment reports and an AI
+              receptionist that books your calls. available for your clinic,
+              included in your proposal.
+            </p>
+          </div>
+
+          {/* the company behind it */}
+          <div className="portal-madeby">
+            <span>a product by</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/techgis-mark-256.png" alt="TechGIS" />
+          </div>
         </div>
       </div>
     );
