@@ -1102,247 +1102,412 @@ input[type="range"].mint-slider::-moz-range-track {
   }
 }
 
-/* ---- Assessment Report (ar-*) — the free lead-magnet A4 ---- */
-.ar-header-right {
+/* ============================================================
+   Facial Aesthetic Assessment (ar-*) — printed clinic artefact.
+   Flat white letterhead: Fraunces display, Inter body, hairline
+   rules, mint as the single restrained accent. No glass, no
+   cards, no dashboard furniture on paper.
+   ============================================================ */
+.ar-sheet {
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
+  color: var(--ink-900);
   display: flex;
   flex-direction: column;
+}
+
+/* ---- letterhead ---- */
+.ar-head {
+  display: flex;
+  justify-content: space-between;
   align-items: flex-end;
-  gap: 6px;
-}
-.ar-header-meta {
-  font-size: 11px;
-  color: var(--ink-400);
-  letter-spacing: 0.06em;
-}
-.ar-hero {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(14, 42, 38, 0.14);
   margin-bottom: 14px;
 }
-.ar-hero figure {
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background: var(--mint-100);
-  box-shadow: 0 10px 26px rgba(31, 41, 55, 0.08);
+.ar-head-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
-.ar-hero img {
-  width: 100%;
-  aspect-ratio: 4 / 4.4;
-  object-fit: cover;
+.ar-head-brand img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+.ar-head-clinic {
   display: block;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  margin-bottom: 3px;
 }
-.ar-hero-loading {
+.ar-title {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+.ar-head-meta {
+  display: flex;
+  gap: 22px;
+  margin: 0;
+}
+.ar-head-meta dt {
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  margin-bottom: 2px;
+}
+.ar-head-meta dd {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-900);
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* ---- figures ---- */
+.ar-figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.ar-figures figure {
+  margin: 0;
+}
+.ar-figures img,
+.ar-fig-pending {
   width: 100%;
-  aspect-ratio: 4 / 4.4;
+  aspect-ratio: 5 / 4.6;
+  object-fit: cover;
+  object-position: center 20%;
+  display: block;
+  border-radius: 10px;
+  border: 1px solid rgba(14, 42, 38, 0.1);
+}
+.ar-fig-pending {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
+  color: var(--ink-400);
+  background: rgba(14, 42, 38, 0.03);
+}
+.ar-figures figcaption {
+  font-size: 9px;
+  color: var(--ink-700);
+  padding-top: 5px;
+  letter-spacing: 0.02em;
+}
+.ar-figures figcaption i {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
+  color: var(--ink-400);
+  margin-right: 6px;
+}
+
+/* ---- sections ---- */
+.ar-section {
+  margin-bottom: 12px;
+}
+.ar-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+.ar-section-head h2 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.ar-section-note {
+  font-size: 8.5px;
+  color: var(--ink-400);
+  letter-spacing: 0.04em;
+}
+.ar-strength {
+  font-size: 9.5px;
+  color: var(--ink-700);
+  font-style: italic;
+  max-width: 46ch;
+  text-align: right;
+}
+
+/* ---- harmony gauge (inline with section head, not a stat card) ---- */
+.ar-gauge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ar-gauge-num {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 13px;
+  fill: var(--ink-900);
+}
+.ar-gauge > span {
+  font-size: 9px;
+  color: var(--ink-700);
+  line-height: 1.25;
+}
+.ar-gauge > span em {
+  display: block;
+  font-style: normal;
   color: var(--ink-400);
 }
-.ar-hero figcaption {
-  font-size: 10px;
+
+/* ---- measurement table ---- */
+.ar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5px;
+}
+.ar-table thead th {
+  text-align: left;
+  font-size: 8.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-400);
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+  padding: 0 8px 4px 0;
+  border-bottom: 1px solid rgba(14, 42, 38, 0.14);
 }
-.ar-balance {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  margin-bottom: 14px;
+.ar-table thead th.ar-th-align {
+  width: 92px;
 }
-.ar-score {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 108px;
-  padding: 10px 14px;
-  border-radius: 16px;
-  background: var(--mint-100);
-}
-.ar-score-num {
-  font-size: 40px;
-  font-weight: 300;
-  letter-spacing: -0.04em;
+.ar-table tbody td {
+  padding: 3.5px 8px 3.5px 0;
+  border-bottom: 1px solid rgba(14, 42, 38, 0.06);
   color: var(--ink-900);
-  line-height: 1;
+  vertical-align: middle;
 }
-.ar-score-num::after {
-  content: "/100";
-  font-size: 12px;
-  color: var(--ink-400);
-  margin-left: 2px;
-}
-.ar-score-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-700);
-  margin-top: 6px;
-  text-align: center;
-}
-.ar-score-label em {
-  display: block;
-  font-style: normal;
-  font-weight: 400;
-  color: var(--ink-400);
+.ar-table tr.ar-group td {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
   font-size: 10px;
+  color: var(--ink-400);
+  padding-top: 7px;
+  padding-bottom: 2px;
+  border-bottom: none;
 }
-.ar-metrics {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 16px;
-}
-.ar-metric-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--ink-700);
-  margin-bottom: 3px;
-}
-.ar-metric-head b {
-  font-weight: 600;
-  color: var(--ink-900);
+.ar-num-cell {
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.ar-metric-head em {
-  font-style: normal;
+.ar-muted {
   color: var(--ink-400);
-  font-weight: 400;
 }
-.ar-bar {
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  overflow: hidden;
-}
-.ar-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--mint-400), var(--mint-500));
-}
-.ar-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.ar-list {
+.ar-align {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 6px;
+  align-items: center;
+  gap: 6px;
 }
-.ar-list li {
-  list-style: none;
-  font-size: 10.5px;
-  line-height: 1.45;
+.ar-align-bar {
+  display: inline-block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--mint-500);
 }
-.ar-list b {
-  display: block;
-  font-size: 11px;
-  color: var(--ink-900);
-  font-weight: 600;
-}
-.ar-list span {
-  color: var(--ink-700);
-}
-.ar-clear {
-  font-size: 10.5px;
+.ar-align-num {
+  font-size: 8.5px;
   color: var(--ink-400);
-  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
 }
-.ar-num {
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
+
+/* ---- skin table ---- */
+.ar-skin-table td {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.ar-skin-thumb {
+  width: 44px;
+  position: relative;
+}
+.ar-skin-thumb img {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: 7px;
+  border: 1px solid rgba(14, 42, 38, 0.1);
+  display: block;
+}
+.ar-fig-num {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 13px;
+  height: 13px;
   border-radius: 999px;
   background: var(--mint-500);
   color: #fff;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
+  display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 5px;
-  vertical-align: 1px;
 }
-.ar-crops {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.ar-crops figure {
-  width: calc(16.66% - 7px);
-  min-width: 74px;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background: #fff;
-}
-.ar-crops img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  display: block;
-}
-.ar-crops figcaption {
-  font-size: 8.5px;
-  padding: 3px 6px;
-  color: var(--ink-700);
-  text-transform: capitalize;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ar-journey {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  margin-top: 8px;
-}
-.ar-journey b {
-  display: block;
+.ar-skin-name {
+  width: 128px;
+  font-weight: 600;
   font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--mint-500);
-  margin-bottom: 3px;
 }
-.ar-journey span {
-  font-size: 10.5px;
-  color: var(--ink-700);
-  line-height: 1.4;
-}
-.ar-footer {
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid rgba(31, 41, 55, 0.08);
-}
-.ar-cta {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.ar-cta b {
-  font-size: 13px;
-  color: var(--ink-900);
-}
-.ar-cta span {
-  font-size: 11px;
-  color: var(--ink-700);
-}
-.ar-disclaimer {
+.ar-skin-name em {
+  display: block;
+  font-style: normal;
+  font-weight: 400;
   font-size: 8.5px;
   color: var(--ink-400);
+  text-transform: capitalize;
+}
+.ar-skin-note {
+  color: var(--ink-700);
   line-height: 1.45;
-  margin-top: 6px;
+}
+.ar-body {
+  font-size: 10px;
+  color: var(--ink-700);
+  line-height: 1.5;
+}
+
+/* ---- considerations ---- */
+.ar-considerations {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+.ar-considerations li {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+}
+.ar-consider-num {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--mint-500);
+  min-width: 12px;
+}
+.ar-considerations b {
+  font-size: 10.5px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+.ar-consider-body {
+  font-size: 9.5px;
+  color: var(--ink-700);
+  line-height: 1.45;
+}
+
+/* ---- sequence ---- */
+.ar-sequence {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+.ar-sequence b {
+  display: block;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 10.5px;
+  color: var(--ink-400);
+  margin-bottom: 3px;
+}
+.ar-sequence span,
+.ar-sequence [contenteditable] {
+  font-size: 9.5px;
+  color: var(--ink-700);
+  line-height: 1.45;
+}
+
+/* ---- sign-off ---- */
+.ar-signoff {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(14, 42, 38, 0.14);
+}
+.ar-sign-lines {
+  display: flex;
+  gap: 28px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+.ar-sign-lines > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ar-sign-rule {
+  display: block;
+  width: 130px;
+  border-bottom: 1px solid rgba(14, 42, 38, 0.35);
+  height: 16px;
+}
+.ar-sign-lines span:not(.ar-sign-rule) {
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+.ar-cta-block {
+  margin-left: auto;
+  text-align: right;
+}
+.ar-cta-block b {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+}
+.ar-cta-block span {
+  font-size: 9.5px;
+  color: var(--ink-700);
+  letter-spacing: normal;
+  text-transform: none;
+}
+.ar-smallprint {
+  font-size: 7.5px;
+  color: var(--ink-400);
+  line-height: 1.5;
+  max-width: 92ch;
+}
+
+/* ---- doctor edit mode ---- */
+.ar-editable {
+  outline: none;
+  border-bottom: 1px dashed rgba(52, 211, 176, 0.7);
+  cursor: text;
+}
+.ar-editable:focus {
+  background: rgba(52, 211, 176, 0.08);
+  border-bottom-color: var(--mint-500);
+}
+.ar-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: rgba(224, 106, 106, 0.12);
+  color: var(--danger);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+@media print {
+  .ar-editable {
+    border-bottom: none;
+    background: none;
+  }
 }

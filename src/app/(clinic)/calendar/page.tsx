@@ -262,11 +262,11 @@ export default function CalendarPage() {
             ))}
           </div>
 
-          {/* mobile: one day */}
+          {/* mobile: one day (clamped: closed days shrink the array) */}
           <div className="lg:hidden flex-1" style={{ height: "560px" }}>
-            {days[dayIdx] && (
+            {days.length > 0 && (
               <div className="relative h-full rounded-xl overflow-hidden bg-white/40">
-                {dayColumn(days[dayIdx])}
+                {dayColumn(days[Math.min(dayIdx, days.length - 1)])}
               </div>
             )}
           </div>
@@ -325,17 +325,20 @@ function BookingModal({
   appointments: Appointment[];
 }) {
   const clinicHours = useStore((s) => s.clinicHours);
+  const freeOffsets = slotOffsets(clinicHours).filter((o) =>
+    slotIsFree(appointments, slot.key, o, clinicHours)
+  );
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [offset, setOffset] = useState(slot.offset);
+  // the tapped slot when it is genuinely free, else the first free slot —
+  // never let a taken time be pre-selected and silently double-booked
+  const [offset, setOffset] = useState(() =>
+    freeOffsets.includes(slot.offset) ? slot.offset : (freeOffsets[0] ?? 0)
+  );
   const [duration, setDuration] = useState(clinicHours.slot_min);
   const [type, setType] = useState<Appointment["type"]>("consultation");
   const [procedure, setProcedure] = useState("");
   const [notes, setNotes] = useState("");
-
-  const freeOffsets = slotOffsets(clinicHours).filter((o) =>
-    slotIsFree(appointments, slot.key, o, clinicHours)
-  );
   const linked = patients.find(
     (p) => p.name.toLowerCase() === name.trim().toLowerCase()
   );

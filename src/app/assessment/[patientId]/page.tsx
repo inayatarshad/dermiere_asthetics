@@ -1,30 +1,53 @@
 "use client";
 
 /**
- * Aesthetic Assessment Report — the free lead-magnet one-pager
- * (spec: Contour-AI-Aesthetic-Report-Module-SPEC.md).
+ * Facial Aesthetic Assessment — the free lead-magnet one-pager
+ * (spec: Contour-AI-Aesthetic-Report-Module-SPEC.md §11).
  *
- * One front photo in; one branded A4 out. The layout is OURS (React +
- * print CSS = identical every time); the patient-specific content comes
- * from two engines: deterministic landmark geometry (golden-ratio lens
- * for women, masculine standards for men) and AI skin vision (locked
- * taxonomy). Annotations are drawn on canvas from coordinates — no
- * generative layout anywhere, which is what keeps report #500 as clean
- * as report #1.
+ * Design register: printed clinic artefact. Flat white letterhead document
+ * (Fraunces display over Inter body, hairline rules, one restrained mint
+ * accent), structured like a real facial assessment: proportional analysis
+ * grouped by facial region with measured-vs-reference values, skin
+ * assessment with inline evidence, treatment considerations, sequence,
+ * sign-off. The DOCTOR CAN EDIT the wording in place (Edit report) before
+ * printing to PDF, so what leaves the clinic is theirs.
+ *
+ * Content engines stay split (consistency guarantee): geometry = our
+ * landmark trigonometry; skin = locked-taxonomy vision (graceful without
+ * a key); annotations = canvas-drawn. Layout is never generated.
  */
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Printer, Save, Check, Sparkles } from "lucide-react";
+import {
+  ChevronLeft,
+  Printer,
+  Save,
+  Check,
+  Sparkles,
+  PenLine,
+  X,
+} from "lucide-react";
 import { useStore, useSessionUser } from "@/lib/store";
 import { useMounted, useFaceData } from "@/lib/hooks";
-import { computeGeometry, geometryRecommendations, type Sex } from "@/lib/assessment/geometry";
-import { buildAnnotatedImage, type AnnotationResult } from "@/lib/assessment/annotate";
-import type { SkinAnalysis, SkinFinding } from "@/app/api/assessment/skin/route";
+import {
+  computeGeometry,
+  geometryRecommendations,
+  type MetricResult,
+  type Sex,
+} from "@/lib/assessment/geometry";
+import {
+  buildAnnotatedImage,
+  type AnnotationResult,
+} from "@/lib/assessment/annotate";
+import type {
+  SkinAnalysis,
+  SkinFinding,
+} from "@/app/api/assessment/skin/route";
 import { TEMPLATES, getTemplate } from "@/lib/templates";
 import { toModelInput, canvasToBlob, loadImage } from "@/lib/img";
 import { saveImage, loadJson, saveJson } from "@/lib/db";
-import { firstName, formatDate } from "@/lib/format";
+import { firstName } from "@/lib/format";
 import { Spinner, Chip, EmptyState } from "@/components/ui";
 
 type SkinState =
@@ -36,12 +59,12 @@ type SkinState =
 const SKIN_LABELS: Record<string, string> = {
   pigmentation: "Pigmentation",
   uneven_tone: "Uneven tone",
-  texture: "Texture",
+  texture: "Texture irregularity",
   enlarged_pores: "Enlarged pores",
-  redness: "Redness",
-  under_eye_shadow: "Under-eye shadows",
+  redness: "Diffuse redness",
+  under_eye_shadow: "Under-eye shadowing",
   fine_lines: "Fine lines",
-  laxity: "Skin laxity",
+  laxity: "Early laxity",
   acne: "Active breakouts",
   acne_scarring: "Acne scarring",
   dullness: "Dullness",
@@ -49,22 +72,84 @@ const SKIN_LABELS: Record<string, string> = {
   hairline_recession: "Hairline recession",
 };
 
-/** Controlled skin-finding -> suggestion map (menu templates when live). */
 const SKIN_TO_REC: Record<string, { label: string; templateId?: string }> = {
-  pigmentation: { label: "Pigment & brightening program" },
-  uneven_tone: { label: "Tone-evening skincare protocol" },
-  texture: { label: "Resurfacing program" },
-  enlarged_pores: { label: "Pore-refining program" },
-  redness: { label: "Calming / vascular protocol" },
-  under_eye_shadow: { label: "Under-eye support (consult)" },
-  fine_lines: { label: "Line-softening toxin zones", templateId: "botox" },
-  laxity: { label: "Energy-based tightening (consult)" },
-  acne: { label: "Acne control program" },
-  acne_scarring: { label: "Scar-revision program" },
-  dullness: { label: "Glow protocol (skin boosters)" },
-  dryness: { label: "Barrier-repair skincare" },
-  hairline_recession: { label: "Hair restoration", templateId: "hair_transplant" },
+  pigmentation: { label: "pigment and brightening program" },
+  uneven_tone: { label: "tone-evening skincare protocol" },
+  texture: { label: "resurfacing program" },
+  enlarged_pores: { label: "pore-refining program" },
+  redness: { label: "calming or vascular protocol" },
+  under_eye_shadow: { label: "under-eye support, to review in person" },
+  fine_lines: { label: "line-softening toxin zones", templateId: "botox" },
+  laxity: { label: "energy-based tightening, to review in person" },
+  acne: { label: "acne control program" },
+  acne_scarring: { label: "scar-revision program" },
+  dullness: { label: "glow protocol with skin boosters" },
+  dryness: { label: "barrier-repair skincare" },
+  hairline_recession: { label: "hair restoration", templateId: "hair_transplant" },
 };
+
+/** Clinically-grouped presentation of the metric suite. */
+const REGION_GROUPS: { title: string; ids: string[] }[] = [
+  { title: "Global balance", ids: ["symmetry", "face_ratio", "thirds", "fifths"] },
+  { title: "Periocular", ids: ["canthal"] },
+  { title: "Midface and nose", ids: ["nose_width"] },
+  { title: "Lower face and lips", ids: ["lip_ratio", "lower_third", "jaw_cheek"] },
+];
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * Doctor-editable text span. Deliberately hoisted to module level and
+ * rendered via dangerouslySetInnerHTML: a component defined inside the
+ * page (or children rendered from state) would be remounted/reset by
+ * React on every unrelated re-render, wiping the doctor's uncommitted
+ * typing. This way the DOM text is left alone until commit.
+ */
+function Editable({
+  id,
+  text,
+  editing,
+  onCommit,
+  className,
+}: {
+  id: string;
+  text: string;
+  editing: boolean;
+  onCommit: (id: string, text: string) => void;
+  className?: string;
+}) {
+  return (
+    <span
+      contentEditable={editing}
+      suppressContentEditableWarning
+      className={`${className ?? ""} ${editing ? "ar-editable" : ""}`}
+      onBlur={(e) => onCommit(id, e.currentTarget.textContent ?? "")}
+      dangerouslySetInnerHTML={{ __html: escapeHtml(text) }}
+    />
+  );
+}
+
+function RemoveBtn({
+  id,
+  editing,
+  onRemove,
+}: {
+  id: string;
+  editing: boolean;
+  onRemove: (id: string) => void;
+}) {
+  if (!editing) return null;
+  return (
+    <button
+      className="ar-remove no-print"
+      onClick={() => onRemove(id)}
+      title="Remove from the report"
+    >
+      <X size={11} />
+    </button>
+  );
+}
 
 function AssessmentInner() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -101,7 +186,21 @@ function AssessmentInner() {
   const [skin, setSkin] = useState<SkinState>({ status: "loading" });
   const [saved, setSaved] = useState(false);
 
-  // ---- skin analysis (cached per photo in IndexedDB for booth reuse) ----
+  // ---- doctor edit mode -----------------------------------------------
+  const [editing, setEditing] = useState(false);
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+
+  const commit = (id: string, text: string) =>
+    setOverrides((o) => ({ ...o, [id]: text }));
+  const remove = (id: string) =>
+    setRemoved((r) => new Set(r).add(id));
+  /** props threaded into every Editable/RemoveBtn call site */
+  const ed = { editing, onCommit: commit };
+  const rm = { editing, onRemove: remove };
+  const txt = (id: string, fallback: string) => overrides[id] ?? fallback;
+
+  // ---- skin analysis (cached per photo) ---------------------------------
   useEffect(() => {
     let cancelled = false;
     const img = face.image;
@@ -136,7 +235,10 @@ function AssessmentInner() {
         }
       } catch {
         if (!cancelled)
-          setSkin({ status: "error", message: "Could not reach the analysis service." });
+          setSkin({
+            status: "error",
+            message: "Could not reach the analysis service.",
+          });
       }
     })();
     return () => {
@@ -145,7 +247,7 @@ function AssessmentInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frontPhoto?.id, face.image]);
 
-  // ---- deterministic computation -----------------------------------------
+  // ---- deterministic engines ---------------------------------------------
   const geometry = useMemo(() => {
     if (!face.landmarks || !face.image) return null;
     return computeGeometry(
@@ -156,51 +258,72 @@ function AssessmentInner() {
     );
   }, [face.landmarks, face.image, effectiveSex]);
 
-  const skinFindings: SkinFinding[] =
-    skin.status === "ready" ? skin.analysis.findings : [];
+  const allFindings: SkinFinding[] =
+    skin.status === "ready" ? skin.analysis.findings.slice(0, 5) : [];
+  // rows the doctor removed disappear from the TABLE and the OVERLAY both,
+  // and the numbering re-flows — a sent PDF must never carry an orphan
+  // marker or a list that starts at 2
+  const visibleFindings = allFindings
+    .map((f, origIdx) => ({ f, origIdx }))
+    .filter((x) => !removed.has(`skinrow_${x.origIdx}`));
+  const skinFindings = visibleFindings.map((x) => x.f);
 
   const annotation: AnnotationResult | null = useMemo(() => {
     if (!face.image || !face.landmarks || !geometry) return null;
     return buildAnnotatedImage(face.image, face.landmarks, geometry, skinFindings);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [face.image, face.landmarks, geometry, skin.status]);
+  }, [face.image, face.landmarks, geometry, skin.status, removed]);
 
-  // ---- recommendations (controlled menu only) ------------------------------
+  const metricById = useMemo(() => {
+    const map = new Map<string, MetricResult>();
+    for (const m of geometry?.metrics ?? []) map.set(m.id, m);
+    return map;
+  }, [geometry]);
+
+  // ---- considerations (controlled menu only) -----------------------------
   const available = useMemo(() => TEMPLATES.filter((t) => t.available), []);
-  const injectableRecs = useMemo(
-    () => (geometry ? geometryRecommendations(geometry, available) : []),
-    [geometry, available]
-  );
-  const skinRecs = useMemo(() => {
+  const considerations = useMemo(() => {
+    if (!geometry) return [];
+    const geo = geometryRecommendations(geometry, available).map((r) => ({
+      id: `geo_${r.templateId}`,
+      title: r.name,
+      body: r.motivation,
+    }));
     const seen = new Set<string>();
-    return skinFindings
-      .map((f) => ({ finding: f, rec: SKIN_TO_REC[f.id] }))
+    const skinItems = skinFindings
+      .map((f) => ({ f, rec: SKIN_TO_REC[f.id] }))
       .filter((x) => {
         if (!x.rec || seen.has(x.rec.label)) return false;
         seen.add(x.rec.label);
         return true;
-      });
-  }, [skinFindings]);
-  const structuralRecs = useMemo(
-    () =>
-      skinRecs
-        .filter((x) => x.rec.templateId === "hair_transplant")
-        .map((x) => ({
-          name: getTemplate("hair_transplant")?.name ?? "Hair restoration",
-          motivation: x.finding.note,
-        }))
-        .concat(
-          injectableRecs
-            .filter((r) => r.templateId === "rhinoplasty")
-            .map((r) => ({ name: r.name, motivation: r.motivation }))
-        ),
-    [skinRecs, injectableRecs]
-  );
-  const injectablesOnly = injectableRecs.filter(
-    (r) => r.templateId !== "rhinoplasty"
-  );
+      })
+      .map((x) => ({
+        id: `skin_${x.f.id}`,
+        title:
+          x.rec.templateId && getTemplate(x.rec.templateId)?.available
+            ? getTemplate(x.rec.templateId)!.name
+            : x.rec.label.charAt(0).toUpperCase() + x.rec.label.slice(1),
+        body: x.f.note,
+      }));
+    return [...geo, ...skinItems].slice(0, 5);
+  }, [geometry, available, skinFindings]);
 
-  // ---- save to record -------------------------------------------------------
+  const visibleConsiderations = considerations.filter(
+    (c) => !removed.has(c.id)
+  );
+  const journeyNow = visibleConsiderations
+    .slice(0, 2)
+    .map((c) => txt(`ct_${c.id}`, c.title))
+    .join(" · ");
+  const journeySoon =
+    skinFindings.length > 0
+      ? skinFindings
+          .slice(0, 2)
+          .map((f) => SKIN_TO_REC[f.id]?.label ?? SKIN_LABELS[f.id])
+          .join(" · ")
+      : "Skin maintenance and review";
+
+  // ---- save to record ------------------------------------------------------
   const save = async () => {
     if (!annotation || !patient) return;
     const img = await loadImage(annotation.annotatedDataUrl);
@@ -258,16 +381,20 @@ function AssessmentInner() {
     );
   }
 
-  const brand = {
-    name: clinic?.name ?? "Contour Clinic",
-    phone: clinic?.branding?.phone ?? "",
-    web: clinic?.branding?.email ?? "",
-  };
-  const topMetrics = geometry
-    ? [...geometry.metrics]
-        .sort((a, b) => a.alignment - b.alignment)
-        .slice(0, 4)
-    : [];
+  const clinicName = clinic?.name ?? "Contour Clinic";
+  const clinicLine = [clinic?.branding?.phone, clinic?.branding?.email]
+    .filter(Boolean)
+    .join(" · ");
+  const today = new Date();
+  const reportRef = `CA-${String(patientId).slice(0, 6).toUpperCase()}-${today
+    .toISOString()
+    .slice(2, 10)
+    .replace(/-/g, "")}`;
+  const dateLine = today.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="min-h-screen py-8 px-4">
@@ -278,13 +405,20 @@ function AssessmentInner() {
             <ChevronLeft size={15} />
             Back
           </button>
-          <span className="caption hidden sm:block px-1">Assessment Report</span>
           <Chip active={effectiveSex === "female"} onClick={() => setSex("female")}>
             Feminine standard
           </Chip>
           <Chip active={effectiveSex === "male"} onClick={() => setSex("male")}>
             Masculine standard
           </Chip>
+          <button
+            className={`btn btn-sm ${editing ? "btn-primary" : "btn-secondary"}`}
+            onClick={() => setEditing((e) => !e)}
+            title="Edit the report wording before sending"
+          >
+            <PenLine size={14} />
+            {editing ? "Done editing" : "Edit report"}
+          </button>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => void save()}
@@ -293,7 +427,13 @@ function AssessmentInner() {
             {saved ? <Check size={14} /> : <Save size={14} />}
             {saved ? "Saved" : "Save to record"}
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => window.print()}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setEditing(false);
+              setTimeout(() => window.print(), 60);
+            }}
+          >
             <Printer size={14} />
             Download PDF
           </button>
@@ -302,222 +442,284 @@ function AssessmentInner() {
 
       <div className="overflow-x-auto pt-14 print:pt-0 print:overflow-visible">
         <div className="report-root">
-          <section className="report-sheet report-body">
-            {/* 1 · header band */}
-            <header className="rb-header rb-header-branded">
-              <div>
-                <span className="rb-header-clinic">{brand.name}</span>
-                <h2 className="rb-header-title">Aesthetic Assessment</h2>
-              </div>
-              <div className="ar-header-right">
+          <section className="report-sheet ar-sheet">
+            {/* ---- letterhead ---- */}
+            <header className="ar-head">
+              <div className="ar-head-brand">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/contour-mark-192.png" alt="Contour" className="rb-header-mark" />
-                <span className="ar-header-meta">
-                  {firstName(patient.name)} · {formatDate(new Date().toISOString())}
-                </span>
+                <img src="/brand/contour-mark-192.png" alt="" />
+                <div>
+                  <span className="ar-head-clinic">{clinicName}</span>
+                  <h1 className="ar-title">Facial Aesthetic Assessment</h1>
+                </div>
               </div>
+              <dl className="ar-head-meta">
+                <div>
+                  <dt>Client</dt>
+                  <dd>{firstName(patient.name)}</dd>
+                </div>
+                <div>
+                  <dt>Date</dt>
+                  <dd>{dateLine}</dd>
+                </div>
+                <div>
+                  <dt>Reference</dt>
+                  <dd>{reportRef}</dd>
+                </div>
+                <div>
+                  <dt>Standard</dt>
+                  <dd>{effectiveSex === "female" ? "Classical feminine" : "Classical masculine"}</dd>
+                </div>
+              </dl>
             </header>
 
-            {/* 2 · hero: photo + annotated */}
-            <div className="ar-hero">
+            {/* ---- figures ---- */}
+            <div className="ar-figures">
               <figure>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {face.image && <img src={face.image.src} alt="Patient" />}
-                <figcaption>Your photo</figcaption>
+                {face.image && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={face.image.src} alt="Presented condition" />
+                )}
+                <figcaption>
+                  <i>Fig. 1</i> Presented condition
+                </figcaption>
               </figure>
               <figure>
                 {annotation ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={annotation.annotatedDataUrl} alt="Assessment overlay" />
+                  <img src={annotation.annotatedDataUrl} alt="Assessment mapping" />
                 ) : (
-                  <div className="ar-hero-loading">
-                    {face.status === "loading" ? "Analysing proportions…" : "Preparing overlay…"}
+                  <div className="ar-fig-pending">
+                    {face.status === "loading"
+                      ? "Analysing proportions…"
+                      : "Preparing mapping…"}
                   </div>
                 )}
-                <figcaption>Proportion &amp; skin mapping</figcaption>
+                <figcaption>
+                  <i>Fig. 2</i> Proportion and skin mapping
+                </figcaption>
               </figure>
             </div>
 
-            {/* 3 · golden balance strip */}
+            {/* ---- proportional analysis ---- */}
             {geometry && (
-              <div className="rb-panel ar-balance">
-                <div className="ar-score">
-                  <span className="ar-score-num">{geometry.balanceScore}</span>
-                  <span className="ar-score-label">
-                    Golden balance
-                    <em>
-                      {effectiveSex === "female"
-                        ? "classical Φ standard"
-                        : "masculine standard"}
-                    </em>
+              <section className="ar-section">
+                <div className="ar-section-head">
+                  <h2>Proportional analysis</h2>
+                  <div className="ar-gauge" aria-label="Facial harmony index">
+                    <svg viewBox="0 0 44 44" width="44" height="44">
+                      <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(14,42,38,0.08)" strokeWidth="3.5" />
+                      <circle
+                        cx="22"
+                        cy="22"
+                        r="19"
+                        fill="none"
+                        stroke="var(--mint-500)"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        strokeDasharray={`${(geometry.balanceScore / 100) * 119.4} 119.4`}
+                        transform="rotate(-90 22 22)"
+                      />
+                      <text x="22" y="26" textAnchor="middle" className="ar-gauge-num">
+                        {geometry.balanceScore}
+                      </text>
+                    </svg>
+                    <span>
+                      Harmony index
+                      <em>of 100</em>
+                    </span>
+                  </div>
+                </div>
+                <table className="ar-table">
+                  <thead>
+                    <tr>
+                      <th>Parameter</th>
+                      <th>Measured</th>
+                      <th>Reference</th>
+                      <th className="ar-th-align">Alignment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {REGION_GROUPS.map((group) => (
+                      <Fragment key={group.title}>
+                        <tr className="ar-group">
+                          <td colSpan={4}>{group.title}</td>
+                        </tr>
+                        {group.ids.map((id) => {
+                          const m = metricById.get(id);
+                          if (!m) return null;
+                          return (
+                            <tr key={id}>
+                              <td>{m.label}</td>
+                              <td className="ar-num-cell">{m.value}</td>
+                              <td className="ar-num-cell ar-muted">{m.ideal}</td>
+                              <td>
+                                <div className="ar-align">
+                                  <span
+                                    className="ar-align-bar"
+                                    style={{ width: `${Math.max(6, m.alignment) * 0.56}px` }}
+                                  />
+                                  <span className="ar-align-num">{m.alignment}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
+
+            {/* ---- skin assessment ---- */}
+            <section className="ar-section">
+              <div className="ar-section-head">
+                <h2>Skin assessment</h2>
+                {skin.status === "ready" && skin.analysis.strengths[0] && (
+                  <span className="ar-strength">
+                    {skin.analysis.strengths[0]}
                   </span>
-                </div>
-                <div className="ar-metrics">
-                  {topMetrics.map((m) => (
-                    <div key={m.id} className="ar-metric">
-                      <div className="ar-metric-head">
-                        <span>{m.label}</span>
-                        <b>
-                          {m.value} <em>· ideal {m.ideal}</em>
-                        </b>
-                      </div>
-                      <div className="ar-bar">
-                        <div className="ar-bar-fill" style={{ width: `${m.alignment}%` }} />
-                      </div>
+                )}
+              </div>
+              {skin.status === "ready" && skinFindings.length > 0 && (
+                <table className="ar-table ar-skin-table">
+                  <tbody>
+                    {visibleFindings.map(({ f, origIdx }, i) => (
+                      <tr key={`${f.id}_${origIdx}`}>
+                        <td className="ar-skin-thumb">
+                          {annotation?.crops[i] && (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={annotation.crops[i].dataUrl} alt="" />
+                          )}
+                          <span className="ar-fig-num">{i + 1}</span>
+                        </td>
+                        <td className="ar-skin-name">
+                          {SKIN_LABELS[f.id] ?? f.id}
+                          <em>
+                            {f.region.replace(/_/g, " ")} · {f.severity}
+                          </em>
+                        </td>
+                        <td className="ar-skin-note">
+                          <Editable
+                            id={`skinnote_${origIdx}`}
+                            text={txt(`skinnote_${origIdx}`, f.note)}
+                            {...ed}
+                          />
+                          <RemoveBtn id={`skinrow_${origIdx}`} {...rm} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              {skin.status === "ready" && skinFindings.length === 0 && (
+                <p className="ar-body">
+                  No notable skin findings on this photograph. Skin quality is
+                  a clear strength.
+                </p>
+              )}
+              {skin.status === "loading" && (
+                <p className="ar-body ar-muted no-print">Analysing skin…</p>
+              )}
+              {(skin.status === "unavailable" || skin.status === "error") && (
+                <p className="ar-body ar-muted">
+                  <Editable id="skin_pending" text={txt("skin_pending", "Skin assessment to be completed with your clinician in person.")} {...ed} />
+                </p>
+              )}
+            </section>
+
+            {/* ---- treatment considerations ---- */}
+            <section className="ar-section">
+              <div className="ar-section-head">
+                <h2>Treatment considerations</h2>
+                <span className="ar-section-note">
+                  options, not prescriptions · to be confirmed by your physician
+                </span>
+              </div>
+              <ol className="ar-considerations">
+                {visibleConsiderations.map((c, i) => (
+                  <li key={c.id}>
+                    <span className="ar-consider-num">{i + 1}</span>
+                    <div>
+                      <b>
+                        <Editable
+                          id={`ct_${c.id}`}
+                          text={txt(`ct_${c.id}`, c.title)}
+                          {...ed}
+                        />
+                      </b>
+                      <Editable
+                        id={`cb_${c.id}`}
+                        text={txt(`cb_${c.id}`, c.body)}
+                        className="ar-consider-body"
+                        {...ed}
+                      />
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 4 · findings: three columns */}
-            <div className="ar-cols">
-              <div className="rb-panel cp-tight">
-                <div className="rb-label">Harmony &amp; injectables</div>
-                {injectablesOnly.length > 0 ? (
-                  <ul className="ar-list">
-                    {injectablesOnly.map((r) => (
-                      <li key={r.templateId}>
-                        <b>{r.name}</b>
-                        <span>{r.motivation}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="ar-clear">
-                    Proportions already sit close to the classical standard —
-                    nothing structural to suggest.
-                  </p>
-                )}
-              </div>
-
-              <div className="rb-panel cp-tight">
-                <div className="rb-label">Skin &amp; skincare</div>
-                {skin.status === "loading" && (
-                  <p className="ar-clear no-print">Analysing skin…</p>
-                )}
-                {skin.status === "unavailable" && (
-                  <p className="ar-clear">
-                    Skin analysis pending — the proportion review above is
-                    complete; ask the clinic for the full skin read.
-                  </p>
-                )}
-                {skin.status === "error" && (
-                  <p className="ar-clear">
-                    Skin analysis unavailable for this photo.
-                  </p>
-                )}
-                {skin.status === "ready" && (
-                  <ul className="ar-list">
-                    {skinFindings.map((f, i) => (
-                      <li key={`${f.id}_${i}`}>
-                        <b>
-                          <span className="ar-num">{i + 1}</span>
-                          {SKIN_LABELS[f.id] ?? f.id} · {f.severity}
-                        </b>
-                        <span>
-                          {f.note}
-                          {SKIN_TO_REC[f.id] ? ` → ${SKIN_TO_REC[f.id].label}.` : ""}
-                        </span>
-                      </li>
-                    ))}
-                    {skinFindings.length === 0 && (
-                      <li>
-                        <b>Excellent skin</b>
-                        <span>No notable findings on this photo.</span>
-                      </li>
-                    )}
-                  </ul>
-                )}
-              </div>
-
-              <div className="rb-panel cp-tight">
-                <div className="rb-label">Strengths</div>
-                <ul className="ar-list">
-                  {geometry?.metrics
-                    .filter((m) => m.alignment >= 88)
-                    .slice(0, 3)
-                    .map((m) => (
-                      <li key={m.id}>
-                        <b>{m.label}</b>
-                        <span>{m.insight}</span>
-                      </li>
-                    ))}
-                  {skin.status === "ready" &&
-                    skin.analysis.strengths.slice(0, 2).map((s) => (
-                      <li key={s}>
-                        <b>Skin</b>
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* evidence crops */}
-            {annotation && annotation.crops.length > 0 && (
-              <div className="ar-crops">
-                {annotation.crops.map((c) => (
-                  <figure key={c.index}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={c.dataUrl} alt={c.label} />
-                    <figcaption>
-                      <span className="ar-num">{c.index}</span> {c.label}
-                    </figcaption>
-                  </figure>
+                    <RemoveBtn id={c.id} {...rm} />
+                  </li>
                 ))}
-              </div>
-            )}
+                {visibleConsiderations.length === 0 && (
+                  <li>
+                    <span className="ar-consider-num">1</span>
+                    <div>
+                      <b>
+                        <Editable id="ct_none" text={txt("ct_none", "Maintain and protect")} {...ed} />
+                      </b>
+                      <Editable id="cb_none" text={txt("cb_none", "Proportions and skin already sit close to the classical standard; a yearly review is all we would suggest.")} className="ar-consider-body" {...ed} />
+                    </div>
+                  </li>
+                )}
+              </ol>
+            </section>
 
-            {/* 5 · suggested journey */}
-            <div className="rb-panel cp-tight">
-              <div className="rb-label">Your suggested journey</div>
-              <div className="ar-journey">
+            {/* ---- sequence ---- */}
+            <section className="ar-section">
+              <div className="ar-section-head">
+                <h2>Suggested sequence</h2>
+              </div>
+              <div className="ar-sequence">
                 <div>
                   <b>Now</b>
-                  <span>
-                    {injectablesOnly.length > 0
-                      ? injectablesOnly.map((r) => r.name).join(" · ")
-                      : "A consultation to review your goals"}
-                  </span>
+                  <Editable id="seq_now" text={txt("seq_now", journeyNow || "A consultation to review your goals")} {...ed} />
                 </div>
                 <div>
-                  <b>Next 4–8 weeks</b>
-                  <span>
-                    {skinRecs.length > 0
-                      ? skinRecs
-                          .slice(0, 3)
-                          .map((x) => x.rec.label)
-                          .join(" · ")
-                      : "Skin maintenance and review"}
-                  </span>
+                  <b>Four to eight weeks</b>
+                  <Editable id="seq_soon" text={txt("seq_soon", journeySoon)} {...ed} />
                 </div>
                 <div>
                   <b>Longer term</b>
+                  <Editable id="seq_later" text={txt("seq_later", "Annual balance and skin review")} {...ed} />
+                </div>
+              </div>
+            </section>
+
+            {/* ---- sign-off ---- */}
+            <footer className="ar-signoff">
+              <div className="ar-sign-lines">
+                <div>
+                  <span className="ar-sign-rule" />
+                  <span>Reviewed by</span>
+                </div>
+                <div>
+                  <span className="ar-sign-rule" />
+                  <span>Date</span>
+                </div>
+                <div className="ar-cta-block">
+                  <b>Book your consultation</b>
                   <span>
-                    {structuralRecs.length > 0
-                      ? structuralRecs.map((r) => r.name).join(" · ")
-                      : "Annual balance review"}
+                    {clinicName}
+                    {clinicLine ? ` · ${clinicLine}` : ""}
                   </span>
                 </div>
               </div>
-            </div>
-
-            {/* 6 · footer CTA + disclaimers */}
-            <footer className="ar-footer">
-              <div className="ar-cta">
-                <b>Book your consultation with {brand.name}</b>
-                <span>
-                  {brand.phone}
-                  {brand.web ? ` · ${brand.web}` : ""}
-                </span>
-              </div>
-              <p className="ar-disclaimer">
-                This report is an aesthetic guide generated from a single
-                photograph — not a medical diagnosis and not a treatment plan.
-                All observations are qualitative and must be confirmed by your
-                physician in person. Suggestions reference this clinic's
-                treatment menu only. Individual results vary.
+              <p className="ar-smallprint">
+                Prepared with Contour AI from a single photograph. This
+                document is an aesthetic guide, not a medical diagnosis or a
+                treatment plan; every observation is qualitative and must be
+                confirmed by a physician in person. Suggestions reference this
+                clinic's treatment menu only. Individual results vary. Not
+                intended for persons under 18.
               </p>
             </footer>
           </section>
