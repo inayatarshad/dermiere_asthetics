@@ -30,9 +30,12 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-card.png",
+        // JPEG: WhatsApp's scraper is far more reliable with small JPEGs
+        // than with PNGs; 64KB scrapes instantly on any connection
+        url: "/og-card.jpg",
         width: 1200,
         height: 630,
+        type: "image/jpeg",
         alt: "Contour AI - The consultation, made visible. By TechGIS.",
       },
     ],
@@ -41,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Contour AI",
     description: "The consultation, made visible. By TechGIS.",
-    images: ["/og-card.png"],
+    images: ["/og-card.jpg"],
   },
 };
 

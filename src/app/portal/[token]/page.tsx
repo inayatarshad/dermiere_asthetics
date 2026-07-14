@@ -388,11 +388,10 @@ export default function PortalPage() {
     );
   }
 
-  const greeting = meta?.doctorName
-    ? /^dr\b/i.test(meta.doctorName.trim())
-      ? `hi ${meta.doctorName.trim()},`
-      : `hi dr ${meta.doctorName.trim()},`
-    : "hello,";
+  // greet with the name exactly as the invite stored it — names carry
+  // their own titles (Dr, Col, Sir), and inventing one misaddresses
+  // anyone who is not a doctor
+  const greeting = meta?.doctorName ? `hi ${meta.doctorName.trim()},` : "hello,";
 
   return (
     <div
