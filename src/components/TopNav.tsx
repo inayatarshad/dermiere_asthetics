@@ -8,6 +8,7 @@ import {
   Users,
   CalendarDays,
   ChartColumn,
+  Compass,
   Settings,
   LogOut,
   RadioTower,
@@ -84,6 +85,7 @@ export function TopNav() {
     ...(can.manageUsers(user?.role)
       ? [
           { href: "/analytics", label: "Analytics", icon: ChartColumn },
+          { href: "/discovery", label: "Discovery", icon: Compass },
           { href: "/settings", label: "Settings", icon: Settings },
         ]
       : []),
