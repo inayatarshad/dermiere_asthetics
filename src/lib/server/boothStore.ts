@@ -17,6 +17,12 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { put, del, list, get } from "@vercel/blob";
+import {
+  pgAvailable,
+  pgDeleteBoothItem,
+  pgListBoothItems,
+  pgUpsertBoothItem,
+} from "./db";
 
 export interface BoothPhotoIn {
   kind: string; // photo_front | photo_left | photo_right
@@ -317,6 +323,21 @@ export async function putBoothItem(
   itemBase: Omit<BoothItem, "photos">,
   photos: BoothPhotoIn[]
 ): Promise<void> {
+  // Postgres mode carries photos INLINE as data URLs (the dev-store shape,
+  // which the client merge path already handles) — zero Blob dependency,
+  // so a suspended/absent Blob store cannot take the booth down.
+  if (pgAvailable()) {
+    try {
+      const item: BoothItem = {
+        ...itemBase,
+        photos: photos.map((p) => ({ kind: p.kind, url: p.dataUrl })),
+      };
+      await pgUpsertBoothItem(item.id, item.created_at, item);
+      return;
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     if (m.kind === "blob") {
@@ -333,6 +354,13 @@ export async function putBoothItem(
 }
 
 export async function listBoothItems(): Promise<BoothItem[]> {
+  if (pgAvailable()) {
+    try {
+      return await pgListBoothItems<BoothItem>(EXPIRY_MS);
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     return m.kind === "blob" ? await blobList(m.token) : devList();
@@ -342,6 +370,14 @@ export async function listBoothItems(): Promise<BoothItem[]> {
 }
 
 export async function deleteBoothItem(id: string): Promise<void> {
+  if (pgAvailable()) {
+    try {
+      await pgDeleteBoothItem(id);
+      return;
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     if (m.kind === "blob") await blobDelete(id, m.token);
@@ -351,6 +387,7 @@ export async function deleteBoothItem(id: string): Promise<void> {
   }
 }
 
-export function boothStorageInfo(): { mode: "blob" | "dev" } {
+export function boothStorageInfo(): { mode: "pg" | "blob" | "dev" } {
+  if (pgAvailable()) return { mode: "pg" };
   return { mode: mode().kind };
 }

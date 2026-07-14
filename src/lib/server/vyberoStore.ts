@@ -27,6 +27,13 @@ import { join } from "node:path";
 import { put } from "@vercel/blob";
 import type { Appointment, ClinicHours, VyberoCall } from "@/lib/types";
 import { DEFAULT_CLINIC_HOURS } from "@/lib/types";
+import {
+  pgAvailable,
+  pgListAppointments,
+  pgListCalls,
+  pgUpsertAppointment,
+  pgUpsertCall,
+} from "./db";
 
 export class VyberoStoreError extends Error {
   constructor(
@@ -176,6 +183,14 @@ async function upsertInto<T extends { id: string }>(
 }
 
 export async function saveAppointment(appt: Appointment): Promise<void> {
+  if (pgAvailable()) {
+    try {
+      await pgUpsertAppointment(appt.id, appt.start, appt.status, appt);
+      return;
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     if (m.kind === "blob") {
@@ -193,6 +208,13 @@ export async function saveAppointment(appt: Appointment): Promise<void> {
 }
 
 export async function listAppointments(): Promise<Appointment[]> {
+  if (pgAvailable()) {
+    try {
+      return await pgListAppointments<Appointment>();
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     const items =
@@ -211,6 +233,14 @@ export async function getAppointment(id: string): Promise<Appointment | null> {
 }
 
 export async function saveCall(call: VyberoCall): Promise<void> {
+  if (pgAvailable()) {
+    try {
+      await pgUpsertCall(call.id, call.started_at, call);
+      return;
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     if (m.kind === "blob") {
@@ -228,6 +258,13 @@ export async function saveCall(call: VyberoCall): Promise<void> {
 }
 
 export async function listCalls(): Promise<VyberoCall[]> {
+  if (pgAvailable()) {
+    try {
+      return await pgListCalls<VyberoCall>(CALLS_CAP);
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     const items =

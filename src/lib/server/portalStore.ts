@@ -14,6 +14,14 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { put } from "@vercel/blob";
+import {
+  pgAvailable,
+  pgGetInviteByToken,
+  pgListInvites,
+  pgListResponses,
+  pgUpsertInvite,
+  pgUpsertResponse,
+} from "./db";
 
 export type InviteStatus = "PENDING" | "OPENED" | "COMPLETED";
 
@@ -196,6 +204,13 @@ async function writeInvites(items: PortalInvite[]): Promise<void> {
 }
 
 export async function listInvites(): Promise<PortalInvite[]> {
+  if (pgAvailable()) {
+    try {
+      return await pgListInvites<PortalInvite>();
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const items = await readInvites();
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
@@ -203,11 +218,26 @@ export async function listInvites(): Promise<PortalInvite[]> {
 export async function getInviteByToken(
   token: string
 ): Promise<PortalInvite | null> {
+  if (pgAvailable()) {
+    try {
+      return await pgGetInviteByToken<PortalInvite>(token);
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const items = await readInvites();
   return items.find((i) => i.token === token) ?? null;
 }
 
 export async function saveInvite(invite: PortalInvite): Promise<void> {
+  if (pgAvailable()) {
+    try {
+      await pgUpsertInvite(invite.id, invite.token, invite.createdAt, invite);
+      return;
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const items = await readInvites();
   const idx = items.findIndex((i) => i.id === invite.id);
   if (idx >= 0) items[idx] = invite;
@@ -216,6 +246,13 @@ export async function saveInvite(invite: PortalInvite): Promise<void> {
 }
 
 export async function listResponses(): Promise<PortalResponse[]> {
+  if (pgAvailable()) {
+    try {
+      return await pgListResponses<PortalResponse>();
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     const items =
@@ -229,6 +266,20 @@ export async function listResponses(): Promise<PortalResponse[]> {
 }
 
 export async function saveResponse(response: PortalResponse): Promise<void> {
+  if (pgAvailable()) {
+    try {
+      // invite_id is unique in the table: a re-submit before lock updates
+      await pgUpsertResponse(
+        response.id,
+        response.inviteId,
+        response.createdAt,
+        response
+      );
+      return;
+    } catch (err) {
+      throw asStoreError(err);
+    }
+  }
   const m = mode();
   try {
     const items =
