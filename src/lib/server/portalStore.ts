@@ -118,6 +118,13 @@ async function putAdaptive(pathname: string, body: string, token?: string) {
   throw lastErr;
 }
 
+/** Private stores answer 403 for blobs that simply do not exist yet —
+ *  a fresh collection must read as empty, not as an error. */
+function isNotFound(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /403|404|forbidden|not.?found|does not exist/i.test(msg);
+}
+
 async function readCollection<T>(pathname: string, token?: string): Promise<T[]> {
   const { get } = await import("@vercel/blob");
   const order: ("public" | "private")[] = storeAccess
@@ -135,6 +142,7 @@ async function readCollection<T>(pathname: string, token?: string): Promise<T[]>
       lastErr = err;
     }
   }
+  if (lastErr && isNotFound(lastErr)) return []; // collection not created yet
   if (lastErr) throw lastErr;
   return [];
 }

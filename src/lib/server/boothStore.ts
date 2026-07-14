@@ -176,6 +176,13 @@ async function putAdaptive(
   throw lastErr;
 }
 
+/** Private stores answer 403 for blobs that do not exist — normalize to
+ *  null so missing inbox/photos read as absent, not as errors. */
+function isNotFound(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /403|404|forbidden|not.?found|does not exist/i.test(msg);
+}
+
 async function readBlobResponse(
   pathname: string,
   token?: string
@@ -194,6 +201,7 @@ async function readBlobResponse(
       lastErr = err;
     }
   }
+  if (lastErr && isNotFound(lastErr)) return null;
   if (lastErr) throw lastErr;
   return null;
 }
