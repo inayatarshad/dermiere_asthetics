@@ -47,6 +47,7 @@ export default function AnalyticsPage() {
   const user = useSessionUser();
   const calls = useStore((s) => s.vyberoCalls);
   const appointments = useStore((s) => s.appointments);
+  const aiUsage = useStore((s) => s.aiUsage);
 
   const kpis = useMemo(() => computeCallKpis(calls), [calls]);
   const volume = useMemo(() => callVolumeByDay(calls, 14), [calls]);
@@ -223,6 +224,36 @@ export default function AnalyticsPage() {
           </GlassCard>
         </div>
       </div>
+
+      {/* AI usage & cost (finances visibility, per-device counters) */}
+      <GlassCard className="p-5 mt-4">
+        <h3 className="h2 text-ink-900">AI usage &amp; estimated cost</h3>
+        <p className="caption mt-0.5 mb-3">
+          Counted on this device. Unit estimates: photoreal generation ≈
+          $0.06, assessment skin analysis ≈ $0.01. Full per-clinic cost model
+          in SCALABILITY_ROADMAP.md.
+        </p>
+        <div className="grid grid-cols-3 gap-3 max-w-xl">
+          <div>
+            <div className="text-2xl font-medium text-ink-900">
+              {aiUsage.generations}
+            </div>
+            <div className="caption">Photoreal generations</div>
+          </div>
+          <div>
+            <div className="text-2xl font-medium text-ink-900">
+              {aiUsage.assessments}
+            </div>
+            <div className="caption">Assessment analyses</div>
+          </div>
+          <div>
+            <div className="text-2xl font-medium text-ink-900">
+              ${(aiUsage.generations * 0.06 + aiUsage.assessments * 0.01).toFixed(2)}
+            </div>
+            <div className="caption">Estimated spend</div>
+          </div>
+        </div>
+      </GlassCard>
 
       {/* Recent calls */}
       <GlassCard className="p-5 mt-4">

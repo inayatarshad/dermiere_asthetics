@@ -86,6 +86,7 @@ export type AssetKind =
   | "photo_right"
   | "photo_closeup"
   | "ai_after"
+  | "assessment"
   | "report_pdf";
 
 export interface Asset {

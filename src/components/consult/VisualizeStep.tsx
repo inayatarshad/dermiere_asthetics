@@ -60,6 +60,7 @@ export function VisualizeStep({
   const addVisualization = useStore((s) => s.addVisualization);
   const aiProvider = useStore((s) => s.aiProvider);
   const aiModels = useStore((s) => s.aiModels);
+  const bumpAiUsage = useStore((s) => s.bumpAiUsage);
   const consents = usePatientConsents(patient.id);
   const photographyOk = !!consentGranted(consents, "photography");
   const aiDisabled = aiProvider === "none";
@@ -357,6 +358,7 @@ export function VisualizeStep({
     if (outcome.ok) {
       setAfter({ src: outcome.imageDataUrl, canvas: null, source: outcome.model });
       setSaved(false);
+      bumpAiUsage("generations");
     } else {
       setGenError({ code: outcome.code, message: outcome.message });
     }

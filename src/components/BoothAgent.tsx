@@ -12,8 +12,10 @@ import { UserPlus } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { pullBoothInbox, pushPatientToBooth } from "@/lib/booth";
 
-const PULL_MS = 4000;
-const RETRY_MS = 12000;
+// 10s keeps the booth walk-over feeling live while costing 6x fewer
+// storage reads than the original 4s; hidden tabs skip entirely.
+const PULL_MS = 10000;
+const RETRY_MS = 15000;
 const TOAST_MS = 5000;
 
 export function BoothAgent() {
@@ -48,6 +50,8 @@ export function BoothAgent() {
     if (!boothLink) return;
     const tick = async () => {
       if (pulling.current) return;
+      // background tabs must not burn storage operations all day
+      if (document.visibilityState !== "visible") return;
       pulling.current = true;
       try {
         const result = await pullBoothInbox();

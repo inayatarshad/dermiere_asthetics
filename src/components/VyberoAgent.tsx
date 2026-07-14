@@ -13,7 +13,9 @@ import { useEffect, useRef } from "react";
 import { useStore, useSessionUser } from "@/lib/store";
 import type { Appointment, VyberoCall } from "@/lib/types";
 
-const PULL_MS = 20_000;
+// 45s is plenty for phone bookings to surface; hidden tabs skip entirely
+// (storage bills per operation — see vyberoStore.ts header).
+const PULL_MS = 45_000;
 
 export function VyberoAgent() {
   const user = useSessionUser();
@@ -27,6 +29,7 @@ export function VyberoAgent() {
 
     const pull = async () => {
       if (dead.current || cancelled) return;
+      if (document.visibilityState !== "visible") return;
       try {
         const [ar, cr] = await Promise.all([
           fetch("/api/vybero/appointments", { cache: "no-store" }),

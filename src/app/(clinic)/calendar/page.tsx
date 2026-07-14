@@ -505,6 +505,15 @@ function DetailModal({
         {appt.notes && <p className="caption">{appt.notes}</p>}
       </div>
       <div className="flex flex-wrap gap-2 justify-end mt-5">
+        {appt.patient_id && (
+          <a
+            className="btn btn-secondary"
+            href={`/assessment/${appt.patient_id}`}
+            title="Generate the free one-page aesthetic assessment from the front photo"
+          >
+            Assessment Report
+          </a>
+        )}
         {appt.status === "booked" && (
           <button className="btn btn-secondary" onClick={() => onStatus("confirmed")}>
             <Check size={15} />

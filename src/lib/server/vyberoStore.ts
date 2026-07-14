@@ -8,17 +8,23 @@
  * dev, explicit not_configured error otherwise. Unlike booth items,
  * appointments and call logs do NOT expire.
  *
- * Layout:
- *   vybero/appointments/{id}.json
- *   vybero/calls/{id}.json
+ * Layout (SINGLE blob per collection — deliberate): Vercel Blob bills per
+ * operation, and the clinic screens poll. Per-record blobs cost
+ * 1 list + N reads on every poll and blew through the plan's operation
+ * quota in hours; a single-array blob costs exactly 1 read per poll and
+ * no list calls at all. Trade-off: read-modify-write on save can lose a
+ * concurrent write — acceptable at one-booth/one-desk scale, and the
+ * Postgres migration in SCALABILITY_ROADMAP.md removes it for real.
+ *   vybero/appointments.json  -> Appointment[]
+ *   vybero/calls.json         -> VyberoCall[] (latest 500)
  *
  * Agent auth: requests from VYBERO carry "x-vybero-key" matching the
  * VYBERO_API_KEY env var. Clinic-side pulls run same-origin without a key.
  */
 
-import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { put, list } from "@vercel/blob";
+import { put } from "@vercel/blob";
 import type { Appointment, ClinicHours, VyberoCall } from "@/lib/types";
 import { DEFAULT_CLINIC_HOURS } from "@/lib/types";
 
@@ -113,61 +119,65 @@ async function readBlobJson<T>(pathname: string, token?: string): Promise<T | nu
 }
 
 // ---------------------------------------------------------------------
-// Dev file store
+// Dev file store (single file per collection, mirroring the blob layout)
 // ---------------------------------------------------------------------
 
 const DEV_DIR = join(process.cwd(), ".vybero-dev-store");
 
-function devWrite(sub: string, id: string, value: unknown) {
-  const dir = join(DEV_DIR, sub);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, `${id}.json`), JSON.stringify(value), "utf8");
+function devReadCollection<T>(name: string): T[] {
+  const file = join(DEV_DIR, `${name}.json`);
+  if (!existsSync(file)) return [];
+  try {
+    return JSON.parse(readFileSync(file, "utf8")) as T[];
+  } catch {
+    return [];
+  }
 }
 
-function devList<T>(sub: string): T[] {
-  const dir = join(DEV_DIR, sub);
-  if (!existsSync(dir)) return [];
-  const items: T[] = [];
-  for (const f of readdirSync(dir)) {
-    if (!f.endsWith(".json")) continue;
-    try {
-      items.push(JSON.parse(readFileSync(join(dir, f), "utf8")) as T);
-    } catch {
-      // unreadable entry: skip
-    }
-  }
-  return items;
+function devWriteCollection(name: string, items: unknown[]) {
+  mkdirSync(DEV_DIR, { recursive: true });
+  writeFileSync(join(DEV_DIR, `${name}.json`), JSON.stringify(items), "utf8");
 }
 
 // ---------------------------------------------------------------------
-// Public API
+// Collections (1 blob read per poll — the whole point, see header)
 // ---------------------------------------------------------------------
 
-async function blobList<T>(prefix: string, token?: string): Promise<T[]> {
-  const { blobs } = await list({ prefix, limit: 500, ...tok(token) });
-  const items: T[] = [];
-  for (const b of blobs) {
-    try {
-      const item = await readBlobJson<T>(b.pathname, token);
-      if (item) items.push(item);
-    } catch {
-      // skip unreadable entries
-    }
-  }
-  return items;
+const APPTS_PATH = "vybero/appointments.json";
+const CALLS_PATH = "vybero/calls.json";
+const CALLS_CAP = 500;
+
+async function readCollection<T>(pathname: string, token?: string): Promise<T[]> {
+  const items = await readBlobJson<T[]>(pathname, token);
+  return Array.isArray(items) ? items : [];
+}
+
+/** Read-modify-write upsert (last writer wins; see header trade-off note). */
+async function upsertInto<T extends { id: string }>(
+  pathname: string,
+  item: T,
+  token: string | undefined,
+  cap?: number
+): Promise<void> {
+  const items = await readCollection<T>(pathname, token);
+  const idx = items.findIndex((x) => x.id === item.id);
+  if (idx >= 0) items[idx] = item;
+  else items.push(item);
+  const trimmed = cap && items.length > cap ? items.slice(-cap) : items;
+  await putAdaptive(pathname, JSON.stringify(trimmed), token);
 }
 
 export async function saveAppointment(appt: Appointment): Promise<void> {
   const m = mode();
   try {
     if (m.kind === "blob") {
-      await putAdaptive(
-        `vybero/appointments/${appt.id}.json`,
-        JSON.stringify(appt),
-        m.token
-      );
+      await upsertInto(APPTS_PATH, appt, m.token);
     } else {
-      devWrite("appointments", appt.id, appt);
+      const items = devReadCollection<Appointment>("appointments");
+      const idx = items.findIndex((x) => x.id === appt.id);
+      if (idx >= 0) items[idx] = appt;
+      else items.push(appt);
+      devWriteCollection("appointments", items);
     }
   } catch (err) {
     throw asStoreError(err);
@@ -179,8 +189,8 @@ export async function listAppointments(): Promise<Appointment[]> {
   try {
     const items =
       m.kind === "blob"
-        ? await blobList<Appointment>("vybero/appointments/", m.token)
-        : devList<Appointment>("appointments");
+        ? await readCollection<Appointment>(APPTS_PATH, m.token)
+        : devReadCollection<Appointment>("appointments");
     return items.sort((a, b) => a.start.localeCompare(b.start));
   } catch (err) {
     throw asStoreError(err);
@@ -196,13 +206,13 @@ export async function saveCall(call: VyberoCall): Promise<void> {
   const m = mode();
   try {
     if (m.kind === "blob") {
-      await putAdaptive(
-        `vybero/calls/${call.id}.json`,
-        JSON.stringify(call),
-        m.token
-      );
+      await upsertInto(CALLS_PATH, call, m.token, CALLS_CAP);
     } else {
-      devWrite("calls", call.id, call);
+      const items = devReadCollection<VyberoCall>("calls");
+      const idx = items.findIndex((x) => x.id === call.id);
+      if (idx >= 0) items[idx] = call;
+      else items.push(call);
+      devWriteCollection("calls", items.slice(-CALLS_CAP));
     }
   } catch (err) {
     throw asStoreError(err);
@@ -214,8 +224,8 @@ export async function listCalls(): Promise<VyberoCall[]> {
   try {
     const items =
       m.kind === "blob"
-        ? await blobList<VyberoCall>("vybero/calls/", m.token)
-        : devList<VyberoCall>("calls");
+        ? await readCollection<VyberoCall>(CALLS_PATH, m.token)
+        : devReadCollection<VyberoCall>("calls");
     return items.sort((a, b) => b.started_at.localeCompare(a.started_at));
   } catch (err) {
     throw asStoreError(err);

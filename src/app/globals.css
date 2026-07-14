@@ -1101,3 +1101,248 @@ input[type="range"].mint-slider::-moz-range-track {
     break-after: auto;
   }
 }
+
+/* ---- Assessment Report (ar-*) — the free lead-magnet A4 ---- */
+.ar-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.ar-header-meta {
+  font-size: 11px;
+  color: var(--ink-400);
+  letter-spacing: 0.06em;
+}
+.ar-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.ar-hero figure {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: var(--mint-100);
+  box-shadow: 0 10px 26px rgba(31, 41, 55, 0.08);
+}
+.ar-hero img {
+  width: 100%;
+  aspect-ratio: 4 / 4.4;
+  object-fit: cover;
+  display: block;
+}
+.ar-hero-loading {
+  width: 100%;
+  aspect-ratio: 4 / 4.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--ink-400);
+}
+.ar-hero figcaption {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.75);
+}
+.ar-balance {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.ar-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 108px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--mint-100);
+}
+.ar-score-num {
+  font-size: 40px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  color: var(--ink-900);
+  line-height: 1;
+}
+.ar-score-num::after {
+  content: "/100";
+  font-size: 12px;
+  color: var(--ink-400);
+  margin-left: 2px;
+}
+.ar-score-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-700);
+  margin-top: 6px;
+  text-align: center;
+}
+.ar-score-label em {
+  display: block;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--ink-400);
+  font-size: 10px;
+}
+.ar-metrics {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+.ar-metric-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink-700);
+  margin-bottom: 3px;
+}
+.ar-metric-head b {
+  font-weight: 600;
+  color: var(--ink-900);
+  white-space: nowrap;
+}
+.ar-metric-head em {
+  font-style: normal;
+  color: var(--ink-400);
+  font-weight: 400;
+}
+.ar-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+}
+.ar-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--mint-400), var(--mint-500));
+}
+.ar-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.ar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 6px;
+}
+.ar-list li {
+  list-style: none;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.ar-list b {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-900);
+  font-weight: 600;
+}
+.ar-list span {
+  color: var(--ink-700);
+}
+.ar-clear {
+  font-size: 10.5px;
+  color: var(--ink-400);
+  margin-top: 6px;
+}
+.ar-num {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--mint-500);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+.ar-crops {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.ar-crops figure {
+  width: calc(16.66% - 7px);
+  min-width: 74px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: #fff;
+}
+.ar-crops img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+.ar-crops figcaption {
+  font-size: 8.5px;
+  padding: 3px 6px;
+  color: var(--ink-700);
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ar-journey {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+.ar-journey b {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mint-500);
+  margin-bottom: 3px;
+}
+.ar-journey span {
+  font-size: 10.5px;
+  color: var(--ink-700);
+  line-height: 1.4;
+}
+.ar-footer {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(31, 41, 55, 0.08);
+}
+.ar-cta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ar-cta b {
+  font-size: 13px;
+  color: var(--ink-900);
+}
+.ar-cta span {
+  font-size: 11px;
+  color: var(--ink-700);
+}
+.ar-disclaimer {
+  font-size: 8.5px;
+  color: var(--ink-400);
+  line-height: 1.45;
+  margin-top: 6px;
+}

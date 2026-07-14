@@ -83,6 +83,9 @@ interface StoreState {
   vyberoCalls: VyberoCall[];
   clinicHours: ClinicHours;
 
+  /** Rough AI usage counters (drives the cost card in Analytics). */
+  aiUsage: { generations: number; assessments: number };
+
   // booth handoff (T1)
   boothLink: boolean; // desktop: poll the booth inbox
   boothSync: Record<string, BoothSyncState>; // patientId -> push state
@@ -113,6 +116,7 @@ interface StoreState {
   mergeAppointments: (items: Appointment[]) => void;
   mergeVyberoCalls: (items: VyberoCall[]) => void;
   setClinicHours: (patch: Partial<ClinicHours>) => void;
+  bumpAiUsage: (kind: "generations" | "assessments") => void;
 
   // booth actions
   setBoothLink: (on: boolean) => void;
@@ -223,6 +227,7 @@ export const useStore = create<StoreState>()(
       appointments: [],
       vyberoCalls: [],
       clinicHours: DEFAULT_CLINIC_HOURS,
+      aiUsage: { generations: 0, assessments: 0 },
       boothLink: false,
       boothSync: {},
       mergedBoothIds: [],
@@ -288,6 +293,11 @@ export const useStore = create<StoreState>()(
 
       setClinicHours: (patch) =>
         set((s) => ({ clinicHours: { ...s.clinicHours, ...patch } })),
+
+      bumpAiUsage: (kind) =>
+        set((s) => ({
+          aiUsage: { ...s.aiUsage, [kind]: s.aiUsage[kind] + 1 },
+        })),
 
       setBoothLink: (on) => set({ boothLink: on }),
 

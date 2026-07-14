@@ -59,11 +59,81 @@ const POSES: {
   },
 ];
 
+type ShotQuality =
+  | "good"
+  | "no_face"
+  | "too_small"
+  | "off_center"
+  | "too_dark"
+  | "too_bright";
+
+const QUALITY_MESSAGES: Record<Exclude<ShotQuality, "good">, string> = {
+  no_face: "No clear face found. Retake facing the camera.",
+  too_small: "Face is too small in frame. Step closer and retake.",
+  off_center: "Face is off to one side. Center it in the guide and retake.",
+  too_dark: "Too dark for an accurate 3D fit. Add light and retake.",
+  too_bright: "Overexposed. Reduce direct light and retake.",
+};
+
 interface ShotState {
   dataUrl: string | null;
   blobKey: string | null;
   faceDetected: boolean;
+  quality: ShotQuality;
   checking: boolean;
+}
+
+/**
+ * Bulletproof-capture gate: the 3D mesh is only as good as the photo, so
+ * every shot is graded (face present, big enough, centered, well exposed)
+ * before it is accepted silently. Failing shots stay usable — booth
+ * pragmatism — but the retake prompt says exactly what to fix.
+ */
+function gradeShot(
+  canvas: HTMLCanvasElement,
+  landmarks: number[][] | null
+): ShotQuality {
+  if (!landmarks) return "no_face";
+  let minX = 1,
+    maxX = 0,
+    minY = 1,
+    maxY = 0;
+  for (const p of landmarks) {
+    if (p[0] < minX) minX = p[0];
+    if (p[0] > maxX) maxX = p[0];
+    if (p[1] < minY) minY = p[1];
+    if (p[1] > maxY) maxY = p[1];
+  }
+  if (maxY - minY < 0.3) return "too_small";
+  const cx = (minX + maxX) / 2;
+  if (cx < 0.28 || cx > 0.72) return "off_center";
+  // exposure probe on a small pass, face region only
+  const probe = document.createElement("canvas");
+  const PW = 48;
+  probe.width = PW;
+  probe.height = PW;
+  probe
+    .getContext("2d")!
+    .drawImage(
+      canvas,
+      minX * canvas.width,
+      minY * canvas.height,
+      (maxX - minX) * canvas.width,
+      (maxY - minY) * canvas.height,
+      0,
+      0,
+      PW,
+      PW
+    );
+  const data = probe.getContext("2d")!.getImageData(0, 0, PW, PW).data;
+  let luma = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    luma += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+  }
+  luma /= data.length / 4;
+  if (luma < 52) return "too_dark";
+  if (luma > 218) return "too_bright";
+  return "good";
 }
 
 export function CameraCapture({
@@ -148,22 +218,34 @@ export function CameraCapture({
       const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
       setShots((s) => ({
         ...s,
-        [kind]: { dataUrl, blobKey: null, faceDetected: false, checking: true },
+        [kind]: {
+          dataUrl,
+          blobKey: null,
+          faceDetected: false,
+          quality: "no_face",
+          checking: true,
+        },
       }));
-      // face auto-check + persist, off the interaction path
-      let faceDetected = false;
+      // quality gate + persist, off the interaction path
+      let quality: ShotQuality = "no_face";
       try {
         const lm = await detectLandmarks(canvas);
-        faceDetected = !!lm;
+        quality = gradeShot(canvas, lm);
       } catch {
-        faceDetected = false;
+        quality = "no_face";
       }
       const key = crypto.randomUUID();
       const blob = await canvasToBlob(canvas, 0.9);
       await saveImage(key, blob);
       setShots((s) => ({
         ...s,
-        [kind]: { dataUrl, blobKey: key, faceDetected, checking: false },
+        [kind]: {
+          dataUrl,
+          blobKey: key,
+          faceDetected: quality !== "no_face",
+          quality,
+          checking: false,
+        },
       }));
     },
     []
@@ -401,18 +483,18 @@ export function CameraCapture({
           {shot && !shot.checking && (
             <div
               className={`absolute bottom-3 left-3 rounded-full text-xs px-3 py-1.5 flex items-center gap-1.5 backdrop-blur-md ${
-                shot.faceDetected
+                shot.quality === "good"
                   ? "bg-mint-500/90 text-white"
                   : "bg-warning/90 text-white"
               }`}
             >
-              {shot.faceDetected ? (
+              {shot.quality === "good" ? (
                 <>
-                  <Check size={13} /> Face detected
+                  <Check size={13} /> Sharp capture, ready for the 3D fit
                 </>
               ) : (
                 <>
-                  <AlertTriangle size={13} /> No clear face found. Consider a retake.
+                  <AlertTriangle size={13} /> {QUALITY_MESSAGES[shot.quality]}
                 </>
               )}
             </div>

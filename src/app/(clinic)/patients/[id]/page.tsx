@@ -27,6 +27,7 @@ import {
   Trash2,
   Check,
   RefreshCcw,
+  ScanSearch,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useStore, useSessionUser, can, usePatientConsents } from "@/lib/store";
@@ -180,6 +181,19 @@ export default function PatientProfilePage() {
                 {openConsult ? "Resume consultation" : "Start consultation"}
               </button>
             )}
+            <button
+              className="btn btn-secondary"
+              onClick={() => router.push(`/assessment/${patient.id}`)}
+              disabled={!photographyConsent}
+              title={
+                photographyConsent
+                  ? "One front photo, one branded assessment page - the free lead magnet"
+                  : "Photography consent required"
+              }
+            >
+              <ScanSearch size={16} />
+              Assessment Report
+            </button>
             <button
               className="btn btn-secondary"
               onClick={() => setCaptureOpen(true)}
@@ -636,6 +650,7 @@ const KIND_LABELS: Record<string, string> = {
   photo_right: "Tilted right",
   photo_closeup: "Close-up",
   ai_after: "AI visualization",
+  assessment: "Assessment report",
 };
 
 function AssetThumb({ asset }: { asset: Asset }) {

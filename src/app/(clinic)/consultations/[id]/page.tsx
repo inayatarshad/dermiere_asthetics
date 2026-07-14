@@ -19,7 +19,6 @@ import {
   Check,
   Lock,
   ChevronLeft,
-  Hourglass,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { formatDateTime } from "@/lib/format";
@@ -29,7 +28,6 @@ import { PatientAvatar } from "@/components/PatientAvatar";
 import { BriefStep } from "@/components/consult/BriefStep";
 import { CanvasStep } from "@/components/consult/CanvasStep";
 import { VisualizeStep } from "@/components/consult/VisualizeStep";
-import { TimelineStep } from "@/components/consult/TimelineStep";
 import { PlanStep } from "@/components/consult/PlanStep";
 import { ReportStep } from "@/components/consult/ReportStep";
 
@@ -37,7 +35,6 @@ const STEPS = [
   { id: "brief", label: "Brief", icon: MessageSquareText },
   { id: "canvas", label: "3D Canvas", icon: ScanFace },
   { id: "visualize", label: "AI Visualize", icon: Sparkles },
-  { id: "timeline", label: "Timeline", icon: Hourglass },
   { id: "plan", label: "Plan", icon: ClipboardList },
   { id: "report", label: "Report", icon: FileText },
 ] as const;
@@ -206,9 +203,6 @@ function ConsultationInner() {
           patient={patient}
           onPlan={() => setStep("plan")}
         />
-      )}
-      {step === "timeline" && (
-        <TimelineStep consultation={consultation} patient={patient} />
       )}
       {step === "plan" && (
         <PlanStep consultation={consultation} onReport={() => setStep("report")} />

@@ -215,6 +215,33 @@ function photoApiUrl(pathname: string): string {
   return `/api/booth/photo?path=${encodeURIComponent(pathname)}`;
 }
 
+/**
+ * The inbox is ONE blob (booth/inbox.json = BoothItem[]): the desk polls
+ * it, and the previous per-item layout cost 1 list + N reads per poll —
+ * that pattern exhausted the plan's operation quota in hours. One array
+ * blob = exactly one read per poll and zero list calls. Photos stay as
+ * separate private blobs (binary, streamed on merge only).
+ * Read-modify-write can lose a concurrent push in the same instant;
+ * acceptable for a single booth phone, removed for real by the Postgres
+ * step in SCALABILITY_ROADMAP.md.
+ */
+const INBOX_PATH = "booth/inbox.json";
+
+async function readInbox(token?: string): Promise<BoothItem[]> {
+  const res = await readBlobResponse(INBOX_PATH, token);
+  if (!res) return [];
+  try {
+    const items = (await res.json()) as BoothItem[];
+    return Array.isArray(items) ? items : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeInbox(items: BoothItem[], token?: string): Promise<void> {
+  await putAdaptive(INBOX_PATH, JSON.stringify(items), "application/json", token);
+}
+
 async function blobPut(
   itemBase: Omit<BoothItem, "photos">,
   photos: BoothPhotoIn[],
@@ -230,41 +257,48 @@ async function blobPut(
     stored.push({ kind: photo.kind, url: photoApiUrl(pathname) });
   }
   const item: BoothItem = { ...itemBase, photos: stored };
-  await putAdaptive(
-    `booth/inbox/${itemBase.id}.json`,
-    JSON.stringify(item),
-    "application/json",
-    token
-  );
+  const inbox = await readInbox(token);
+  const next = inbox.filter((i) => i.id !== item.id);
+  next.push(item);
+  await writeInbox(next, token);
+}
+
+async function deletePhotos(id: string, token?: string): Promise<void> {
+  const photos = await list({ prefix: `booth/photos/${id}/`, ...tok(token) });
+  if (photos.blobs.length > 0) {
+    await del(photos.blobs.map((b) => b.url), { ...tok(token) });
+  }
 }
 
 async function blobList(token?: string): Promise<BoothItem[]> {
-  const { blobs } = await list({ prefix: "booth/inbox/", limit: 100, ...tok(token) });
-  const items: BoothItem[] = [];
-  for (const b of blobs) {
-    try {
-      const res = await readBlobResponse(b.pathname, token);
-      if (!res) continue;
-      const item = (await res.json()) as BoothItem;
-      if (Date.now() - new Date(item.created_at).getTime() > EXPIRY_MS) {
-        await blobDelete(item.id, token);
-        continue;
-      }
-      items.push(item);
-    } catch {
-      // skip unreadable entries
+  const inbox = await readInbox(token);
+  const fresh: BoothItem[] = [];
+  const expired: BoothItem[] = [];
+  for (const item of inbox) {
+    if (Date.now() - new Date(item.created_at).getTime() > EXPIRY_MS) {
+      expired.push(item);
+    } else {
+      fresh.push(item);
     }
   }
-  return items;
+  if (expired.length > 0) {
+    await writeInbox(fresh, token);
+    for (const item of expired) {
+      try {
+        await deletePhotos(item.id, token);
+      } catch {
+        // photo cleanup is best-effort; the inbox entry is already gone
+      }
+    }
+  }
+  return fresh;
 }
 
 async function blobDelete(id: string, token?: string): Promise<void> {
-  const urls: string[] = [];
-  const inbox = await list({ prefix: `booth/inbox/${id}`, ...tok(token) });
-  urls.push(...inbox.blobs.map((b) => b.url));
-  const photos = await list({ prefix: `booth/photos/${id}/`, ...tok(token) });
-  urls.push(...photos.blobs.map((b) => b.url));
-  if (urls.length > 0) await del(urls, { ...tok(token) });
+  const inbox = await readInbox(token);
+  const next = inbox.filter((i) => i.id !== id);
+  if (next.length !== inbox.length) await writeInbox(next, token);
+  await deletePhotos(id, token);
 }
 
 // ---------------------------------------------------------------------
