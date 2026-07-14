@@ -19,7 +19,7 @@ to "ten paying clinics," with what each step costs.
 - Capture quality gate (face size / centering / exposure graded on every
   shot) so bad photos are caught at the camera, not at the 3D fit.
 
-## Phase 1 — External database (week 1) ← the "concrete and scalable" step
+## Phase 1 — External database — DONE 2026-07-14 (Neon connected, all collections migrated)
 The single-blob interim still has one weakness: two simultaneous writers
 can lose an update, and Blob has no queries. The fix is Postgres.
 
