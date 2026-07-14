@@ -16,8 +16,34 @@
 
 import { neon } from "@neondatabase/serverless";
 
+let cachedUrl: string | null | undefined;
+
+/**
+ * Vercel's database connect flow can prefix every injected env name
+ * (e.g. contourdb_DATABASE_URL) — same trap as the Blob token. Prefer
+ * the exact names, then scan for any *_DATABASE_URL / *_POSTGRES_URL
+ * carrying a postgres:// value, skipping unpooled variants (serverless
+ * functions want the pooler).
+ */
 export function pgUrl(): string | undefined {
-  return process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (cachedUrl !== undefined) return cachedUrl ?? undefined;
+  const direct = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (direct) {
+    cachedUrl = direct;
+    return direct;
+  }
+  for (const [k, v] of Object.entries(process.env)) {
+    if (!v || !/^postgres(ql)?:\/\//.test(v)) continue;
+    if (
+      /(^|_)(DATABASE_URL|POSTGRES_URL)$/.test(k) &&
+      !/UNPOOLED|NON_POOLING/i.test(k)
+    ) {
+      cachedUrl = v;
+      return v;
+    }
+  }
+  cachedUrl = null;
+  return undefined;
 }
 
 export function pgAvailable(): boolean {
