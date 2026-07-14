@@ -13,8 +13,10 @@ import type { GeometryAssessment } from "./geometry";
 import { LM } from "./geometry";
 
 const MINT = "#34d3b0";
-const MINT_SOFT = "rgba(52, 211, 176, 0.55)";
 const INK = "rgba(31, 41, 55, 0.85)";
+/** Dark casing drawn under every mint stroke so lines stay distinct on
+ *  any skin tone (owner: the mapping lines must be clearly visible). */
+const CASING = "rgba(10, 28, 25, 0.82)";
 
 type Pt = { x: number; y: number };
 
@@ -103,12 +105,25 @@ export function buildAnnotatedImage(
   ctx.drawImage(image, 0, 0);
 
   const faceW = P(LM.faceL).x - P(LM.faceR).x;
-  const lw = Math.max(2, w / 500);
-  ctx.lineWidth = lw;
+  const lw = Math.max(2.4, w / 420);
+  ctx.lineCap = "round";
 
-  // ---- proportion scaffold: thirds + midline (subtle, dashed) ------------
-  ctx.strokeStyle = MINT_SOFT;
-  ctx.setLineDash([lw * 4, lw * 4]);
+  /** Cased stroke: dark under-line then mint over-line — distinct on any
+   *  skin tone, screen or print. */
+  const cased = (draw: () => void, dash?: number[]) => {
+    ctx.setLineDash(dash ?? []);
+    ctx.strokeStyle = CASING;
+    ctx.lineWidth = lw * 2.1;
+    draw();
+    ctx.stroke();
+    ctx.strokeStyle = MINT;
+    ctx.lineWidth = lw * 0.95;
+    draw();
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+
+  // ---- proportion scaffold: thirds + midline ------------------------------
   const xL = P(LM.faceR).x - faceW * 0.12;
   const xR = P(LM.faceL).x + faceW * 0.12;
   for (const y of [
@@ -117,52 +132,55 @@ export function buildAnnotatedImage(
     P(LM.subnasale).y,
     P(LM.menton).y,
   ]) {
-    ctx.beginPath();
-    ctx.moveTo(xL, y);
-    ctx.lineTo(xR, y);
-    ctx.stroke();
+    cased(() => {
+      ctx.beginPath();
+      ctx.moveTo(xL, y);
+      ctx.lineTo(xR, y);
+    }, [lw * 5, lw * 3.5]);
   }
   const midX = (P(LM.nasion).x + P(LM.subnasale).x + P(LM.menton).x) / 3;
-  ctx.beginPath();
-  ctx.moveTo(midX, P(LM.foreheadTop).y - faceW * 0.06);
-  ctx.lineTo(midX, P(LM.menton).y + faceW * 0.06);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  cased(() => {
+    ctx.beginPath();
+    ctx.moveTo(midX, P(LM.foreheadTop).y - faceW * 0.06);
+    ctx.lineTo(midX, P(LM.menton).y + faceW * 0.06);
+  }, [lw * 5, lw * 3.5]);
 
   // ---- metric accents for the lowest-alignment geometry findings ---------
   const flagged = geometry.metrics
     .filter((m) => m.alignment < 85)
     .map((m) => m.id);
-  ctx.strokeStyle = MINT;
   if (flagged.includes("lip_ratio")) {
-    // lip band
     const y0 = P(LM.lipTop).y;
     const y1 = P(LM.lipBottom).y;
     const x0 = P(LM.mouthR).x - faceW * 0.04;
     const x1 = P(LM.mouthL).x + faceW * 0.04;
-    ctx.strokeRect(x0, y0 - lw * 2, x1 - x0, y1 - y0 + lw * 4);
+    cased(() => {
+      ctx.beginPath();
+      ctx.rect(x0, y0 - lw * 2, x1 - x0, y1 - y0 + lw * 4);
+    });
   }
   if (flagged.includes("jaw_cheek") || flagged.includes("lower_third")) {
-    // jaw-to-chin trace
-    ctx.beginPath();
-    ctx.moveTo(P(LM.jawR).x, P(LM.jawR).y);
-    ctx.quadraticCurveTo(
-      P(LM.menton).x,
-      P(LM.menton).y + faceW * 0.06,
-      P(LM.jawL).x,
-      P(LM.jawL).y
-    );
-    ctx.stroke();
+    cased(() => {
+      ctx.beginPath();
+      ctx.moveTo(P(LM.jawR).x, P(LM.jawR).y);
+      ctx.quadraticCurveTo(
+        P(LM.menton).x,
+        P(LM.menton).y + faceW * 0.06,
+        P(LM.jawL).x,
+        P(LM.jawL).y
+      );
+    });
   }
   if (flagged.includes("canthal")) {
     for (const [outer, inner] of [
       [LM.eyeROuter, LM.eyeRInner],
       [LM.eyeLOuter, LM.eyeLInner],
     ] as const) {
-      ctx.beginPath();
-      ctx.moveTo(P(inner).x, P(inner).y);
-      ctx.lineTo(P(outer).x, P(outer).y);
-      ctx.stroke();
+      cased(() => {
+        ctx.beginPath();
+        ctx.moveTo(P(inner).x, P(inner).y);
+        ctx.lineTo(P(outer).x, P(outer).y);
+      });
     }
   }
 
@@ -170,29 +188,26 @@ export function buildAnnotatedImage(
   const crops: AnnotationResult["crops"] = [];
   skinFindings.forEach((finding, i) => {
     const b = regionBox(finding.region, P, w, h);
-    // soft ellipse
-    ctx.strokeStyle = MINT;
-    ctx.fillStyle = "rgba(52, 211, 176, 0.12)";
+    // region ellipse: light wash + cased outline so it reads distinctly
+    ctx.fillStyle = "rgba(52, 211, 176, 0.14)";
     ctx.beginPath();
-    ctx.ellipse(
-      b.x + b.w / 2,
-      b.y + b.h / 2,
-      b.w / 2,
-      b.h / 2,
-      0,
-      0,
-      Math.PI * 2
-    );
+    ctx.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, b.h / 2, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
-    // numbered chip at the ellipse's top-right
-    const r = Math.max(11, w / 60);
+    cased(() => {
+      ctx.beginPath();
+      ctx.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, b.h / 2, 0, 0, Math.PI * 2);
+    });
+    // numbered chip: mint fill, dark ring, white numeral
+    const r = Math.max(12, w / 55);
     const cx = b.x + b.w - r * 0.4;
     const cy = b.y + r * 0.4;
     ctx.fillStyle = MINT;
+    ctx.strokeStyle = CASING;
+    ctx.lineWidth = lw;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
     ctx.fillStyle = "#ffffff";
     ctx.font = `700 ${r * 1.1}px system-ui, sans-serif`;
     ctx.textAlign = "center";

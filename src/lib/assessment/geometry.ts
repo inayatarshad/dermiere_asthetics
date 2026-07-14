@@ -409,3 +409,163 @@ export function geometryRecommendations(
   }
   return out.slice(0, 4);
 }
+
+// ---------------------------------------------------------------------
+// Quantitative treatment suggestions — the doctor-support layer.
+//
+// The owner's requirement: the report must state HOW FAR each measurement
+// deviates from the reference and translate that into a concrete starting
+// quantity (ml of filler, units of toxin) for the doctor to confirm.
+// Sub-procedures are named precisely (Upper lip filler, not Lip Filler):
+// the metric's DIRECTION picks the target. All quantities are ranges and
+// carry the physician-confirm framing on the report (spec §7 stays
+// honored: ranges as a starting point, never a photo-derived prescription).
+// ---------------------------------------------------------------------
+
+export interface TreatmentSuggestion {
+  id: string;
+  /** Precise sub-procedure name, e.g. "Upper lip filler" */
+  procedure: string;
+  templateId?: string;
+  bucket: "injectable" | "skin" | "structural";
+  /** The deviation, stated with numbers */
+  deviation: string;
+  /** Suggested starting quantity range for the physician */
+  dose: string;
+}
+
+const pct = (frac: number) => `${Math.round(Math.abs(frac) * 100)}%`;
+
+/** ml band for hyaluronic lip work scaled by how far the ratio is off. */
+function lipMl(devFrac: number): string {
+  const d = Math.abs(devFrac);
+  if (d < 0.08) return "0.3–0.5 ml";
+  if (d < 0.2) return "0.5–0.8 ml";
+  return "0.8–1.0 ml";
+}
+
+export function quantitativeSuggestions(
+  assessment: GeometryAssessment,
+  availableTemplates: TreatmentTemplate[]
+): TreatmentSuggestion[] {
+  const available = new Set(availableTemplates.map((t) => t.id));
+  const m = new Map(assessment.metrics.map((x) => [x.id, x]));
+  const F = assessment.sex === "female";
+  const out: TreatmentSuggestion[] = [];
+
+  // ---- lips: direction picks the lip -------------------------------------
+  const lip = m.get("lip_ratio");
+  if (lip && lip.alignment < 85 && available.has("lip_filler")) {
+    const measured = Number(lip.value.replace("1 : ", ""));
+    const ideal = F ? 1.618 : 1.15;
+    const dev = (measured - ideal) / ideal;
+    const upperDeficient = dev > 0; // lower leads -> upper needs support
+    out.push({
+      id: upperDeficient ? "upper_lip_filler" : "lower_lip_filler",
+      procedure: upperDeficient ? "Upper lip filler" : "Lower lip filler",
+      templateId: "lip_filler",
+      bucket: "injectable",
+      deviation: `Lip ratio measures ${lip.value} against the ${lip.ideal} reference: the ${
+        upperDeficient ? "upper" : "lower"
+      } lip carries ${pct(dev)} less relative height than the classical balance.`,
+      dose: `Suggested starting volume ≈ ${lipMl(dev)} hyaluronic filler to the ${
+        upperDeficient
+          ? "upper lip body and vermilion border"
+          : "lower lip body"
+      }, placed conservatively across one session.`,
+    });
+  }
+
+  // ---- chin: lower-third shortfall ----------------------------------------
+  const lower = m.get("lower_third");
+  if (lower && lower.alignment < 85 && available.has("chin_filler")) {
+    const measured = Number(lower.value.replace("1 : ", ""));
+    if (measured < 2) {
+      const dev = (2 - measured) / 2;
+      out.push({
+        id: "chin_projection_filler",
+        procedure: "Chin augmentation (structural filler)",
+        templateId: "chin_filler",
+        bucket: "injectable",
+        deviation: `Lower-third balance measures ${lower.value} against the classical 1 : 2: the chin third runs ${pct(dev)} short of the reference.`,
+        dose: `Suggested starting volume ≈ ${dev > 0.15 ? "1.5–2.0" : "1.0–1.5"} ml structural hyaluronic filler placed on bone at the pogonion.`,
+      });
+    }
+  }
+
+  // ---- jaw : cheek — direction decides the treatment ----------------------
+  const jaw = m.get("jaw_cheek");
+  if (jaw && jaw.alignment < 85) {
+    const measured = Number(jaw.value);
+    const ideal = F ? 0.85 : 0.97;
+    const dev = (measured - ideal) / ideal;
+    if (F && dev > 0 && available.has("botox")) {
+      out.push({
+        id: "masseter_slimming",
+        procedure: "Masseter slimming (toxin)",
+        templateId: "botox",
+        bucket: "injectable",
+        deviation: `Jaw-to-cheekbone width measures ${jaw.value} against the tapered ${ideal} reference, ${pct(dev)} fuller than the classical feminine taper.`,
+        dose: `Suggested ≈ ${dev > 0.08 ? "25–30" : "20–25"} units of botulinum toxin per masseter.`,
+      });
+    } else if (dev < 0 && available.has("chin_filler")) {
+      out.push({
+        id: "jawline_definition",
+        procedure: "Jawline definition (structural filler)",
+        templateId: "chin_filler",
+        bucket: "injectable",
+        deviation: `Jaw-to-cheekbone width measures ${jaw.value} against the ${ideal} reference, ${pct(dev)} lighter than the ${F ? "classical" : "masculine"} standard.`,
+        dose: "Suggested ≈ 1–2 ml structural filler along the gonial angle and prejowl, per side as indicated.",
+      });
+    }
+  }
+
+  // ---- periocular: canthal lift --------------------------------------------
+  const canthal = m.get("canthal");
+  if (canthal && canthal.alignment < 85 && available.has("botox")) {
+    const measured = Number(canthal.value.replace("°", ""));
+    const idealDeg = F ? 6 : 3;
+    if (measured < idealDeg) {
+      out.push({
+        id: "chemical_brow_lift",
+        procedure: "Chemical brow lift (toxin)",
+        templateId: "botox",
+        bucket: "injectable",
+        deviation: `Canthal axis measures ${canthal.value} against the ${canthal.ideal} reference, ${(idealDeg - measured).toFixed(1)}° flatter than the classical lift.`,
+        dose: "Suggested ≈ 4–8 units of botulinum toxin to the tail of each brow (orbicularis).",
+      });
+    }
+  }
+
+  // ---- symmetry: micro-volume balancing ------------------------------------
+  const sym = m.get("symmetry");
+  if (sym && sym.alignment < 80 && available.has("lip_filler")) {
+    out.push({
+      id: "symmetry_balancing",
+      procedure: "Symmetry micro-balancing",
+      bucket: "injectable",
+      deviation: `Left-right correspondence measures ${sym.value} against the ≥ 90% reference.`,
+      dose: "Suggested ≈ 0.2–0.5 ml micro-volume on the lighter side, mapped in person against animation.",
+    });
+  }
+
+  // ---- nose: structural, stays a consult -----------------------------------
+  const nose = m.get("nose_width");
+  if (nose && nose.alignment < 85 && available.has("rhinoplasty")) {
+    const measured = Number(nose.value.replace("× intercanthal", ""));
+    const ideal = F ? 0.98 : 1.05;
+    const dev = (measured - ideal) / ideal;
+    if (dev > 0) {
+      out.push({
+        id: "alar_base_refinement",
+        procedure: "Alar base refinement (surgical consult)",
+        templateId: "rhinoplasty",
+        bucket: "structural",
+        deviation: `Nasal base measures ${nose.value} against the ≈ 1.0× intercanthal reference, ${pct(dev)} beyond the classical line.`,
+        dose: "A surgical consult can review alar base reduction; precise planning belongs to the in-person measurement, not this photograph.",
+      });
+    }
+  }
+
+  return out.slice(0, 6);
+}

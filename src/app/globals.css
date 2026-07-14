@@ -1511,3 +1511,93 @@ input[type="range"].mint-slider::-moz-range-track {
     background: none;
   }
 }
+
+/* ---- assessment v3: single mapped figure + key observations ---- */
+.ar-figures-single {
+  grid-template-columns: 1.15fr 1fr;
+  align-items: stretch;
+}
+.ar-keydev {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 0 0 4px;
+}
+.ar-keydev h3 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 13px;
+  font-weight: 400;
+  margin-bottom: 2px;
+}
+.ar-keydev-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ar-keydev-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.ar-keydev-val {
+  font-size: 9.5px;
+  color: var(--ink-700);
+  font-variant-numeric: tabular-nums;
+}
+.ar-keydev-val em {
+  font-style: normal;
+  color: var(--ink-400);
+}
+.ar-keydev-bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(14, 42, 38, 0.07);
+  overflow: hidden;
+  max-width: 150px;
+}
+.ar-keydev-note {
+  font-size: 8px;
+  color: var(--ink-400);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+/* dose line: the doctor-support quantity, quietly emphasized */
+.ar-consider-dose {
+  display: block;
+  font-size: 9.5px;
+  color: var(--ink-900);
+  line-height: 1.45;
+  margin-top: 1px;
+}
+.ar-consider-dose::before {
+  content: "Rx ";
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
+  color: var(--mint-500);
+  font-size: 10px;
+}
+.ar-consider-body {
+  display: block;
+}
+
+/* separate sequence lines (never joined) */
+.ar-seq-line {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* + Add buttons (edit mode only, never printed) */
+.ar-add {
+  margin-top: 7px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--mint-500);
+  border: 1px dashed rgba(52, 211, 176, 0.55);
+  border-radius: 999px;
+  padding: 3px 12px;
+}
+.ar-add:hover {
+  background: rgba(52, 211, 176, 0.08);
+}

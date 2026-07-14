@@ -32,9 +32,10 @@ import { useStore, useSessionUser } from "@/lib/store";
 import { useMounted, useFaceData } from "@/lib/hooks";
 import {
   computeGeometry,
-  geometryRecommendations,
+  quantitativeSuggestions,
   type MetricResult,
   type Sex,
+  type TreatmentSuggestion,
 } from "@/lib/assessment/geometry";
 import {
   buildAnnotatedImage,
@@ -280,17 +281,17 @@ function AssessmentInner() {
     return map;
   }, [geometry]);
 
-  // ---- considerations (controlled menu only) -----------------------------
+  // ---- quantitative considerations (controlled menu only) ----------------
   const available = useMemo(() => TEMPLATES.filter((t) => t.available), []);
-  const considerations = useMemo(() => {
+  // doctor-added rows (edit mode "+ Add")
+  const [extraConsiderations, setExtraConsiderations] = useState<string[]>([]);
+  const [extraObservations, setExtraObservations] = useState<string[]>([]);
+
+  const considerations = useMemo<TreatmentSuggestion[]>(() => {
     if (!geometry) return [];
-    const geo = geometryRecommendations(geometry, available).map((r) => ({
-      id: `geo_${r.templateId}`,
-      title: r.name,
-      body: r.motivation,
-    }));
+    const geo = quantitativeSuggestions(geometry, available);
     const seen = new Set<string>();
-    const skinItems = skinFindings
+    const skinItems: TreatmentSuggestion[] = skinFindings
       .map((f) => ({ f, rec: SKIN_TO_REC[f.id] }))
       .filter((x) => {
         if (!x.rec || seen.has(x.rec.label)) return false;
@@ -299,29 +300,53 @@ function AssessmentInner() {
       })
       .map((x) => ({
         id: `skin_${x.f.id}`,
-        title:
+        procedure:
           x.rec.templateId && getTemplate(x.rec.templateId)?.available
             ? getTemplate(x.rec.templateId)!.name
             : x.rec.label.charAt(0).toUpperCase() + x.rec.label.slice(1),
-        body: x.f.note,
+        templateId: x.rec.templateId,
+        bucket:
+          x.rec.templateId === "hair_transplant"
+            ? ("structural" as const)
+            : ("skin" as const),
+        deviation: `${SKIN_LABELS[x.f.id] ?? x.f.id} (${x.f.severity}) noted at the ${x.f.region.replace(/_/g, " ")}: ${x.f.note}`,
+        dose: `Suggested: ${x.rec.label}, tailored at the consultation.`,
       }));
-    return [...geo, ...skinItems].slice(0, 5);
-  }, [geometry, available, skinFindings]);
+    const extras: TreatmentSuggestion[] = extraConsiderations.map((id) => ({
+      id,
+      procedure: "New consideration",
+      bucket: "injectable" as const,
+      deviation: "Describe the observation and how far it deviates.",
+      dose: "Suggested quantity and placement, to be confirmed in person.",
+    }));
+    return [...geo, ...skinItems, ...extras].slice(0, 8);
+  }, [geometry, available, skinFindings, extraConsiderations]);
 
   const visibleConsiderations = considerations.filter(
     (c) => !removed.has(c.id)
   );
-  const journeyNow = visibleConsiderations
-    .slice(0, 2)
-    .map((c) => txt(`ct_${c.id}`, c.title))
-    .join(" · ");
-  const journeySoon =
-    skinFindings.length > 0
-      ? skinFindings
-          .slice(0, 2)
-          .map((f) => SKIN_TO_REC[f.id]?.label ?? SKIN_LABELS[f.id])
-          .join(" · ")
-      : "Skin maintenance and review";
+  // the sequence keeps every procedure on its OWN line, and surgical work
+  // never shares "Now" with injectables (owner requirement)
+  const seqBuckets: { title: string; key: string; items: TreatmentSuggestion[]; fallback: string }[] = [
+    {
+      title: "Now",
+      key: "now",
+      items: visibleConsiderations.filter((c) => c.bucket === "injectable"),
+      fallback: "A consultation to review your goals",
+    },
+    {
+      title: "Four to eight weeks",
+      key: "soon",
+      items: visibleConsiderations.filter((c) => c.bucket === "skin"),
+      fallback: "Skin maintenance and review",
+    },
+    {
+      title: "Longer term",
+      key: "later",
+      items: visibleConsiderations.filter((c) => c.bucket === "structural"),
+      fallback: "Annual balance and skin review",
+    },
+  ];
 
   // ---- save to record ------------------------------------------------------
   const save = async () => {
@@ -473,21 +498,12 @@ function AssessmentInner() {
               </dl>
             </header>
 
-            {/* ---- figures ---- */}
-            <div className="ar-figures">
-              <figure>
-                {face.image && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={face.image.src} alt="Presented condition" />
-                )}
-                <figcaption>
-                  <i>Fig. 1</i> Presented condition
-                </figcaption>
-              </figure>
+            {/* ---- mapped figure + key observations ---- */}
+            <div className="ar-figures ar-figures-single">
               <figure>
                 {annotation ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={annotation.annotatedDataUrl} alt="Assessment mapping" />
+                  <img src={annotation.annotatedDataUrl} alt="Proportion and skin mapping" />
                 ) : (
                   <div className="ar-fig-pending">
                     {face.status === "loading"
@@ -496,9 +512,36 @@ function AssessmentInner() {
                   </div>
                 )}
                 <figcaption>
-                  <i>Fig. 2</i> Proportion and skin mapping
+                  <i>Fig. 1</i> Proportion and skin mapping on the presented
+                  photograph
                 </figcaption>
               </figure>
+              {geometry && (
+                <aside className="ar-keydev">
+                  <h3>Key observations</h3>
+                  {[...geometry.metrics]
+                    .sort((a, b) => a.alignment - b.alignment)
+                    .slice(0, 4)
+                    .map((m) => (
+                      <div key={m.id} className="ar-keydev-row">
+                        <span className="ar-keydev-label">{m.label}</span>
+                        <span className="ar-keydev-val">
+                          {m.value} <em>· ref {m.ideal}</em>
+                        </span>
+                        <span className="ar-bar ar-keydev-bar">
+                          <span
+                            className="ar-bar-fill"
+                            style={{ width: `${m.alignment}%` }}
+                          />
+                        </span>
+                      </div>
+                    ))}
+                  <p className="ar-keydev-note">
+                    Full measurement table below; deviations quantified under
+                    treatment considerations.
+                  </p>
+                </aside>
+              )}
             </div>
 
             {/* ---- proportional analysis ---- */}
@@ -610,8 +653,54 @@ function AssessmentInner() {
                         </td>
                       </tr>
                     ))}
+                    {extraObservations.map(
+                      (id, i) =>
+                        !removed.has(id) && (
+                          <tr key={id}>
+                            <td className="ar-skin-thumb" />
+                            <td className="ar-skin-name">
+                              <Editable
+                                id={`${id}_name`}
+                                text={txt(`${id}_name`, "New observation")}
+                                {...ed}
+                              />
+                              <em>
+                                <Editable
+                                  id={`${id}_region`}
+                                  text={txt(`${id}_region`, "region · severity")}
+                                  {...ed}
+                                />
+                              </em>
+                            </td>
+                            <td className="ar-skin-note">
+                              <Editable
+                                id={`${id}_note`}
+                                text={txt(
+                                  `${id}_note`,
+                                  "Clinical observation, in the doctor's words."
+                                )}
+                                {...ed}
+                              />
+                              <RemoveBtn id={id} {...rm} />
+                            </td>
+                          </tr>
+                        )
+                    )}
                   </tbody>
                 </table>
+              )}
+              {editing && (
+                <button
+                  className="ar-add no-print"
+                  onClick={() =>
+                    setExtraObservations((x) => [
+                      ...x,
+                      `obs_${Date.now().toString(36)}`,
+                    ])
+                  }
+                >
+                  + Add observation
+                </button>
               )}
               {skin.status === "ready" && skinFindings.length === 0 && (
                 <p className="ar-body">
@@ -645,14 +734,20 @@ function AssessmentInner() {
                       <b>
                         <Editable
                           id={`ct_${c.id}`}
-                          text={txt(`ct_${c.id}`, c.title)}
+                          text={txt(`ct_${c.id}`, c.procedure)}
                           {...ed}
                         />
                       </b>
                       <Editable
                         id={`cb_${c.id}`}
-                        text={txt(`cb_${c.id}`, c.body)}
+                        text={txt(`cb_${c.id}`, c.deviation)}
                         className="ar-consider-body"
+                        {...ed}
+                      />
+                      <Editable
+                        id={`cd_${c.id}`}
+                        text={txt(`cd_${c.id}`, c.dose)}
+                        className="ar-consider-dose"
                         {...ed}
                       />
                     </div>
@@ -671,6 +766,19 @@ function AssessmentInner() {
                   </li>
                 )}
               </ol>
+              {editing && (
+                <button
+                  className="ar-add no-print"
+                  onClick={() =>
+                    setExtraConsiderations((x) => [
+                      ...x,
+                      `extra_${Date.now().toString(36)}`,
+                    ])
+                  }
+                >
+                  + Add consideration
+                </button>
+              )}
             </section>
 
             {/* ---- sequence ---- */}
@@ -679,18 +787,33 @@ function AssessmentInner() {
                 <h2>Suggested sequence</h2>
               </div>
               <div className="ar-sequence">
-                <div>
-                  <b>Now</b>
-                  <Editable id="seq_now" text={txt("seq_now", journeyNow || "A consultation to review your goals")} {...ed} />
-                </div>
-                <div>
-                  <b>Four to eight weeks</b>
-                  <Editable id="seq_soon" text={txt("seq_soon", journeySoon)} {...ed} />
-                </div>
-                <div>
-                  <b>Longer term</b>
-                  <Editable id="seq_later" text={txt("seq_later", "Annual balance and skin review")} {...ed} />
-                </div>
+                {seqBuckets.map((bucket) => (
+                  <div key={bucket.key}>
+                    <b>{bucket.title}</b>
+                    {bucket.items.length > 0 ? (
+                      bucket.items.map((c) => (
+                        <span key={c.id} className="ar-seq-line">
+                          <Editable
+                            id={`seq_${bucket.key}_${c.id}`}
+                            text={txt(
+                              `seq_${bucket.key}_${c.id}`,
+                              txt(`ct_${c.id}`, c.procedure)
+                            )}
+                            {...ed}
+                          />
+                        </span>
+                      ))
+                    ) : (
+                      <span className="ar-seq-line">
+                        <Editable
+                          id={`seq_${bucket.key}_fallback`}
+                          text={txt(`seq_${bucket.key}_fallback`, bucket.fallback)}
+                          {...ed}
+                        />
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             </section>
 
