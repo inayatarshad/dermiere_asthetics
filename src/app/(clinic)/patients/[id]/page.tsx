@@ -137,24 +137,30 @@ export default function PatientProfilePage() {
     <div className="space-y-5">
       {/* Header card */}
       <GlassCard strong className="p-6 fade-up">
-        <div className="flex flex-wrap items-center gap-5">
+        {/* identity row: full width so the name and meta stay on ONE line
+            each; actions live on their own row below, never squeezing this */}
+        <div className="flex items-center gap-5 min-w-0">
           <PatientAvatar patient={patient} size="lg" />
           <div className="min-w-0 flex-1">
-            <h1 className="h1 text-ink-900">{patient.name}</h1>
-            <div className="caption mt-1 flex items-center gap-3 flex-wrap">
-              {patient.age && <span>{patient.age} years</span>}
-              <span className="inline-flex items-center gap-1">
-                <MapPin size={12} /> {patient.city}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Phone size={12} /> {patient.phone}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Globe size={12} />{" "}
-                {patient.language[0].toUpperCase() + patient.language.slice(1)}
+            <div className="flex items-baseline gap-x-3 gap-y-0.5 flex-wrap">
+              <h1 className="h1 text-ink-900 whitespace-nowrap">
+                {patient.name}
+              </h1>
+              <span className="caption flex items-center gap-3 flex-wrap">
+                {patient.age && <span>{patient.age} years</span>}
+                <span className="inline-flex items-center gap-1">
+                  <MapPin size={12} /> {patient.city}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Phone size={12} /> {patient.phone}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Globe size={12} />{" "}
+                  {patient.language[0].toUpperCase() + patient.language.slice(1)}
+                </span>
               </span>
             </div>
-            <div className="mt-2.5 flex gap-1.5 flex-wrap">
+            <div className="mt-2 flex gap-1.5 flex-wrap">
               {template && (
                 <span className="chip chip-static text-xs">
                   {template.name}
@@ -174,7 +180,8 @@ export default function PatientProfilePage() {
               )}
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+        </div>
+        <div className="flex gap-2 flex-wrap mt-5 pt-4 border-t border-white/60">
             {can.runConsultation(user?.role) && (
               <button className="btn btn-primary" onClick={startConsultation}>
                 <Play size={16} />
@@ -247,7 +254,6 @@ export default function PatientProfilePage() {
             >
               <Trash2 size={16} />
             </button>
-          </div>
         </div>
         {boothSync?.status === "error" && boothSync.error && (
           <p
