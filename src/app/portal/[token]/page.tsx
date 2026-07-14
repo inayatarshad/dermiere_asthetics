@@ -137,8 +137,19 @@ export default function PortalPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [meta, setMeta] = useState<InviteMeta | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [intro, setIntro] = useState<"pending" | "playing" | "done">("pending");
   const hpRef = useRef<HTMLInputElement>(null);
   const storageKey = `portal_${token}`;
+  const introKey = `portal_intro_${token}`;
+
+  const endIntro = useCallback(() => {
+    setIntro("done");
+    try {
+      localStorage.setItem(introKey, "1");
+    } catch {
+      // best-effort
+    }
+  }, [introKey]);
 
   // load invite + restore autosave
   useEffect(() => {
@@ -172,6 +183,14 @@ export default function PortalPage() {
           ...restored,
           consent: false, // consent is never restored: an explicit tap each time
         });
+        // the personalized welcome plays once per link, first open only
+        let seen = false;
+        try {
+          seen = localStorage.getItem(introKey) === "1";
+        } catch {
+          seen = false;
+        }
+        setIntro(seen ? "done" : "playing");
         setPhase("form");
       } catch {
         if (!cancelled) {
@@ -185,6 +204,15 @@ export default function PortalPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // failsafe: some in-app browsers throttle CSS animations; the welcome
+  // must never trap the doctor, so it hard-ends after the choreography
+  // window regardless of animation events (tap-to-skip also works).
+  useEffect(() => {
+    if (intro !== "playing") return;
+    const t = setTimeout(endIntro, 9600);
+    return () => clearTimeout(t);
+  }, [intro, endIntro]);
 
   // autosave (debounced)
   useEffect(() => {
@@ -337,11 +365,43 @@ export default function PortalPage() {
     );
   }
 
+  const greeting = meta?.doctorName
+    ? /^dr\b/i.test(meta.doctorName.trim())
+      ? `hi ${meta.doctorName.trim()},`
+      : `hi dr ${meta.doctorName.trim()},`
+    : "hello,";
+
   return (
     <div
       className="portal-stage"
       style={accent ? ({ "--portal-accent": accent } as React.CSSProperties) : undefined}
     >
+      {/* personalized welcome — plays once, tap anywhere to skip */}
+      {intro === "playing" && (
+        <div
+          className="portal-intro"
+          onClick={endIntro}
+          onAnimationEnd={(e) => {
+            if (e.animationName === "pi-out") endIntro();
+          }}
+          role="button"
+          aria-label="Skip introduction"
+        >
+          <p className="pi-line pi-line-1">{greeting}</p>
+          <p className="pi-line pi-line-2">
+            please take a moment to fill out this form.
+          </p>
+          <p className="pi-line pi-line-3">
+            all of your data is protected and secured by TechGIS.
+          </p>
+          <div className="pi-logo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/techgis-mark-256.png" alt="TechGIS" />
+          </div>
+          <span className="pi-skip">tap to skip</span>
+        </div>
+      )}
+
       <main className="portal-shell">
         <header className="portal-head">
           {/* eslint-disable-next-line @next/next/no-img-element */}

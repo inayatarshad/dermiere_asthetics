@@ -16,9 +16,33 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Contour · Aesthetic Clinic OS",
+  metadataBase: new URL(
+    process.env.PUBLIC_BASE_URL || "https://aesthetics-mu.vercel.app"
+  ),
+  title: "Contour AI · Aesthetic Clinic OS",
   description:
-    "The consultation system for modern aesthetic clinics: 3D face canvas, AI before/after visualization, treatment plans, and beautiful patient reports.",
+    "The consultation, made visible. 3D face canvas, AI before/after visualization, aesthetic assessment reports and treatment plans - by TechGIS.",
+  openGraph: {
+    title: "Contour AI",
+    description:
+      "The consultation, made visible. 3D face canvas, AI before/after and aesthetic assessment reports - by TechGIS.",
+    siteName: "Contour AI",
+    type: "website",
+    images: [
+      {
+        url: "/og-card.png",
+        width: 1200,
+        height: 630,
+        alt: "Contour AI - The consultation, made visible. By TechGIS.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Contour AI",
+    description: "The consultation, made visible. By TechGIS.",
+    images: ["/og-card.png"],
+  },
 };
 
 export const viewport: Viewport = {
