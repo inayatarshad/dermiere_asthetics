@@ -3,10 +3,12 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Stethoscope, ClipboardList, ShieldCheck, ArrowRight } from "lucide-react";
-import { useStore, useSessionUser } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
-import { DEMO_PASSWORD } from "@/lib/seed";
+import { loginRequest, fetchBootstrap } from "@/lib/serverSync";
 import { Logo, Spinner } from "@/components/ui";
+
+const DEMO_PASSWORD = "contour";
 
 const ROLE_CARDS = [
   {
@@ -39,43 +41,60 @@ function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locked = searchParams.get("locked") === "1";
+  const next = searchParams.get("next") || "/dashboard";
   const mounted = useMounted();
-  const user = useSessionUser();
-  const seeded = useStore((s) => s.seeded);
-  const seedIfNeeded = useStore((s) => s.seedIfNeeded);
-  const login = useStore((s) => s.login);
+  const hydrate = useStore((s) => s.hydrate);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(true);
 
+  // If already signed in (valid cookie), hydrate and go straight in.
   useEffect(() => {
-    seedIfNeeded();
-  }, [seedIfNeeded]);
+    let cancelled = false;
+    (async () => {
+      const b = await fetchBootstrap();
+      if (cancelled) return;
+      if (b) {
+        hydrate(b);
+        router.replace(next);
+      } else {
+        setChecking(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrate, router, next]);
 
-  useEffect(() => {
-    if (mounted && user) router.replace("/dashboard");
-  }, [mounted, user, router]);
+  const doLogin = async (e: string, p: string) => {
+    setBusy(true);
+    setError(null);
+    const r = await loginRequest(e, p);
+    if (!r.ok || !r.bootstrap) {
+      setError(r.error ?? "Those credentials did not match.");
+      setBusy(false);
+      return;
+    }
+    hydrate(r.bootstrap);
+    router.replace(next);
+  };
 
   const submit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    const u = login(email, password);
-    if (!u) {
-      setError("Those credentials did not match. Try a demo role below.");
-      return;
-    }
-    router.replace("/dashboard");
+    void doLogin(email, password);
   };
 
   const quick = (qEmail: string) => {
     setError(null);
     setEmail(qEmail);
     setPassword(DEMO_PASSWORD);
-    const u = login(qEmail, DEMO_PASSWORD);
-    if (u) router.replace("/dashboard");
+    void doLogin(qEmail, DEMO_PASSWORD);
   };
 
-  if (!mounted || !seeded) {
+  if (!mounted || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Spinner className="w-8 h-8" />
@@ -114,9 +133,7 @@ function LoginInner() {
         {/* Sign-in panel */}
         <div className="glass-strong p-8 sm:p-10 fade-up-1">
           <h2 className="h1 text-ink-900">Sign in</h2>
-          <p className="caption mt-1">
-            Meridian Aesthetics, Lahore. Demo environment.
-          </p>
+          <p className="caption mt-1">Sign in to your clinic workspace.</p>
 
           {locked && (
             <div className="mt-4 flex items-center gap-2 rounded-xl bg-mint-100 px-4 py-3 text-sm text-ink-700">
@@ -134,7 +151,7 @@ function LoginInner() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="doctor@meridian.clinic"
+                placeholder="you@yourclinic.com"
                 autoComplete="username"
               />
             </div>
@@ -150,20 +167,20 @@ function LoginInner() {
               />
             </div>
             {error && <p className="text-sm text-danger">{error}</p>}
-            <button type="submit" className="btn btn-primary w-full btn-lg">
-              Enter clinic
-              <ArrowRight size={17} />
+            <button type="submit" disabled={busy} className="btn btn-primary w-full btn-lg">
+              {busy ? <Spinner className="w-4 h-4" /> : <>Enter clinic <ArrowRight size={17} /></>}
             </button>
           </form>
 
           <div className="mt-7">
             <div className="caption mb-2.5">
-              Demo roles. Password for all: <b>{DEMO_PASSWORD}</b>
+              Demo clinic roles. Password for all: <b>{DEMO_PASSWORD}</b>
             </div>
             <div className="space-y-2">
               {ROLE_CARDS.map(({ role, email: qEmail, label, name, desc, icon: Icon }) => (
                 <button
                   key={role}
+                  disabled={busy}
                   onClick={() => quick(qEmail)}
                   className="glass-subtle card-hover w-full flex items-center gap-3.5 px-4 py-3 text-left"
                 >
@@ -175,9 +192,7 @@ function LoginInner() {
                       {label}
                       <span className="text-ink-400 font-normal"> · {name}</span>
                     </span>
-                    <span className="block text-xs text-ink-400 truncate">
-                      {desc}
-                    </span>
+                    <span className="block text-xs text-ink-400 truncate">{desc}</span>
                   </span>
                   <ArrowRight size={15} className="ml-auto text-ink-400 shrink-0" />
                 </button>

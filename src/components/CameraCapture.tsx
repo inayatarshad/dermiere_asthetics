@@ -18,6 +18,7 @@ import {
   SwitchCamera,
 } from "lucide-react";
 import { detectLandmarks } from "@/lib/face/landmarker";
+import { estimateYawDeg } from "@/lib/face/multiview";
 import { downscale, canvasToBlob, loadImage } from "@/lib/img";
 import { saveImage } from "@/lib/db";
 import { Modal, Spinner } from "./ui";
@@ -65,7 +66,9 @@ type ShotQuality =
   | "too_small"
   | "off_center"
   | "too_dark"
-  | "too_bright";
+  | "too_bright"
+  | "turn_more"
+  | "face_camera";
 
 const QUALITY_MESSAGES: Record<Exclude<ShotQuality, "good">, string> = {
   no_face: "No clear face found. Retake facing the camera.",
@@ -73,7 +76,19 @@ const QUALITY_MESSAGES: Record<Exclude<ShotQuality, "good">, string> = {
   off_center: "Face is off to one side. Center it in the guide and retake.",
   too_dark: "Too dark for an accurate 3D fit. Add light and retake.",
   too_bright: "Overexposed. Reduce direct light and retake.",
+  turn_more:
+    "Turn the head further — this looks near straight-on. The side profile is what gives the nose and lips real depth.",
+  face_camera: "Face the camera straight-on for the front shot.",
 };
+
+/**
+ * A turned photo only carries depth if it is actually turned; a near-frontal
+ * "profile" gives the 3D solver no parallax to work with, so it would silently
+ * fall back to front-only relief. Require a clear turn on the side poses (and a
+ * roughly straight-on front). Rough angle only — see estimateYawDeg.
+ */
+const MIN_PROFILE_YAW_DEG = 12;
+const MAX_FRONT_YAW_DEG = 16;
 
 interface ShotState {
   dataUrl: string | null;
@@ -91,7 +106,9 @@ interface ShotState {
  */
 function gradeShot(
   canvas: HTMLCanvasElement,
-  landmarks: number[][] | null
+  landmarks: number[][] | null,
+  /** yaw the pose asks for: 0 front, ±1 a turned profile */
+  expectedTurn: -1 | 0 | 1
 ): ShotQuality {
   if (!landmarks) return "no_face";
   let minX = 1,
@@ -107,6 +124,15 @@ function gradeShot(
   if (maxY - minY < 0.3) return "too_small";
   const cx = (minX + maxX) / 2;
   if (cx < 0.28 || cx > 0.72) return "off_center";
+  // Turn gate: a turned head is rotated in place (still centered), so this is
+  // independent of the off-center framing check above. The 3D depth fit needs
+  // real parallax from the profiles; a straight-on "profile" is useless.
+  const yaw = Math.abs(estimateYawDeg(landmarks));
+  if (expectedTurn === 0) {
+    if (yaw > MAX_FRONT_YAW_DEG) return "face_camera";
+  } else if (yaw < MIN_PROFILE_YAW_DEG) {
+    return "turn_more";
+  }
   // exposure probe on a small pass, face region only
   const probe = document.createElement("canvas");
   const PW = 48;
@@ -230,7 +256,8 @@ export function CameraCapture({
       let quality: ShotQuality = "no_face";
       try {
         const lm = await detectLandmarks(canvas);
-        quality = gradeShot(canvas, lm);
+        const turn = POSES.find((p) => p.kind === kind)?.turn ?? 0;
+        quality = gradeShot(canvas, lm, turn);
       } catch {
         quality = "no_face";
       }

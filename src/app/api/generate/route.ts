@@ -13,8 +13,10 @@ import {
   providerStatus,
   type Provider,
 } from "@/lib/server/providers";
+import { aiGuard, recordAi } from "@/lib/server/usage";
 
 export const maxDuration = 60;
+export const runtime = "nodejs";
 
 const PROVIDERS: Provider[] = ["gemini", "openai", "flux", "higgsfield"];
 
@@ -34,6 +36,9 @@ interface GenerateBody {
 }
 
 export async function POST(req: NextRequest) {
+  const guard = await aiGuard(req, "generations");
+  if (!guard.ok) return guard.response;
+
   let body: GenerateBody;
   try {
     body = (await req.json()) as GenerateBody;
@@ -108,6 +113,7 @@ export async function POST(req: NextRequest) {
       requested,
       modelChoices
     );
+    await recordAi(guard.clinicId, "generations");
     return NextResponse.json({
       image: `data:${result.mimeType};base64,${result.imageBase64}`,
       model: result.model,

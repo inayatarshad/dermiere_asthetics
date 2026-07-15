@@ -12,8 +12,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { aiGuard, recordAi } from "@/lib/server/usage";
 
 export const maxDuration = 60;
+export const runtime = "nodejs";
 
 export const SKIN_TAXONOMY = [
   "pigmentation",
@@ -185,6 +187,9 @@ async function analyzeWithGemini(
 }
 
 export async function POST(req: NextRequest) {
+  const guard = await aiGuard(req, "assessments");
+  if (!guard.ok) return guard.response;
+
   let body: { imageDataUrl?: string };
   try {
     body = (await req.json()) as { imageDataUrl?: string };
@@ -232,6 +237,7 @@ export async function POST(req: NextRequest) {
   for (const attempt of attempts) {
     try {
       const analysis = await attempt();
+      await recordAi(guard.clinicId, "assessments");
       return NextResponse.json(analysis);
     } catch (err) {
       lastErr = err;

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore, useSessionUser } from "@/lib/store";
 import { useIdleLock, useMounted } from "@/lib/hooks";
+import { fetchBootstrap, installRecordSync } from "@/lib/serverSync";
 import { TopNav } from "@/components/TopNav";
 import { BoothAgent } from "@/components/BoothAgent";
 import { VyberoAgent } from "@/components/VyberoAgent";
@@ -16,21 +17,37 @@ export default function ClinicLayout({
 }) {
   const mounted = useMounted();
   const user = useSessionUser();
-  const seeded = useStore((s) => s.seeded);
-  const seedIfNeeded = useStore((s) => s.seedIfNeeded);
+  const hydrate = useStore((s) => s.hydrate);
   const router = useRouter();
+  const [ready, setReady] = useState(false);
 
   useIdleLock();
 
   useEffect(() => {
-    seedIfNeeded();
-  }, [seedIfNeeded]);
+    let cancelled = false;
+    (async () => {
+      const b = await fetchBootstrap();
+      if (cancelled) return;
+      if (!b) {
+        router.replace("/");
+        return;
+      }
+      hydrate(b);
+      // Start write-through sync (server is the source of truth).
+      installRecordSync(
+        useStore as unknown as {
+          getState: () => Record<string, unknown>;
+          subscribe: (fn: (state: Record<string, unknown>) => void) => () => void;
+        }
+      );
+      setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrate, router]);
 
-  useEffect(() => {
-    if (mounted && seeded && !user) router.replace("/");
-  }, [mounted, seeded, user, router]);
-
-  if (!mounted || !seeded || !user) {
+  if (!mounted || !ready || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Spinner className="w-8 h-8" />

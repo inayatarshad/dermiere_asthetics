@@ -1,13 +1,16 @@
 /**
- * Admin invite management for the Brand Discovery Portal.
- *   POST — create an invite, returns the token + shareable link
- *   GET  — invites joined with their responses (the Discovery dashboard)
+ * Admin invite management for the Brand Discovery Portal, scoped to the
+ * signed-in clinic.
+ *   POST — create an invite (returns token + shareable link)
+ *   GET  — this clinic's invites joined with their responses (dashboard)
  *
- * Demo-grade auth: same-origin browser calls only (the admin pages are
- * role-gated client-side; real accounts arrive with the Postgres step).
+ * Real auth: a valid session cookie is required, and every read/write is
+ * scoped to that session's clinic_id — one clinic never sees another's BD
+ * pipeline.
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/server/auth";
 import {
   listInvites,
   listResponses,
@@ -19,16 +22,6 @@ import {
 
 export const maxDuration = 30;
 
-function sameOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get("origin") ?? req.headers.get("referer");
-  if (!origin) return false;
-  try {
-    return new URL(origin).host === req.nextUrl.host;
-  } catch {
-    return false;
-  }
-}
-
 function storeError(err: unknown) {
   if (err instanceof PortalStoreError) {
     return NextResponse.json(
@@ -37,20 +30,16 @@ function storeError(err: unknown) {
     );
   }
   console.error("[portal/invites]", err);
-  return NextResponse.json(
-    { error: "store_error", message: "Portal storage failed." },
-    { status: 502 }
-  );
+  return NextResponse.json({ error: "store_error", message: "Portal storage failed." }, { status: 502 });
 }
 
 export async function GET(req: NextRequest) {
-  if (!sameOrigin(req)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   try {
     const [invites, responses] = await Promise.all([
-      listInvites(),
-      listResponses(),
+      listInvites(session.cid),
+      listResponses(session.cid),
     ]);
     return NextResponse.json({ invites, responses });
   } catch (err) {
@@ -59,17 +48,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!sameOrigin(req)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   let body: Partial<PortalInvite>;
   try {
     body = (await req.json()) as Partial<PortalInvite>;
   } catch {
-    return NextResponse.json(
-      { error: "bad_request", message: "Invalid JSON body." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "bad_request", message: "Invalid JSON body." }, { status: 400 });
   }
   try {
     const invite: PortalInvite = {
@@ -88,7 +73,7 @@ export async function POST(req: NextRequest) {
       status: "PENDING",
       createdAt: new Date().toISOString(),
     };
-    await saveInvite(invite);
+    await saveInvite(session.cid, invite);
     return NextResponse.json({ ok: true, invite });
   } catch (err) {
     return storeError(err);

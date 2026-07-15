@@ -1,20 +1,20 @@
 /**
- * POST /api/vybero/book — create (or upsert) an appointment.
+ * POST /api/vybero/book — create (or upsert) an appointment for a clinic.
  *
  * Callers:
- *  - the VYBERO voice agent (x-vybero-key header = VYBERO_API_KEY env)
- *  - clinic screens pushing locally created bookings (same-origin)
+ *  - the VYBERO voice agent (x-vybero-key + x-clinic) → source "vybero"
+ *  - a signed-in clinic screen (session cookie) → its own clinic
  *
- * Body: { id?, patient_name, phone?, start (ISO), duration_min?, type?,
- *         procedure_interest?, notes?, vybero_call_id?, source?, status? }
- * The slot must be free unless upserting the same appointment id.
+ * The slot must be free unless upserting the same appointment id. Every
+ * write is clinic-scoped; no cross-clinic booking is possible.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import type { Appointment } from "@/lib/types";
+import { getSession } from "@/lib/server/auth";
+import { agentKeyValid, resolveAgentClinic } from "@/lib/server/agentAuth";
+import { getClinicConfig } from "@/lib/server/clinicStore";
 import {
-  agentAuthorized,
-  clinicHours,
   getAppointment,
   saveAppointment,
   slotFree,
@@ -23,42 +23,30 @@ import {
 
 export const maxDuration = 30;
 
-/** Same-origin browser writes (clinic screens) are trusted demo-grade. */
-function sameOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get("origin");
-  if (!origin) return false;
-  try {
-    return new URL(origin).host === req.nextUrl.host;
-  } catch {
-    return false;
-  }
-}
-
 const TYPES = new Set(["consultation", "treatment", "follow_up"]);
-const STATUSES = new Set([
-  "booked",
-  "confirmed",
-  "completed",
-  "cancelled",
-  "no_show",
-]);
+const STATUSES = new Set(["booked", "confirmed", "completed", "cancelled", "no_show"]);
 
 export async function POST(req: NextRequest) {
-  const fromAgent = agentAuthorized(req);
-  if (!fromAgent && !sameOrigin(req)) {
-    return NextResponse.json(
-      { error: "unauthorized", message: "Missing or invalid x-vybero-key." },
-      { status: 401 }
-    );
-  }
-
-  let body: Partial<Appointment> & { start?: string };
+  let body: Partial<Appointment> & { start?: string; clinic?: string };
   try {
     body = (await req.json()) as typeof body;
   } catch {
+    return NextResponse.json({ error: "bad_request", message: "Invalid JSON body." }, { status: 400 });
+  }
+
+  // Resolve the clinic + whether this came from the voice agent.
+  const fromAgent = agentKeyValid(req) && !!(req.headers.get("x-vybero-key") || req.headers.get("x-clinic") || body.clinic);
+  let clinicId: string | null = null;
+  if (fromAgent) {
+    clinicId = await resolveAgentClinic(req, body.clinic);
+  } else {
+    const session = await getSession(req);
+    clinicId = session?.cid ?? null;
+  }
+  if (!clinicId) {
     return NextResponse.json(
-      { error: "bad_request", message: "Invalid JSON body." },
-      { status: 400 }
+      { error: "unauthorized", message: "Missing clinic context or credentials." },
+      { status: 401 }
     );
   }
 
@@ -66,31 +54,26 @@ export async function POST(req: NextRequest) {
   const start = (body.start ?? "").toString();
   if (!name || Number.isNaN(Date.parse(start))) {
     return NextResponse.json(
-      {
-        error: "bad_request",
-        message: "patient_name and a valid ISO start are required.",
-      },
+      { error: "bad_request", message: "patient_name and a valid ISO start are required." },
       { status: 400 }
     );
   }
 
+  const config = await getClinicConfig(clinicId);
+  const slotMin = config?.hours.slot_min ?? 30;
   const duration =
     typeof body.duration_min === "number" && body.duration_min >= 15
       ? Math.min(240, Math.round(body.duration_min))
-      : clinicHours().slot_min;
+      : slotMin;
 
   try {
     const id = (body.id ?? "").toString() || crypto.randomUUID();
-    const existing = await getAppointment(id);
+    const existing = await getAppointment(clinicId, id);
 
-    // reschedule/new: the window must be free (ignoring this appointment)
-    const free = await slotFree(start, duration, id);
+    const free = await slotFree(clinicId, start, duration, id);
     if (!free && (!existing || existing.start !== start)) {
       return NextResponse.json(
-        {
-          error: "slot_taken",
-          message: "That time is no longer available. Pick another slot.",
-        },
+        { error: "slot_taken", message: "That time is no longer available. Pick another slot." },
         { status: 409 }
       );
     }
@@ -111,7 +94,7 @@ export async function POST(req: NextRequest) {
       created_at: existing?.created_at ?? new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    await saveAppointment(appt);
+    await saveAppointment(clinicId, appt);
     return NextResponse.json({ ok: true, appointment: appt });
   } catch (err) {
     if (err instanceof VyberoStoreError) {

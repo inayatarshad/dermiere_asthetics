@@ -76,10 +76,11 @@ export async function POST(
   }
 
   try {
-    const invite = await getInviteByToken(token);
-    if (!invite) {
+    const found = await getInviteByToken(token);
+    if (!found) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    const { clinicId, invite } = found;
     if (invite.status === "COMPLETED") {
       return NextResponse.json(
         { error: "already_completed", message: "Thanks, already received." },
@@ -109,13 +110,13 @@ export async function POST(
       consent: true,
       createdAt: new Date().toISOString(),
     };
-    await saveResponse(response);
+    await saveResponse(clinicId, response);
     invite.status = "COMPLETED";
     invite.completedAt = new Date().toISOString();
     // keep the invite's prefill in sync with what the doctor confirmed
     invite.clinicName = clinicName;
     invite.doctorName = doctorName;
-    await saveInvite(invite);
+    await saveInvite(clinicId, invite);
 
     // optional ping to H — fire and forget
     const hook = process.env.SLACK_WEBHOOK_URL;

@@ -1,0 +1,50 @@
+/**
+ * Voice-agent (VYBERO) authentication + clinic resolution.
+ *
+ * The agent authenticates with the platform key (x-vybero-key, constant-time
+ * compare) and names its clinic with an x-clinic header (clinic id or slug)
+ * — so clinic A's agent can only ever write to clinic A. On a single-clinic
+ * deployment with no header, it falls back to the only clinic. Clinic-screen
+ * pulls use the session cookie instead (see the route handlers).
+ */
+
+import { timingSafeEqual } from "node:crypto";
+import {
+  pgGetClinic,
+  pgGetClinicBySlug,
+  pgCountClinics,
+  pgListClinics,
+} from "./db";
+
+export function agentKeyValid(req: Request): boolean {
+  const key = process.env.VYBERO_API_KEY;
+  const sent = req.headers.get("x-vybero-key") ?? "";
+  if (key) {
+    const a = Buffer.from(sent);
+    const b = Buffer.from(key);
+    return a.length === b.length && timingSafeEqual(a, b);
+  }
+  // No key configured: accept only outside production (dev/testing).
+  return process.env.NODE_ENV !== "production" || !process.env.VERCEL;
+}
+
+/** Resolve the clinic a voice-agent request targets, or null. */
+export async function resolveAgentClinic(
+  req: Request,
+  bodyRef?: string | null
+): Promise<string | null> {
+  const ref = req.headers.get("x-clinic") ?? bodyRef ?? null;
+  if (ref) {
+    const byId = await pgGetClinic(ref);
+    if (byId) return byId.id;
+    const bySlug = await pgGetClinicBySlug(ref);
+    if (bySlug) return bySlug.id;
+    return null; // an explicit, unknown ref must not silently hit another clinic
+  }
+  // No ref: only safe on a single-clinic deployment.
+  if ((await pgCountClinics()) === 1) {
+    const all = await pgListClinics();
+    return all[0]?.id ?? null;
+  }
+  return null;
+}

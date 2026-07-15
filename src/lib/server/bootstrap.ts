@@ -1,0 +1,148 @@
+/**
+ * The bootstrap payload — everything the client store hydrates from on
+ * login, all scoped to the caller's clinic. This is the single source of
+ * truth handoff: the browser renders from here, never from a client-only
+ * seed. Shared by /api/auth/login and /api/auth/me.
+ */
+
+import type {
+  Appointment,
+  Asset,
+  ClinicHours,
+  Consent,
+  Consultation,
+  Patient,
+  PlanItem,
+  Report,
+  TreatmentPlan,
+  User,
+  Visualization,
+  VyberoCall,
+} from "@/lib/types";
+import {
+  pgListRecords,
+  pgListAppointments,
+  pgListCalls,
+  pgListUsers,
+  pgGetUsage,
+} from "./db";
+import { getClinicConfig } from "./clinicStore";
+
+export function currentMonth(): string {
+  return new Date().toISOString().slice(0, 7); // YYYY-MM
+}
+
+export interface BootstrapPayload {
+  user: { id: string; name: string; email: string; role: string; title?: string; clinic_id: string };
+  clinic: { id: string; name: string; city: string; branding: Record<string, string | undefined> };
+  users: User[];
+  clinicHours: ClinicHours;
+  toxinPricePerUnit: number;
+  menu: string[];
+  prices: Record<string, number>;
+  vyberoAgentId?: string;
+  bookingUrl?: string;
+  aiCaps: { generations: number; assessments: number };
+  demo: boolean;
+  aiUsage: { generations: number; assessments: number };
+  records: {
+    patients: Patient[];
+    consents: Consent[];
+    assets: Asset[];
+    consultations: Consultation[];
+    visualizations: Visualization[];
+    plans: TreatmentPlan[];
+    planItems: PlanItem[];
+    reports: Report[];
+  };
+  appointments: Appointment[];
+  vyberoCalls: VyberoCall[];
+}
+
+export async function buildBootstrap(
+  clinicId: string,
+  userId: string
+): Promise<BootstrapPayload | null> {
+  const config = await getClinicConfig(clinicId);
+  if (!config) return null;
+
+  const [
+    staffRows,
+    patients,
+    consents,
+    assets,
+    consultations,
+    visualizations,
+    plans,
+    planItems,
+    reports,
+    appointments,
+    vyberoCalls,
+    usage,
+  ] = await Promise.all([
+    pgListUsers<{ name?: string; title?: string }>(clinicId),
+    pgListRecords<Patient>(clinicId, "patients"),
+    pgListRecords<Consent>(clinicId, "consents"),
+    pgListRecords<Asset>(clinicId, "assets"),
+    pgListRecords<Consultation>(clinicId, "consultations"),
+    pgListRecords<Visualization>(clinicId, "visualizations"),
+    pgListRecords<TreatmentPlan>(clinicId, "plans"),
+    pgListRecords<PlanItem>(clinicId, "plan_items"),
+    pgListRecords<Report>(clinicId, "reports"),
+    pgListAppointments<Appointment>(clinicId),
+    pgListCalls<VyberoCall>(clinicId),
+    pgGetUsage(clinicId, currentMonth()),
+  ]);
+
+  const users: User[] = staffRows.map((r) => ({
+    id: r.id,
+    clinic_id: r.clinic_id,
+    name: r.payload?.name ?? r.email,
+    email: r.email,
+    role: r.role as User["role"],
+    password: "",
+    title: r.payload?.title,
+    active: r.active,
+  }));
+
+  const me = users.find((u) => u.id === userId);
+
+  return {
+    user: {
+      id: userId,
+      name: me?.name ?? "",
+      email: me?.email ?? "",
+      role: me?.role ?? "front_desk",
+      title: me?.title,
+      clinic_id: clinicId,
+    },
+    clinic: {
+      id: config.id,
+      name: config.name,
+      city: config.city,
+      branding: config.branding,
+    },
+    users,
+    clinicHours: config.hours,
+    toxinPricePerUnit: config.toxinPricePerUnit,
+    menu: config.menu,
+    prices: config.prices,
+    vyberoAgentId: config.vyberoAgentId,
+    bookingUrl: config.bookingUrl,
+    aiCaps: config.aiCaps,
+    demo: config.demo,
+    aiUsage: usage,
+    records: {
+      patients,
+      consents,
+      assets,
+      consultations,
+      visualizations,
+      plans,
+      planItems,
+      reports,
+    },
+    appointments,
+    vyberoCalls,
+  };
+}

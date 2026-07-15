@@ -1,7 +1,8 @@
 /**
  * GET /api/portal/[token] — public invite lookup for the doctor's form.
- * A valid first open flips PENDING -> OPENED with a timestamp (spec §10).
- * Unknown tokens 404 so links stay unguessable.
+ * A valid first open flips PENDING -> OPENED. The token is the capability
+ * (crypto-random, unguessable); the write is scoped to the invite's owning
+ * clinic. Unknown tokens 404 so links stay opaque.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -22,16 +23,16 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   try {
-    const invite = await getInviteByToken(token);
-    if (!invite) {
+    const found = await getInviteByToken(token);
+    if (!found) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    const { clinicId, invite } = found;
     if (invite.status === "PENDING") {
       invite.status = "OPENED";
       invite.openedAt = new Date().toISOString();
-      await saveInvite(invite);
+      await saveInvite(clinicId, invite);
     }
-    // public payload: only what the form needs
     return NextResponse.json({
       clinicName: invite.clinicName ?? "",
       doctorName: invite.doctorName ?? "",

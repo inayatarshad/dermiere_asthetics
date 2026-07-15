@@ -1,10 +1,12 @@
 /**
- * POST /api/booth/push (T1) — the phone side of the booth handoff.
- * Accepts a patient record + consents + downscaled photo data URLs and
- * files them in the booth inbox. Demo-grade courier, not an EMR sync.
+ * POST /api/booth/push (T1) — the phone side of the booth handoff. The
+ * phone is a signed-in clinic device, so the write is scoped to its
+ * session's clinic_id. Accepts a patient record + consents + downscaled
+ * photos and files them in that clinic's booth inbox.
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/server/auth";
 import {
   putBoothItem,
   BoothStoreError,
@@ -21,21 +23,20 @@ interface PushBody {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
+
   let body: PushBody;
   try {
     body = (await req.json()) as PushBody;
   } catch {
-    return NextResponse.json(
-      { error: "bad_request", message: "Invalid JSON body." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "bad_request", message: "Invalid JSON body." }, { status: 400 });
   }
 
   if (!body.patient || typeof body.patient !== "object") {
-    return NextResponse.json(
-      { error: "bad_request", message: "patient is required." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "bad_request", message: "patient is required." }, { status: 400 });
   }
   const photos = Array.isArray(body.photos) ? body.photos.slice(0, 4) : [];
   for (const p of photos) {
@@ -44,10 +45,7 @@ export async function POST(req: NextRequest) {
       !p.dataUrl.startsWith("data:image/") ||
       p.dataUrl.length > 2_500_000
     ) {
-      return NextResponse.json(
-        { error: "bad_request", message: "Invalid or oversized photo." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "bad_request", message: "Invalid or oversized photo." }, { status: 400 });
     }
   }
 
@@ -58,6 +56,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await putBoothItem(
+      session.cid,
       {
         id,
         created_at: new Date().toISOString(),
@@ -75,9 +74,6 @@ export async function POST(req: NextRequest) {
       );
     }
     console.error("[booth/push]", err);
-    return NextResponse.json(
-      { error: "store_error", message: "Could not store the booth item." },
-      { status: 502 }
-    );
+    return NextResponse.json({ error: "store_error", message: "Could not store the booth item." }, { status: 502 });
   }
 }

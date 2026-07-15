@@ -33,6 +33,17 @@ import { CONSENT_TEXT_VERSION, DEFAULT_CLINIC_HOURS } from "./types";
 import { buildSeed, buildVyberoSeed, fetchSeedManifest } from "./seed";
 import { getTemplate } from "./templates";
 import { deleteImage } from "./db";
+import type { BootstrapPayload } from "@/lib/server/bootstrap";
+import {
+  pushClinicConfig,
+  pushAddStaff,
+  pushSetStaffActive,
+  logoutRequest,
+  fetchBootstrap,
+  pauseSync,
+  resumeSync,
+  resetSyncBaseline,
+} from "./serverSync";
 
 const uid = () => crypto.randomUUID();
 const nowISO = () => new Date().toISOString();
@@ -74,6 +85,13 @@ interface StoreState {
   planItems: PlanItem[];
   reports: Report[];
   sessionUserId: string | null;
+  // per-clinic config (server-authoritative, hydrated on login)
+  menu: string[];
+  prices: Record<string, number>;
+  aiCaps: { generations: number; assessments: number };
+  demo: boolean;
+  vyberoAgentId?: string;
+  bookingUrl?: string;
   aiProvider: AiProviderSetting;
   /** Admin-selected model per provider (empty = server default). */
   aiModels: Partial<Record<"gemini" | "openai" | "flux" | "higgsfield", string>>;
@@ -96,6 +114,7 @@ interface StoreState {
   boothAvailable: boolean | null;
 
   // lifecycle
+  hydrate: (payload: BootstrapPayload) => void;
   seedIfNeeded: () => Promise<void>;
   resetDemo: () => Promise<void>;
   setAiProvider: (p: AiProviderSetting) => void;
@@ -129,8 +148,7 @@ interface StoreState {
   setBoothToast: (t: { name: string; at: number } | null) => void;
   deletePatient: (patientId: string) => void;
 
-  // auth
-  login: (email: string, password: string) => User | null;
+  // auth (login is server-side; the store is hydrated from the bootstrap)
   logout: () => void;
 
   // patients & consent
@@ -222,6 +240,12 @@ export const useStore = create<StoreState>()(
       planItems: [],
       reports: [],
       sessionUserId: null,
+      menu: [],
+      prices: {},
+      aiCaps: { generations: 0, assessments: 0 },
+      demo: false,
+      vyberoAgentId: undefined,
+      bookingUrl: undefined,
       aiProvider: "auto",
       aiModels: {},
       appointments: [],
@@ -291,8 +315,10 @@ export const useStore = create<StoreState>()(
           };
         }),
 
-      setClinicHours: (patch) =>
-        set((s) => ({ clinicHours: { ...s.clinicHours, ...patch } })),
+      setClinicHours: (patch) => {
+        set((s) => ({ clinicHours: { ...s.clinicHours, ...patch } }));
+        void pushClinicConfig({ hours: get().clinicHours });
+      },
 
       bumpAiUsage: (kind) =>
         set((s) => ({
@@ -386,6 +412,61 @@ export const useStore = create<StoreState>()(
         });
       },
 
+      hydrate: (b) => {
+        const prev = get().clinic;
+        // Switching clinics on a shared device: drop the cached collections
+        // first so one clinic's data can never bleed into another's view.
+        const wipe =
+          prev && prev.id !== b.clinic.id
+            ? {
+                patients: [] as Patient[],
+                consents: [] as Consent[],
+                assets: [] as Asset[],
+                consultations: [] as Consultation[],
+                visualizations: [] as Visualization[],
+                plans: [] as TreatmentPlan[],
+                planItems: [] as PlanItem[],
+                reports: [] as Report[],
+                appointments: [] as Appointment[],
+                vyberoCalls: [] as VyberoCall[],
+                boothSync: {},
+                mergedBoothIds: [],
+                newArrivals: [],
+              }
+            : {};
+        // Pause write-through while we replace state from the server, then
+        // rebase the diff baseline so hydrated data isn't pushed straight back.
+        pauseSync();
+        set({
+          ...wipe,
+          seeded: true,
+          clinic: b.clinic as Clinic,
+          users: b.users,
+          patients: b.records.patients,
+          consents: b.records.consents,
+          assets: b.records.assets,
+          consultations: b.records.consultations,
+          visualizations: b.records.visualizations,
+          plans: b.records.plans,
+          planItems: b.records.planItems,
+          reports: b.records.reports,
+          appointments: b.appointments,
+          vyberoCalls: b.vyberoCalls,
+          clinicHours: b.clinicHours,
+          toxinPricePerUnit: b.toxinPricePerUnit,
+          menu: b.menu,
+          prices: b.prices,
+          aiCaps: b.aiCaps,
+          demo: b.demo,
+          vyberoAgentId: b.vyberoAgentId,
+          bookingUrl: b.bookingUrl,
+          aiUsage: b.aiUsage,
+          sessionUserId: b.user.id,
+        });
+        resetSyncBaseline(get() as unknown as Record<string, unknown>);
+        resumeSync();
+      },
+
       seedIfNeeded: async () => {
         const current = get();
         if (current.seeded) {
@@ -426,39 +507,15 @@ export const useStore = create<StoreState>()(
       },
 
       resetDemo: async () => {
-        const manifest = await fetchSeedManifest();
-        const seed = buildSeed(manifest);
-        const demo = buildVyberoSeed(seed.patients);
-        set({
-          seeded: true,
-          clinic: seed.clinic,
-          users: seed.users,
-          patients: seed.patients,
-          consents: seed.consents,
-          assets: seed.assets,
-          consultations: seed.consultations,
-          plans: seed.plans,
-          planItems: seed.planItems,
-          visualizations: [],
-          reports: [],
-          appointments: demo.appointments,
-          vyberoCalls: demo.vyberoCalls,
-          sessionUserId: null,
-        });
+        // Server is the source of truth now: reload this clinic's data.
+        const b = await fetchBootstrap();
+        if (b) get().hydrate(b);
       },
 
-      login: (email, password) => {
-        const user = get().users.find(
-          (u) =>
-            u.email.toLowerCase() === email.trim().toLowerCase() &&
-            u.password === password &&
-            u.active
-        );
-        if (user) set({ sessionUserId: user.id });
-        return user ?? null;
+      logout: () => {
+        void logoutRequest();
+        set({ sessionUserId: null });
       },
-
-      logout: () => set({ sessionUserId: null }),
 
       registerPatient: (data) => {
         const clinic = get().clinic;
@@ -573,8 +630,11 @@ export const useStore = create<StoreState>()(
         })),
 
       toxinPricePerUnit: 1500,
-      setToxinPricePerUnit: (v) =>
-        set({ toxinPricePerUnit: Math.max(0, Math.round(v)) }),
+      setToxinPricePerUnit: (v) => {
+        const val = Math.max(0, Math.round(v));
+        set({ toxinPricePerUnit: val });
+        void pushClinicConfig({ toxinPricePerUnit: val });
+      },
 
       addVisualization: (v) => {
         const full: Visualization = { ...v, id: uid(), created_at: nowISO() };
@@ -731,19 +791,30 @@ export const useStore = create<StoreState>()(
           email: data.email,
           role: data.role,
           title: data.title,
-          password: "contour",
+          password: "",
           active: true,
         };
+        // Optimistic local add; the server creates the authoritative row and
+        // reconciles the id on next bootstrap. New staff default password is
+        // set server-side (see /api/clinic/staff).
         set((s) => ({ users: [...s.users, user] }));
+        void pushAddStaff({
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          title: data.title,
+        });
         return user;
       },
 
-      setUserActive: (id, active) =>
+      setUserActive: (id, active) => {
         set((s) => ({
           users: s.users.map((u) => (u.id === id ? { ...u, active } : u)),
-        })),
+        }));
+        void pushSetStaffActive(id, active);
+      },
 
-      updateClinic: (patch) =>
+      updateClinic: (patch) => {
         set((s) => ({
           clinic: s.clinic
             ? {
@@ -752,7 +823,16 @@ export const useStore = create<StoreState>()(
                 branding: { ...s.clinic.branding, ...patch.branding },
               }
             : s.clinic,
-        })),
+        }));
+        const c = get().clinic;
+        if (c) {
+          void pushClinicConfig({
+            name: c.name,
+            city: c.city,
+            branding: c.branding,
+          });
+        }
+      },
     }),
     {
       name: "contour-store",

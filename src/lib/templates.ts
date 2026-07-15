@@ -6,14 +6,35 @@
  * 05_ai-before-after.md), the 3D canvas morph handles, and the default plan
  * checklist. Adding a procedure = adding one object here.
  *
- * Live verticals: Rhinoplasty (surgical) plus the non-invasive injectable
- * set: Lip Filler, Chin Filler, Botox. Slider parameters follow real
- * clinical assessment frameworks (lip architecture: vermilion volume,
- * 1:1.6 upper-to-lower ratio, cupid's bow, philtral columns, vermilion
- * border, oral commissures; chin: projection to the Ricketts E-line,
- * vertical height, width, labiomental sulcus, prejowl blending; botox:
- * frontalis / glabella / orbicularis line softening, chemical brow lift,
- * masseter slimming, lip flip).
+ * Full aesthetic-clinic catalog across five menus: Injectables (botox,
+ * lip / cheek / tear-trough / nasolabial / jawline / temple / chin fillers,
+ * liquid rhinoplasty), Skin / resurfacing (laser resurfacing, chemical
+ * peel, microneedling RF, HydraFacial, pigmentation / melasma, acne-scar
+ * revision, laser hair removal), Lifting & tightening (HIFU, PDO thread
+ * lift), Surgical / structural (rhinoplasty, chin & jaw, blepharoplasty,
+ * facelift / neck lift, buccal fat, fat transfer) and Hair (FUE transplant
+ * + hairstyle try-on, PRP).
+ *
+ * Two hard invariants make the set composable:
+ *  1. Slider keys are GLOBALLY UNIQUE across every available template — the
+ *     multi-procedure flow (T2) keeps one flat params record keyed by
+ *     slider key, so a collision would cross-wire two procedures. The dev
+ *     assertion at the foot of this file guards it.
+ *  2. canvas_handles only ever reference keys the shared morph engine
+ *     (face/geometry.ts applyMorphs) actually deforms. The anatomically
+ *     tuned fields are owned by the original five verticals; new geometric
+ *     procedures use the free feature-scale fields (scale_cheeks for cheek
+ *     filler, scale_jaw for jawline filler). Everything else is AI-pass
+ *     only (canvas_handles: []), exactly like the hair vertical — the
+ *     slider still drives the identity-preserving prompt, it just does not
+ *     move the live 3D sketch.
+ *
+ * Slider parameters follow real clinical assessment frameworks (lip
+ * architecture: vermilion volume, 1:1.6 upper-to-lower ratio, cupid's bow,
+ * philtral columns, vermilion border, oral commissures; chin: projection to
+ * the Ricketts E-line, vertical height, width, labiomental sulcus, prejowl
+ * blending; botox: frontalis / glabella / orbicularis line softening,
+ * chemical brow lift, masseter slimming, lip flip).
  */
 
 import type { TreatmentTemplate } from "./types";
@@ -891,67 +912,2194 @@ export const TEMPLATES: TreatmentTemplate[] = [
   },
 
   // =====================================================================
-  // Declared, not yet wired
+  // CHEEK / MIDFACE FILLER (injectable) — regional volume; the cheek scale
+  // is a real geometric handle (applyMorphs feature-scale on "cheeks").
+  // =====================================================================
+  {
+    id: "cheek_filler",
+    name: "Cheek / Midface Filler",
+    category: "injectable",
+    region: "cheeks",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the cheeks and midface in this photograph to visualize the fully settled result of a hyaluronic acid cheek and midface filler treatment. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, nose, lips, skin tone and texture, facial proportions, hairstyle, lighting, camera angle, and background. The result must look like the SAME person with naturally restored midface volume and a subtly lifted cheek contour: healed, settled, no swelling, never overfilled or pillowed. Keep the enhancement proportionate and believable. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "scale_cheeks",
+        label: "Cheek / midface volume",
+        hint: "Overall volume of the cheek and midface region",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "restore soft, natural volume to the cheeks and midface for a subtly lifted contour",
+        negLabel: "As is",
+        posLabel: "Fuller",
+      },
+      {
+        key: "mid_cheek_projection",
+        label: "Anterior projection",
+        hint: "Forward projection of the front of the cheek",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "add gentle forward projection to the anterior cheek for a lifted, youthful midface",
+        negLabel: "As is",
+        posLabel: "Projected",
+      },
+      {
+        key: "submalar_fill",
+        label: "Submalar hollow",
+        hint: "The hollow just below the cheekbone",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "fill the submalar hollows beneath the cheekbones to soften a gaunt or tired appearance",
+        negLabel: "As is",
+        posLabel: "Filled",
+      },
+      {
+        key: "cheek_lift",
+        label: "Cheek apex lift",
+        hint: "Height of the cheek's high point",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "lift the cheek apex to restore a youthful high-cheekbone position",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "ogee_curve",
+        label: "Ogee curve",
+        hint: "The smooth S-curve of the cheek in three-quarter view",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "enhance the ogee curve for a smooth, convex cheek contour in three-quarter view",
+        negLabel: "As is",
+        posLabel: "Defined",
+      },
+    ],
+    canvas_handles: [
+      { key: "scale_cheeks", label: "Cheek / midface volume", min: 0, max: 100, negLabel: "As is", posLabel: "Fuller" },
+    ],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & midface assessment",
+        detail:
+          "Facial-thirds and midface volume assessment, photos, agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail:
+          "Allergies, previous filler in the area, blood thinners, pregnancy/breastfeeding.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Injection session",
+        detail:
+          "1-2ml hyaluronic acid filler placed on the cheekbone and midface via cannula or needle with topical numbing. Symmetry checked continuously.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "2-week review: photo capture",
+        detail:
+          "Swelling settled. Capture photos and compare with the visualization.",
+        offset_days: 21,
+      },
+      {
+        kind: "milestone",
+        label: "Touch-up if needed",
+        detail: "Up to 1ml for symmetry or projection balance.",
+        offset_days: 28,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail: "Cheek filler typically lasts 12-18 months. Book a review.",
+        offset_days: 380,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare (first 48 hours)",
+        detail:
+          "Avoid heat, sauna, strenuous exercise and alcohol for 24-48h. Sleep slightly elevated and avoid firm pressure on the cheeks.",
+      },
+      {
+        kind: "medicine",
+        label: "Swelling & bruise care",
+        detail:
+          "Cold compress the first evening. Arnica optional. Paracetamol if needed; avoid ibuprofen and aspirin.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // TEAR-TROUGH / UNDER-EYE FILLER (injectable) — AI pass only: filling a
+  // hollow is a forward-volume change the isotropic scale field can't fake.
+  // =====================================================================
+  {
+    id: "tear_trough",
+    name: "Tear-Trough Filler",
+    category: "injectable",
+    region: "under_eye",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the under-eye area (the tear troughs and lid-cheek junction) in this photograph to visualize the fully settled result of a careful hyaluronic acid tear-trough filler treatment. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, eye shape, eye colour and gaze, lashes, all other facial features, skin tone and texture, hairstyle, lighting, camera angle, and background. The result must look like the SAME person looking rested: healed, settled, no lumps, no puffiness and no bluish tint. Keep the correction subtle and believable. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "trough_fill",
+        label: "Hollow correction",
+        hint: "Depth of the tear-trough shadow under the eye",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "gently fill the tear-trough hollows to reduce the dark shadow under the eyes",
+        negLabel: "As is",
+        posLabel: "Filled",
+      },
+      {
+        key: "undereye_smooth",
+        label: "Lid-cheek blend",
+        hint: "Transition between the lower eyelid and the cheek",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "smooth the transition between the lower eyelid and the cheek for a seamless under-eye",
+        negLabel: "As is",
+        posLabel: "Smoothed",
+      },
+      {
+        key: "undereye_brighten",
+        label: "Brightening",
+        hint: "Perceived darkness / tiredness of the under-eye",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "brighten and even the under-eye area, reducing a tired, hollow appearance",
+        negLabel: "As is",
+        posLabel: "Brighter",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & under-eye assessment",
+        detail:
+          "Assess tear-trough depth, skin quality, fluid tendency and suitability (poor candidates are declined). Photos captured.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail:
+          "Allergies, blood thinners, thyroid/fluid-retention history, pregnancy/breastfeeding.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Injection session",
+        detail:
+          "0.5-1.0ml low-hydrophilic hyaluronic acid placed deep with a cannula, conservatively. Under-correction is intentional.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "3-week review: photo capture",
+        detail:
+          "Assess for puffiness or unevenness once fully settled. Capture photos and compare with the visualization.",
+        offset_days: 28,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail: "Tear-trough filler typically lasts 9-15 months. Book a review.",
+        offset_days: 300,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare (first 48 hours)",
+        detail:
+          "Sleep elevated, reduce salt, avoid heat and strenuous exercise for 24-48h. Report any prolonged puffiness or bluish tint.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // NASOLABIAL FOLD FILLER (injectable) — AI pass only.
+  // =====================================================================
+  {
+    id: "nasolabial_filler",
+    name: "Nasolabial Fold Filler",
+    category: "injectable",
+    region: "cheeks",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the nasolabial folds and the lines around the mouth in this photograph to visualize the fully settled result of a hyaluronic acid filler treatment. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, nose, lips, teeth, skin tone and texture, expression, hairstyle, lighting, camera angle, and background. The result must look like the SAME person with softened folds: healed, settled, natural, never flattened or overfilled. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "nasolabial_soften",
+        label: "Nasolabial folds",
+        hint: "The lines running from the nose to the mouth corners",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "soften and reduce the depth of the nasolabial folds running from the nose to the mouth corners",
+        negLabel: "As is",
+        posLabel: "Softened",
+      },
+      {
+        key: "marionette_soften",
+        label: "Marionette lines",
+        hint: "The lines running down from the mouth corners",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "soften the marionette lines running downward from the corners of the mouth",
+        negLabel: "As is",
+        posLabel: "Softened",
+      },
+      {
+        key: "perioral_support",
+        label: "Perioral support",
+        hint: "Overall support of the area around the mouth",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "restore gentle structural support to the area around the mouth for a smoother lower face",
+        negLabel: "As is",
+        posLabel: "Supported",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & assessment",
+        detail:
+          "Assess fold depth and whether midface support is the better first step. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail:
+          "Allergies, cold-sore history, blood thinners, pregnancy/breastfeeding.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Injection session",
+        detail:
+          "0.5-1.0ml hyaluronic acid filler along the folds with topical numbing. Symmetry checked continuously.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "2-week review: photo capture",
+        detail: "Swelling settled. Capture photos and compare with the visualization.",
+        offset_days: 21,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail: "Filler here typically lasts 9-12 months. Book a review.",
+        offset_days: 300,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare (first 48 hours)",
+        detail:
+          "No makeup over the area for 12h. Avoid heat, sauna, strenuous exercise and alcohol for 24-48h.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // JAWLINE FILLER / CONTOUR (injectable) — the jaw scale is a real
+  // geometric handle (applyMorphs feature-scale on "jaw").
+  // =====================================================================
+  {
+    id: "jawline_filler",
+    name: "Jawline Filler / Contour",
+    category: "injectable",
+    region: "jaw",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the jawline and lower face in this photograph to visualize the fully settled result of a hyaluronic acid jawline contouring treatment. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. The result must look like the SAME person with a naturally more defined jawline that stays in proportion: healed, settled, no swelling, never bulky or overfilled. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "scale_jaw",
+        label: "Jaw definition",
+        hint: "Overall structure and width of the jawline",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "add structure and definition along the jawline for a stronger, more sculpted lower face",
+        negLabel: "As is",
+        posLabel: "Stronger",
+      },
+      {
+        key: "gonial_angle",
+        label: "Jaw angle",
+        hint: "The angle where the jaw turns up toward the ear",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "sharpen and define the gonial jaw angle for a crisper lower-face corner",
+        negLabel: "As is",
+        posLabel: "Defined",
+      },
+      {
+        key: "mandible_line",
+        label: "Mandibular border",
+        hint: "The straightness of the lower jaw border",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "create a crisp, straight mandibular border running from the jaw angle to the chin",
+        negLabel: "As is",
+        posLabel: "Crisp",
+      },
+      {
+        key: "jaw_contour",
+        label: "Jowl smoothing",
+        hint: "Early jowling along the jawline",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "smooth and contour the jawline, softening early jowling for a continuous line",
+        negLabel: "As is",
+        posLabel: "Smoothed",
+      },
+    ],
+    canvas_handles: [
+      { key: "scale_jaw", label: "Jaw definition", min: 0, max: 100, negLabel: "As is", posLabel: "Stronger" },
+    ],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & jawline assessment",
+        detail:
+          "Assess jaw shape, chin projection and skin laxity; front + profile photos. Agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail: "Allergies, blood thinners, dental work planned soon, pregnancy/breastfeeding.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Injection session",
+        detail:
+          "2-4ml structural hyaluronic acid placed along the mandible and at the jaw angles via cannula or needle. Symmetry checked continuously.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "2-week review: photo capture",
+        detail: "Integration settled. Capture front + profile photos and compare with the visualization.",
+        offset_days: 21,
+      },
+      {
+        kind: "milestone",
+        label: "Touch-up if needed",
+        detail: "Up to 1-2ml for symmetry or definition balance.",
+        offset_days: 28,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail: "Jawline filler typically lasts 12-18 months. Book a review.",
+        offset_days: 380,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare (first week)",
+        detail:
+          "Avoid firm pressure on the jaw and sleeping face-down for 1 week. Avoid heat, sauna, strenuous exercise and alcohol for 24-48h.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // TEMPLE FILLER (injectable) — AI pass only.
+  // =====================================================================
+  {
+    id: "temple_filler",
+    name: "Temple Filler",
+    category: "injectable",
+    region: "forehead",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the temples (the area at the sides of the forehead, between the brow tail, the eye and the hairline) in this photograph to visualize the fully settled result of a hyaluronic acid temple filler treatment. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, brows, nose, lips, skin tone and texture, hairstyle and hairline, lighting, camera angle, and background. The result must look like the SAME person with softly restored temples that blend smoothly into the brow and hairline: healed, settled, no swelling, never bulging. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "temple_fill_hollow",
+        label: "Temple hollow",
+        hint: "Sunken hollow at the side of the forehead",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "fill the hollow temples to restore a smooth, gently convex curve between the brow and the hairline",
+        negLabel: "As is",
+        posLabel: "Filled",
+      },
+      {
+        key: "temple_lift",
+        label: "Lateral brow support",
+        hint: "Support that subtly lifts the outer brow",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "create a subtle lateral brow lift by restoring support to the temple region",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & assessment",
+        detail:
+          "Assess temporal hollowing and vessel anatomy; photos captured. Agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail: "Allergies, blood thinners, migraine history, pregnancy/breastfeeding.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Injection session",
+        detail:
+          "0.5-1.0ml per side of hyaluronic acid placed by a careful deep or supraperiosteal technique. Symmetry checked continuously.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "2-week review: photo capture",
+        detail: "Swelling settled. Capture photos and compare with the visualization.",
+        offset_days: 21,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail: "Temple filler typically lasts 12-18 months. Book a review.",
+        offset_days: 380,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare (first 48 hours)",
+        detail:
+          "Avoid heat, sauna, strenuous exercise and alcohol for 24-48h. Avoid firm pressure on the temples.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // LIQUID RHINOPLASTY (injectable, non-surgical nose) — AI pass only; the
+  // geometric nose fields are owned by the surgical rhinoplasty template.
+  // Non-surgical: volume can be added/camouflaged, not reduced.
+  // =====================================================================
+  {
+    id: "liquid_rhino",
+    name: "Liquid Rhinoplasty (Non-surgical)",
+    category: "injectable",
+    region: "nose",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the nose in this photograph to visualize the result of a non-surgical liquid rhinoplasty, in which small amounts of hyaluronic acid filler are used to smooth and balance the nasal profile (adding volume only, never removing tissue). {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, lips, skin tone and texture, facial proportions, hairstyle, lighting, camera angle, and background. Do not shrink the nose or reduce the nostrils. The result must look like the SAME person with a smoother, straighter-looking nasal profile: healed, settled, subtle and believable. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "lr_bridge_smooth",
+        label: "Bridge / hump camouflage",
+        hint: "Filler above and below a dorsal hump to straighten the profile",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "camouflage a dorsal hump by adding filler above and below it for a straighter bridge profile",
+        negLabel: "As is",
+        posLabel: "Straightened",
+      },
+      {
+        key: "lr_tip_lift",
+        label: "Tip lift / support",
+        hint: "Subtle lift and support of a drooping tip",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "subtly lift and support the nasal tip, refining the angle between the nose and lip",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "lr_radix_fill",
+        label: "Radix balance",
+        hint: "Raise a low nasal root at the top of the bridge",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "raise a low radix at the nasal root to better balance the profile",
+        negLabel: "As is",
+        posLabel: "Raised",
+      },
+      {
+        key: "lr_straighten",
+        label: "Frontal straightness",
+        hint: "Straighten a crooked bridge in front view",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "improve the frontal straightness and symmetry of the nasal bridge",
+        negLabel: "As is",
+        posLabel: "Straighter",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & profile assessment",
+        detail:
+          "Front + profile photos, E-line and nasofrontal angle assessment, vascular-safety counselling. Agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail:
+          "Previous rhinoplasty or nasal filler, blood thinners, cold-sore history, pregnancy/breastfeeding.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Injection session",
+        detail:
+          "Small aliquots (usually 0.3-0.8ml total) of hyaluronic acid placed slowly in the midline with aspiration and constant vascular vigilance. Dissolver (hyaluronidase) kept on hand.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "2-week review: photo capture",
+        detail:
+          "Assess the settled profile. Capture front + profile photos and compare with the visualization.",
+        offset_days: 21,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail: "Liquid rhinoplasty typically lasts 12-18 months. Book a review.",
+        offset_days: 380,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare & vascular safety",
+        detail:
+          "Avoid glasses pressure, heat and strenuous exercise for 48h. Report immediately any severe pain, blanching, dusky skin or vision change.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // CHIN & JAW SURGERY (surgical, genioplasty / jaw contouring) — AI pass
+  // only; the non-surgical chin fields are owned by the chin-filler template.
   // =====================================================================
   {
     id: "chin_jaw",
-    name: "Chin / Jaw Surgery",
+    name: "Chin & Jaw Surgery",
     category: "surgical",
     region: "jaw",
-    available: false,
+    available: true,
     model: "gemini-2.5-flash-image",
-    prompt_template: "",
-    slider_schema: [],
+    prompt_template: `Edit ONLY the chin and jawline bone contour in this photograph to visualize the result of chin and jaw surgery (genioplasty and/or jaw-angle contouring), as it would look fully healed. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. The result must look like the SAME person with a naturally rebalanced lower face: fully healed, no scars, no swelling, and in proportion. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "genio_projection",
+        label: "Chin projection",
+        hint: "Forward projection of the chin (sliding genioplasty)",
+        min: -100,
+        max: 100,
+        negPhrase: "reduce an over-projected chin for a balanced profile",
+        posPhrase:
+          "advance the chin forward to correct a weak or recessed chin",
+        negLabel: "Reduce",
+        posLabel: "Advance",
+      },
+      {
+        key: "genio_vertical",
+        label: "Vertical height",
+        hint: "Lower-face height, from lip to chin tip",
+        min: -100,
+        max: 100,
+        negPhrase: "shorten a long lower face by reducing vertical chin height",
+        posPhrase: "lengthen a short chin by increasing vertical height",
+        negLabel: "Shorter",
+        posLabel: "Longer",
+      },
+      {
+        key: "jaw_angle_implant",
+        label: "Jaw-angle augmentation",
+        hint: "Width and definition at the jaw angles",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "augment the jaw angles for a wider, more defined and structured lower face",
+        negLabel: "As is",
+        posLabel: "Augmented",
+      },
+      {
+        key: "jaw_reduction",
+        label: "Jaw-angle reduction",
+        hint: "Softening a prominent or square jaw angle",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "reduce a prominent or square jaw angle for a softer, more tapered lower face",
+        negLabel: "As is",
+        posLabel: "Softened",
+      },
+      {
+        key: "genio_asymmetry",
+        label: "Chin centring",
+        hint: "Deviation of the chin from the facial midline",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "correct chin asymmetry by centring the chin to the facial midline",
+        negLabel: "As is",
+        posLabel: "Centred",
+      },
+    ],
     canvas_handles: [],
-    plan_template: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & imaging",
+        detail:
+          "Facial-proportion analysis, cephalometry/OPG as indicated, dental occlusion review. Front + profile photos; agree the target from the AI visualization.",
+        offset_days: 7,
+      },
+      {
+        kind: "milestone",
+        label: "Pre-op assessment & bloodwork",
+        detail: "CBC, coagulation profile, anesthesia fitness review.",
+        offset_days: 14,
+      },
+      {
+        kind: "milestone",
+        label: "Surgery performed",
+        detail:
+          "Genioplasty and/or jaw-angle contouring via an intraoral approach under general anesthesia.",
+        offset_days: 21,
+      },
+      {
+        kind: "followup",
+        label: "Follow-up 1 (2 weeks): photo capture",
+        detail: "Healing and swelling check. Capture front + profile photos.",
+        offset_days: 35,
+      },
+      {
+        kind: "followup",
+        label: "Result review (3 months): before/after photo",
+        detail:
+          "Swelling largely resolved. Compare with the AI visualization; capture the result set.",
+        offset_days: 111,
+      },
+      {
+        kind: "medicine",
+        label: "Antibiotic course",
+        detail: "Co-amoxiclav 625mg, 1 tablet three times daily for 7 days.",
+      },
+      {
+        kind: "medicine",
+        label: "Analgesia & mouth care",
+        detail:
+          "Paracetamol/ibuprofen as directed. Chlorhexidine mouthwash and a soft diet for 2 weeks; no strenuous activity for 3-4 weeks.",
+      },
+    ],
   },
+
+  // =====================================================================
+  // BLEPHAROPLASTY (surgical, eyelids) — AI pass only.
+  // =====================================================================
   {
     id: "blepharoplasty",
-    name: "Blepharoplasty",
+    name: "Blepharoplasty (Eyelid Surgery)",
     category: "surgical",
     region: "under_eye",
-    available: false,
+    available: true,
     model: "gemini-2.5-flash-image",
-    prompt_template: "",
-    slider_schema: [],
+    prompt_template: `Edit ONLY the eyelids and the immediate area around the eyes in this photograph to visualize the result of blepharoplasty (eyelid surgery), as it would look fully healed. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, eye colour, gaze direction and all other facial features, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. Keep the eyes open naturally and the same colour. The result must look like the SAME person looking more rested and refreshed: fully healed, no scars, no hollowed or surprised look. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "bleph_upper_hood",
+        label: "Upper-lid hooding",
+        hint: "Excess skin folding over the upper eyelid",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "reduce excess upper-eyelid skin and hooding to open the eyes (upper blepharoplasty)",
+        negLabel: "As is",
+        posLabel: "Reduced",
+      },
+      {
+        key: "bleph_lower_bags",
+        label: "Lower-lid bags",
+        hint: "Puffy fat bags of the lower eyelid",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "reduce or reposition the lower-eyelid fat bags for a smooth, rested lower lid",
+        negLabel: "As is",
+        posLabel: "Smoothed",
+      },
+      {
+        key: "bleph_undereye_hollow",
+        label: "Lower-lid hollow",
+        hint: "Hollowing and the lid-cheek transition",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "correct lower-lid hollowing and blend the lid-cheek junction",
+        negLabel: "As is",
+        posLabel: "Corrected",
+      },
+      {
+        key: "bleph_canthal_tilt",
+        label: "Outer-corner tilt",
+        hint: "Position of the outer eye corner",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "create a subtle upward canthal tilt at the outer eye corner for a refreshed, almond shape",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "bleph_ptosis",
+        label: "Upper-lid ptosis",
+        hint: "A drooping upper eyelid covering the iris",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "correct upper-eyelid ptosis, raising a drooping lid to reveal more of the iris",
+        negLabel: "As is",
+        posLabel: "Corrected",
+      },
+    ],
     canvas_handles: [],
-    plan_template: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & eye assessment",
+        detail:
+          "Assess skin, fat and lid position; visual-field and dry-eye screen where relevant. Photos captured; agree the target from the AI visualization.",
+        offset_days: 7,
+      },
+      {
+        kind: "milestone",
+        label: "Pre-op assessment & bloodwork",
+        detail: "CBC, coagulation profile, anesthesia fitness review.",
+        offset_days: 14,
+      },
+      {
+        kind: "milestone",
+        label: "Surgery performed",
+        detail:
+          "Upper and/or lower blepharoplasty under local anesthesia with sedation. Fine incisions in the lid crease / behind the lower lid.",
+        offset_days: 21,
+      },
+      {
+        kind: "milestone",
+        label: "Suture removal (~1 week)",
+        detail: "Remove skin sutures; review healing.",
+        offset_days: 28,
+      },
+      {
+        kind: "followup",
+        label: "Follow-up (2 weeks): photo capture",
+        detail: "Bruising settling. Capture photos.",
+        offset_days: 35,
+      },
+      {
+        kind: "followup",
+        label: "Result review (3 months): before/after photo",
+        detail: "Final settled result. Compare with the AI visualization; capture the result set.",
+        offset_days: 111,
+      },
+      {
+        kind: "medicine",
+        label: "Eye care & analgesia",
+        detail:
+          "Lubricating eye drops and prescribed ointment as directed. Cold compresses for 48h; sleep head-elevated. Paracetamol for comfort.",
+      },
+    ],
   },
+
+  // =====================================================================
+  // FACELIFT / NECK LIFT (surgical) — AI pass only.
+  // =====================================================================
+  {
+    id: "facelift",
+    name: "Facelift / Neck Lift",
+    category: "surgical",
+    region: "jaw",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the lower face, jawline and neck in this photograph to visualize the result of a facelift / neck lift (SMAS), as it would look fully healed. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, the character of their face, eyes, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. The result must look like the SAME person, naturally younger and rested for their age: fully healed, no scars, no tightness, no wind-swept or pulled look. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "midface_lift",
+        label: "Midface lift",
+        hint: "Sagging of the cheeks and midface",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "lift the sagging midface and restore a more youthful cheek position",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "jowl_reduction",
+        label: "Jowls",
+        hint: "Sagging along the jawline",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "eliminate the jowls and restore a clean, defined jawline",
+        negLabel: "As is",
+        posLabel: "Cleaned",
+      },
+      {
+        key: "neck_tighten",
+        label: "Neck lift",
+        hint: "Loose neck skin and the jaw-neck angle",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "tighten loose neck skin and define the angle between the jaw and neck",
+        negLabel: "As is",
+        posLabel: "Tightened",
+      },
+      {
+        key: "nasolabial_lift",
+        label: "Nasolabial folds",
+        hint: "Deep folds from nose to mouth",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "soften deep nasolabial folds by repositioning the cheek tissue",
+        negLabel: "As is",
+        posLabel: "Softened",
+      },
+      {
+        key: "marionette_lift",
+        label: "Lower-face droop",
+        hint: "Marionette lines and downturned lower face",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "lift the marionette lines and the downturned lower face",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "overall_rejuvenation",
+        label: "Overall rejuvenation",
+        hint: "General youthful, rested appearance",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "produce an overall younger, rested and naturally lifted appearance appropriate to the person's age",
+        negLabel: "As is",
+        posLabel: "Rejuvenated",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & assessment",
+        detail:
+          "Assess skin laxity, SMAS, neck bands and hairline. Front + profile photos; agree the target from the AI visualization.",
+        offset_days: 7,
+      },
+      {
+        kind: "milestone",
+        label: "Pre-op assessment & bloodwork",
+        detail:
+          "CBC, coagulation profile, anesthesia fitness. Stop smoking and blood thinners as directed.",
+        offset_days: 21,
+      },
+      {
+        kind: "milestone",
+        label: "Surgery performed",
+        detail:
+          "SMAS facelift with neck lift under general anesthesia or deep sedation. Drains and dressing applied.",
+        offset_days: 28,
+      },
+      {
+        kind: "milestone",
+        label: "Dressing & suture review (~1 week)",
+        detail: "Remove dressing/drains and sutures in stages; review healing.",
+        offset_days: 35,
+      },
+      {
+        kind: "followup",
+        label: "Follow-up (3 weeks): photo capture",
+        detail: "Bruising and swelling settling. Capture photos.",
+        offset_days: 49,
+      },
+      {
+        kind: "followup",
+        label: "Result review (3 months): before/after photo",
+        detail: "Final settled result. Compare with the AI visualization; capture the result set.",
+        offset_days: 118,
+      },
+      {
+        kind: "medicine",
+        label: "Post-op medication",
+        detail:
+          "Antibiotic and analgesia course per clinician. Sleep head-elevated; wear the compression garment as directed.",
+      },
+      {
+        kind: "medicine",
+        label: "Recovery guidance",
+        detail:
+          "No strenuous activity for 3-4 weeks. Protect scars from sun for 6-12 months; no smoking during healing.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // BUCCAL FAT REMOVAL (surgical) — AI pass only.
+  // =====================================================================
+  {
+    id: "buccal_fat",
+    name: "Buccal Fat Removal",
+    category: "surgical",
+    region: "cheeks",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the lower cheeks in this photograph to visualize the result of buccal fat pad removal, as it would look fully healed. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. The result must look like the SAME person with a slightly slimmer, more sculpted lower cheek: fully healed, no scars, natural and never gaunt or hollowed. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "buccal_reduction",
+        label: "Lower-cheek slimming",
+        hint: "Fullness of the lower cheek / buccal fat pad",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "reduce the buccal fat pad to create a slimmer lower cheek with a subtle hollow beneath the cheekbone",
+        negLabel: "As is",
+        posLabel: "Slimmer",
+      },
+      {
+        key: "cheekbone_definition",
+        label: "Cheekbone shadow",
+        hint: "Definition and shadow under the cheekbone",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "enhance the definition and natural shadow beneath the cheekbone",
+        negLabel: "As is",
+        posLabel: "Defined",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & assessment",
+        detail:
+          "Assess facial fullness and rule out patients who would look gaunt with age. Photos captured; agree the target from the AI visualization.",
+        offset_days: 7,
+      },
+      {
+        kind: "milestone",
+        label: "Pre-op screening",
+        detail: "Medical history, medications, bloodwork as indicated.",
+        offset_days: 14,
+      },
+      {
+        kind: "milestone",
+        label: "Procedure performed",
+        detail:
+          "Small intraoral incisions; buccal fat pads teased out and trimmed under local anesthesia. No external scars.",
+        offset_days: 21,
+      },
+      {
+        kind: "followup",
+        label: "Follow-up (2 weeks): photo capture",
+        detail: "Swelling settling. Capture photos.",
+        offset_days: 35,
+      },
+      {
+        kind: "followup",
+        label: "Result review (3 months): before/after photo",
+        detail: "Final settled result. Compare with the AI visualization; capture the result set.",
+        offset_days: 111,
+      },
+      {
+        kind: "medicine",
+        label: "Mouth care & analgesia",
+        detail:
+          "Chlorhexidine mouthwash and a soft diet for 1-2 weeks. Paracetamol/ibuprofen as directed.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // FACIAL FAT TRANSFER (surgical, autologous fat grafting) — AI pass only.
+  // =====================================================================
+  {
+    id: "fat_transfer",
+    name: "Facial Fat Transfer",
+    category: "surgical",
+    region: "cheeks",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the described areas of the face in this photograph to visualize the result of facial fat transfer (autologous fat grafting), as it would look fully healed and settled. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. The result must look like the SAME person with softly restored facial volume: fully healed, natural, never overfilled or lumpy. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "ft_cheek_volume",
+        label: "Cheek volume",
+        hint: "Grafted volume to the cheeks",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "restore natural volume to the cheeks with grafted fat for a softer, fuller midface",
+        negLabel: "As is",
+        posLabel: "Fuller",
+      },
+      {
+        key: "ft_temple_volume",
+        label: "Temple volume",
+        hint: "Grafted volume to hollow temples",
+        min: 0,
+        max: 100,
+        posPhrase: "restore volume to hollow temples for a smoother upper-face curve",
+        negLabel: "As is",
+        posLabel: "Fuller",
+      },
+      {
+        key: "ft_undereye",
+        label: "Under-eye volume",
+        hint: "Micro-fat grafting to the under-eye hollows",
+        min: 0,
+        max: 100,
+        posPhrase: "soften the under-eye hollows with fine micro-fat grafting",
+        negLabel: "As is",
+        posLabel: "Softened",
+      },
+      {
+        key: "ft_overall",
+        label: "Overall volume",
+        hint: "General youthful volume distribution",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "restore a soft, youthful facial volume distribution across the treated areas",
+        negLabel: "As is",
+        posLabel: "Restored",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & assessment",
+        detail:
+          "Map deflated areas and identify a donor site (abdomen/flanks/thighs). Photos captured; agree the target from the AI visualization.",
+        offset_days: 7,
+      },
+      {
+        kind: "milestone",
+        label: "Pre-op screening",
+        detail: "Medical history, medications, bloodwork as indicated.",
+        offset_days: 14,
+      },
+      {
+        kind: "milestone",
+        label: "Procedure performed",
+        detail:
+          "Fat harvested by gentle liposuction, purified, and micro-grafted to the face under local anesthesia with sedation. Slight over-correction to allow for resorption.",
+        offset_days: 21,
+      },
+      {
+        kind: "followup",
+        label: "Follow-up (2 weeks): photo capture",
+        detail: "Early swelling settling at face and donor site. Capture photos.",
+        offset_days: 35,
+      },
+      {
+        kind: "followup",
+        label: "Result review (3 months): before/after photo",
+        detail:
+          "Graft take stabilised (about 50-70% retained). Compare with the AI visualization; capture the result set.",
+        offset_days: 111,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare",
+        detail:
+          "Do not massage or apply pressure to grafted areas. Wear the donor-site compression garment as directed; analgesia per clinician.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // LASER RESURFACING (skin) — AI pass only.
+  // =====================================================================
   {
     id: "laser_resurfacing",
     name: "Laser Resurfacing",
     category: "skin",
     region: "skin",
-    available: false,
+    available: true,
     model: "gemini-2.5-flash-image",
-    prompt_template: "",
-    slider_schema: [],
+    prompt_template: `Edit ONLY the skin surface in this photograph to visualize the result of fractional laser skin resurfacing, once fully healed. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Critically, keep natural, realistic skin with visible pores and normal texture; improve the skin's quality without plastic over-smoothing or airbrushing, and do not change the shape of any feature. The result must look like the SAME person with fresher, healthier skin. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "resurf_lines",
+        label: "Fine lines",
+        hint: "Fine surface wrinkles and creping",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "soften fine surface lines and creping as the resurfaced skin smooths",
+        negLabel: "As is",
+        posLabel: "Smoothed",
+      },
+      {
+        key: "resurf_pores",
+        label: "Pores & texture",
+        hint: "Enlarged pores and rough texture",
+        min: 0,
+        max: 100,
+        posPhrase: "refine enlarged pores and improve overall skin texture",
+        negLabel: "As is",
+        posLabel: "Refined",
+      },
+      {
+        key: "resurf_tone",
+        label: "Tone & redness",
+        hint: "Blotchy tone and diffuse redness",
+        min: 0,
+        max: 100,
+        posPhrase: "even out blotchy skin tone and reduce diffuse redness",
+        negLabel: "As is",
+        posLabel: "Even",
+      },
+      {
+        key: "resurf_texture",
+        label: "Shallow scars",
+        hint: "Shallow scars and surface irregularity",
+        min: 0,
+        max: 100,
+        posPhrase: "smooth shallow scars and irregular surface texture",
+        negLabel: "As is",
+        posLabel: "Smoothed",
+      },
+      {
+        key: "resurf_glow",
+        label: "Radiance",
+        hint: "Overall freshness and glow",
+        min: 0,
+        max: 100,
+        posPhrase: "reveal fresh, radiant, healthy-looking skin",
+        negLabel: "As is",
+        posLabel: "Radiant",
+      },
+    ],
     canvas_handles: [],
-    plan_template: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & skin assessment",
+        detail:
+          "Fitzpatrick typing, concern mapping and a test patch. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Pre-treatment prep",
+        detail:
+          "Priming skincare (e.g. sunscreen, retinoid/tyrosinase inhibitor as advised) and antiviral cover if cold-sore history.",
+        offset_days: 3,
+      },
+      {
+        kind: "milestone",
+        label: "Resurfacing session",
+        detail:
+          "Fractional laser pass under topical numbing. Expect 3-7 days of redness and flaking depending on depth.",
+        offset_days: 10,
+      },
+      {
+        kind: "followup",
+        label: "Healing check (1 week)",
+        detail: "Review re-epithelialisation and aftercare.",
+        offset_days: 17,
+      },
+      {
+        kind: "followup",
+        label: "Result review (6-8 weeks): photo capture",
+        detail: "Collagen remodelling visible. Capture photos and compare with the visualization.",
+        offset_days: 60,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare & sun protection",
+        detail:
+          "Bland emollient and strict SPF 50 daily. No active ingredients (retinoids, acids) or picking until healed; avoid sun and heat.",
+      },
+    ],
   },
+
+  // =====================================================================
+  // CHEMICAL PEEL (skin) — AI pass only.
+  // =====================================================================
+  {
+    id: "chemical_peel",
+    name: "Chemical Peel",
+    category: "skin",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin surface in this photograph to visualize the result of a chemical peel, once fully healed. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep natural, realistic skin with visible pores and normal texture; brighten and even the complexion without plastic over-smoothing, and do not change the shape of any feature. The result must look like the SAME person with a fresher, clearer complexion. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "peel_tone",
+        label: "Tone & dullness",
+        hint: "Dull, sun-damaged surface layers",
+        min: 0,
+        max: 100,
+        posPhrase: "even out skin tone and lift dull, sun-damaged surface layers",
+        negLabel: "As is",
+        posLabel: "Brighter",
+      },
+      {
+        key: "peel_pigment",
+        label: "Pigmentation",
+        hint: "Superficial sun spots and patchy pigment",
+        min: 0,
+        max: 100,
+        posPhrase: "lighten superficial pigmentation and sun spots",
+        negLabel: "As is",
+        posLabel: "Lightened",
+      },
+      {
+        key: "peel_texture",
+        label: "Texture",
+        hint: "Rough or flaky surface texture",
+        min: 0,
+        max: 100,
+        posPhrase: "smooth rough surface texture for a fresh, renewed complexion",
+        negLabel: "As is",
+        posLabel: "Smoothed",
+      },
+      {
+        key: "peel_glow",
+        label: "Radiance",
+        hint: "Overall brightness and glow",
+        min: 0,
+        max: 100,
+        posPhrase: "reveal brighter, more radiant skin",
+        negLabel: "As is",
+        posLabel: "Radiant",
+      },
+      {
+        key: "peel_acne",
+        label: "Breakouts",
+        hint: "Active surface breakouts and congestion",
+        min: 0,
+        max: 100,
+        posPhrase: "clear active surface breakouts and congestion",
+        negLabel: "As is",
+        posLabel: "Clearer",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & skin assessment",
+        detail:
+          "Fitzpatrick typing and concern mapping; choose peel depth. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Peel session",
+        detail:
+          "Superficial-to-medium peel applied and neutralised. Light flaking for several days is expected.",
+        offset_days: 7,
+      },
+      {
+        kind: "milestone",
+        label: "Course (optional): sessions 2-4",
+        detail:
+          "Superficial peels are usually a course every 2-4 weeks for a cumulative result.",
+        offset_days: 28,
+      },
+      {
+        kind: "followup",
+        label: "Result review: photo capture",
+        detail: "Capture photos and compare with the visualization.",
+        offset_days: 42,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare & sun protection",
+        detail:
+          "Bland moisturiser and strict SPF 50. Do not pick or peel flaking skin; pause retinoids/acids for a week.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // MICRONEEDLING RF (skin) — AI pass only.
+  // =====================================================================
+  {
+    id: "microneedling_rf",
+    name: "Microneedling RF",
+    category: "skin",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin surface in this photograph to visualize the cumulative result of radio-frequency microneedling, once healed. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep natural, realistic skin with visible pores and normal texture; refine skin quality without plastic over-smoothing, and do not change the shape of any feature. The result must look like the SAME person with tighter, smoother, healthier skin. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "mn_texture",
+        label: "Texture & pores",
+        hint: "Rough texture and enlarged pores",
+        min: 0,
+        max: 100,
+        posPhrase: "refine skin texture and minimise the appearance of enlarged pores",
+        negLabel: "As is",
+        posLabel: "Refined",
+      },
+      {
+        key: "mn_scars",
+        label: "Acne scarring",
+        hint: "Shallow, depressed acne scars",
+        min: 0,
+        max: 100,
+        posPhrase: "soften atrophic acne scars for smoother-looking skin",
+        negLabel: "As is",
+        posLabel: "Smoothed",
+      },
+      {
+        key: "mn_firmness",
+        label: "Firmness",
+        hint: "Skin laxity and crepiness",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "improve skin firmness with a subtle tightening from collagen stimulation",
+        negLabel: "As is",
+        posLabel: "Firmer",
+      },
+      {
+        key: "mn_tone",
+        label: "Tone & clarity",
+        hint: "Overall evenness of the complexion",
+        min: 0,
+        max: 100,
+        posPhrase: "even out skin tone and improve overall clarity",
+        negLabel: "As is",
+        posLabel: "Even",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & skin assessment",
+        detail:
+          "Assess texture, scarring and laxity. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Treatment session 1",
+        detail:
+          "RF microneedling under topical numbing. Mild redness for 1-2 days.",
+        offset_days: 7,
+      },
+      {
+        kind: "milestone",
+        label: "Course: sessions 2-3",
+        detail: "Usually a course of 3 sessions spaced 4 weeks apart.",
+        offset_days: 35,
+      },
+      {
+        kind: "followup",
+        label: "Result review (3 months): photo capture",
+        detail:
+          "Collagen remodelling matures over 8-12 weeks. Capture photos and compare with the visualization.",
+        offset_days: 100,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare & sun protection",
+        detail:
+          "Gentle cleanser, hydrating serum and SPF 50. Pause actives for 3-5 days; avoid heat and makeup for 24h.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // HYDRAFACIAL GLOW (skin) — AI pass only.
+  // =====================================================================
+  {
+    id: "hydrafacial",
+    name: "HydraFacial Glow",
+    category: "skin",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin surface in this photograph to visualize the immediate result of a hydradermabrasion "glow" facial. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep natural, realistic skin with visible pores and normal texture; add a healthy, hydrated glow without plastic over-smoothing, and do not change the shape of any feature. The result must look like the SAME person with fresh, dewy, clean skin. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "hf_hydration",
+        label: "Hydration",
+        hint: "Plumpness and dewiness of the skin",
+        min: 0,
+        max: 100,
+        posPhrase: "deeply hydrate the skin for a plump, dewy, healthy glow",
+        negLabel: "As is",
+        posLabel: "Dewy",
+      },
+      {
+        key: "hf_clarity",
+        label: "Clarity",
+        hint: "Congestion and visible pores",
+        min: 0,
+        max: 100,
+        posPhrase: "clear surface congestion and refine the appearance of pores",
+        negLabel: "As is",
+        posLabel: "Clearer",
+      },
+      {
+        key: "hf_radiance",
+        label: "Radiance",
+        hint: "Overall luminosity",
+        min: 0,
+        max: 100,
+        posPhrase: "boost radiance for a luminous, freshly-treated complexion",
+        negLabel: "As is",
+        posLabel: "Radiant",
+      },
+      {
+        key: "hf_tone",
+        label: "Tone",
+        hint: "Dullness and subtle redness",
+        min: 0,
+        max: 100,
+        posPhrase: "even out dullness and subtle redness for a refreshed look",
+        negLabel: "As is",
+        posLabel: "Even",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & skin check",
+        detail:
+          "Quick skin-quality assessment and goals. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Glow session",
+        detail:
+          "Cleanse, gentle exfoliation, extraction and hydrating serum infusion. No downtime; immediate glow.",
+        offset_days: 0,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail:
+          "Best kept up monthly, or booked a few days before an event for peak glow.",
+        offset_days: 28,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare",
+        detail:
+          "Daily SPF and a simple hydrating routine. Skip strong actives for 24h for the freshest result.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // PIGMENTATION / MELASMA (skin) — AI pass only.
+  // =====================================================================
+  {
+    id: "pigmentation",
+    name: "Pigmentation / Melasma",
+    category: "skin",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin surface in this photograph to visualize the result of a pigmentation and melasma treatment programme, once settled. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep natural, realistic skin with visible pores and normal texture; even the complexion without lightening the person's overall skin colour or bleaching, and do not change the shape of any feature. The result must look like the SAME person with clearer, more even skin. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "pig_melasma",
+        label: "Melasma patches",
+        hint: "Blotchy brown patches, often on the cheeks and forehead",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "fade melasma patches and blotchy pigmentation toward a more even complexion",
+        negLabel: "As is",
+        posLabel: "Faded",
+      },
+      {
+        key: "pig_sunspots",
+        label: "Sun spots",
+        hint: "Sun spots, freckles and age spots",
+        min: 0,
+        max: 100,
+        posPhrase: "lighten sun spots, freckles and age spots",
+        negLabel: "As is",
+        posLabel: "Lightened",
+      },
+      {
+        key: "pig_pih",
+        label: "Dark marks (PIH)",
+        hint: "Post-inflammatory marks left by spots",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "reduce post-inflammatory hyperpigmentation and leftover dark marks",
+        negLabel: "As is",
+        posLabel: "Reduced",
+      },
+      {
+        key: "pig_redness",
+        label: "Redness",
+        hint: "Diffuse redness and broken capillaries",
+        min: 0,
+        max: 100,
+        posPhrase: "calm diffuse facial redness and the look of broken capillaries",
+        negLabel: "As is",
+        posLabel: "Calmer",
+      },
+      {
+        key: "pig_tone",
+        label: "Overall tone",
+        hint: "General evenness and clarity",
+        min: 0,
+        max: 100,
+        posPhrase: "unify overall skin tone and clarity",
+        negLabel: "As is",
+        posLabel: "Even",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & pigment assessment",
+        detail:
+          "Wood's-lamp/typing, identify triggers (sun, hormones, heat). Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Topical programme started",
+        detail:
+          "Prescription regimen (e.g. tyrosinase inhibitors) with strict daily SPF; the foundation of any pigment result.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "In-clinic treatments",
+        detail:
+          "Gentle peels or a low-energy pigment laser as suited to the skin type; conservative in melasma to avoid rebound.",
+        offset_days: 14,
+      },
+      {
+        kind: "followup",
+        label: "Review (6 weeks): photo capture",
+        detail: "Assess response and tolerance. Capture photos and compare with the visualization.",
+        offset_days: 45,
+      },
+      {
+        kind: "followup",
+        label: "Result review (12 weeks): photo capture",
+        detail: "Cumulative fading visible. Capture the result set.",
+        offset_days: 90,
+      },
+      {
+        kind: "medicine",
+        label: "Daily sun protection (non-negotiable)",
+        detail:
+          "Broad-spectrum SPF 50 every morning, reapplied; add a tinted (iron-oxide) sunscreen for melasma. Sun undoes the result.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // ACNE SCAR REVISION (skin) — AI pass only.
+  // =====================================================================
+  {
+    id: "acne_scar",
+    name: "Acne Scar Revision",
+    category: "skin",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin surface in this photograph to visualize the result of an acne-scar revision programme, once healed. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep natural, realistic skin with visible pores and normal texture; improve the scars realistically (they are softened and shallower, not perfectly erased) without plastic over-smoothing, and do not change the shape of any feature. The result must look like the SAME person with noticeably smoother skin. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "as_rolling",
+        label: "Rolling scars",
+        hint: "Broad, sloping depressions in the skin",
+        min: 0,
+        max: 100,
+        posPhrase: "smooth rolling acne scars and the undulating surface",
+        negLabel: "As is",
+        posLabel: "Smoothed",
+      },
+      {
+        key: "as_boxcar",
+        label: "Boxcar scars",
+        hint: "Sharp-edged, box-like depressions",
+        min: 0,
+        max: 100,
+        posPhrase: "soften the sharp edges of boxcar scars",
+        negLabel: "As is",
+        posLabel: "Softened",
+      },
+      {
+        key: "as_icepick",
+        label: "Icepick scars",
+        hint: "Small, deep pitted scars",
+        min: 0,
+        max: 100,
+        posPhrase: "reduce the appearance of deep, pitted icepick scars",
+        negLabel: "As is",
+        posLabel: "Reduced",
+      },
+      {
+        key: "as_pih",
+        label: "Scar marks",
+        hint: "Red-brown discolouration from old spots",
+        min: 0,
+        max: 100,
+        posPhrase: "fade the red-brown marks left by old breakouts",
+        negLabel: "As is",
+        posLabel: "Faded",
+      },
+      {
+        key: "as_texture",
+        label: "Overall texture",
+        hint: "General smoothness and evenness",
+        min: 0,
+        max: 100,
+        posPhrase: "restore smoother, more even overall skin texture",
+        negLabel: "As is",
+        posLabel: "Smoother",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & scar mapping",
+        detail:
+          "Classify scar types (rolling, boxcar, icepick) and plan a combination approach. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Treatment session 1",
+        detail:
+          "Combination of subcision, RF microneedling, TCA CROSS or fractional laser as indicated by scar type.",
+        offset_days: 7,
+      },
+      {
+        kind: "milestone",
+        label: "Course: sessions 2-4",
+        detail: "Scar revision is staged, typically 4-6 weeks apart over several months.",
+        offset_days: 42,
+      },
+      {
+        kind: "followup",
+        label: "Result review (4-6 months): photo capture",
+        detail:
+          "Cumulative remodelling assessed. Capture photos and compare with the visualization.",
+        offset_days: 150,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare & sun protection",
+        detail:
+          "Gentle healing routine and strict SPF 50 between sessions. Keep active acne controlled; pause actives around each session.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // LASER HAIR REMOVAL (skin, facial hair) — AI pass only.
+  // =====================================================================
   {
     id: "laser_hair_removal",
     name: "Laser Hair Removal",
     category: "skin",
     region: "skin",
-    available: false,
+    available: true,
     model: "gemini-2.5-flash-image",
-    prompt_template: "",
-    slider_schema: [],
+    prompt_template: `Edit ONLY the described areas of facial hair in this photograph to visualize the result of a course of laser hair removal, once complete. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. Reduce only the unwanted hair described; do not lighten the skin or change any feature shape. The result must look like the SAME person with cleaner, smoother skin in the treated area. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "lhr_upper_lip",
+        label: "Upper lip",
+        hint: "Unwanted upper-lip hair",
+        min: 0,
+        max: 100,
+        posPhrase: "reduce and clear unwanted upper-lip hair",
+        negLabel: "As is",
+        posLabel: "Cleared",
+      },
+      {
+        key: "lhr_chin",
+        label: "Chin & jaw",
+        hint: "Unwanted hair on the chin and jaw",
+        min: 0,
+        max: 100,
+        posPhrase: "reduce unwanted hair on the chin and jaw",
+        negLabel: "As is",
+        posLabel: "Cleared",
+      },
+      {
+        key: "lhr_cheeks",
+        label: "Cheeks / sideburns",
+        hint: "Unwanted hair on the cheeks and sideburn area",
+        min: 0,
+        max: 100,
+        posPhrase: "reduce unwanted hair on the cheeks and sideburn area",
+        negLabel: "As is",
+        posLabel: "Cleared",
+      },
+      {
+        key: "lhr_beard_shape",
+        label: "Beard-line shaping",
+        hint: "Cleaning and sharpening the beard outline",
+        min: 0,
+        max: 100,
+        posPhrase: "clean and sharpen the beard outline for a groomed look",
+        negLabel: "As is",
+        posLabel: "Sharper",
+      },
+    ],
     canvas_handles: [],
-    plan_template: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & patch test",
+        detail:
+          "Skin typing and a test patch 24-48h before, to set safe settings. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Treatment session 1",
+        detail:
+          "Laser pass over the area; hair should be shaved (not plucked/waxed) beforehand.",
+        offset_days: 2,
+      },
+      {
+        kind: "milestone",
+        label: "Course: sessions 2-6",
+        detail:
+          "A course of 6-8 sessions every 4-6 weeks catches hairs in their growth phase.",
+        offset_days: 30,
+      },
+      {
+        kind: "followup",
+        label: "Result review: photo capture",
+        detail: "Assess reduction after the course. Capture photos and compare with the visualization.",
+        offset_days: 180,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare & sun protection",
+        detail:
+          "Avoid sun, saunas and hot baths for 48h; apply SPF 50 daily. No plucking or waxing between sessions (shaving only).",
+      },
+    ],
   },
+
+  // =====================================================================
+  // SKIN TIGHTENING (skin, HIFU / RF) — AI pass only.
+  // =====================================================================
   {
-    id: "pigmentation",
-    name: "Pigmentation / Acne",
+    id: "skin_tightening",
+    name: "Skin Tightening (HIFU)",
     category: "skin",
-    region: "skin",
-    available: false,
+    region: "jaw",
+    available: true,
     model: "gemini-2.5-flash-image",
-    prompt_template: "",
-    slider_schema: [],
+    prompt_template: `Edit ONLY skin firmness and contour in this photograph to visualize the result of a non-surgical skin-tightening treatment (HIFU / RF), a few months on. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, all facial features and their shapes, eyes, nose, lips, skin tone and texture with visible pores, hairstyle, lighting, camera angle, and background. Do not change facial volume or feature shapes; only firm and subtly lift lax skin. The result must look like the SAME person, subtly tighter and more lifted, natural and believable. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "st_jaw_tighten",
+        label: "Jawline tightening",
+        hint: "Lax skin and early jowls along the jaw",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "tighten and lift lax skin along the jawline and lower face",
+        negLabel: "As is",
+        posLabel: "Tightened",
+      },
+      {
+        key: "st_neck_tighten",
+        label: "Neck tightening",
+        hint: "Crepey neck skin and the jaw-neck angle",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "tighten crepey neck skin and better define the angle between the jaw and neck",
+        negLabel: "As is",
+        posLabel: "Tightened",
+      },
+      {
+        key: "st_brow",
+        label: "Brow lift",
+        hint: "A subtle non-surgical lift of the brow",
+        min: 0,
+        max: 100,
+        posPhrase: "create a subtle non-surgical lift of the brow and upper face",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "st_cheek_firm",
+        label: "Cheek firmness",
+        hint: "Softening cheek laxity",
+        min: 0,
+        max: 100,
+        posPhrase: "firm and subtly lift the cheeks",
+        negLabel: "As is",
+        posLabel: "Firmer",
+      },
+      {
+        key: "st_overall",
+        label: "Overall firmness",
+        hint: "General skin firmness and lift",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "improve overall skin firmness for a tightened, gently lifted contour",
+        negLabel: "As is",
+        posLabel: "Firmer",
+      },
+    ],
     canvas_handles: [],
-    plan_template: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & suitability",
+        detail:
+          "Assess degree of laxity (best for mild-to-moderate); set realistic expectations. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Treatment session",
+        detail:
+          "HIFU/RF energy delivered to the SMAS/dermal layers. Little to no downtime; mild tenderness.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "Early review (6 weeks): photo capture",
+        detail: "Initial tightening visible. Capture photos.",
+        offset_days: 49,
+      },
+      {
+        kind: "followup",
+        label: "Result review (3 months): photo capture",
+        detail:
+          "Peak collagen tightening at 2-3 months. Capture photos and compare with the visualization.",
+        offset_days: 97,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare",
+        detail:
+          "Daily SPF and hydration. Effect builds gradually; a maintenance session at 12-18 months is typical.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // PDO THREAD LIFT (other, minimally-invasive lifting) — AI pass only.
+  // =====================================================================
+  {
+    id: "thread_lift",
+    name: "PDO Thread Lift",
+    category: "other",
+    region: "jaw",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the lower face, cheeks and jawline in this photograph to visualize the result of a PDO thread lift, once settled. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity and all other facial features, eyes, nose, lips, skin tone and texture, hairstyle, lighting, camera angle, and background. The result must look like the SAME person, subtly lifted and refreshed: healed, natural, never pulled, dimpled or overtightened. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "thread_cheek_lift",
+        label: "Cheek / midface lift",
+        hint: "Sagging cheeks and midface",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "lift the sagging cheeks and midface with a subtle repositioning",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "thread_jowl",
+        label: "Jowl lift",
+        hint: "Early jowls along the jawline",
+        min: 0,
+        max: 100,
+        posPhrase: "lift early jowls and redefine the jawline",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "thread_brow",
+        label: "Brow / temple lift",
+        hint: "A subtle lateral brow and temple lift",
+        min: 0,
+        max: 100,
+        posPhrase: "create a subtle lateral brow and temple lift",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "thread_neck",
+        label: "Upper-neck lift",
+        hint: "Laxity of the upper neck",
+        min: 0,
+        max: 100,
+        posPhrase: "lift and tighten the upper neck",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "thread_nasolabial",
+        label: "Nasolabial softening",
+        hint: "Folds from nose to mouth",
+        min: 0,
+        max: 100,
+        posPhrase: "soften the nasolabial folds by repositioning cheek tissue",
+        negLabel: "As is",
+        posLabel: "Softened",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & assessment",
+        detail:
+          "Assess laxity and vectors; thread lift suits mild-to-moderate sagging. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail: "Allergies, blood thinners, active infection, pregnancy/breastfeeding.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Thread placement session",
+        detail:
+          "Barbed PDO threads inserted via cannula under local anesthesia and lifted along the planned vectors. About 30-45 minutes.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "2-week review: photo capture",
+        detail: "Settling check for dimpling or asymmetry. Capture photos and compare with the visualization.",
+        offset_days: 21,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail: "Thread-lift effect typically lasts 12-18 months. Book a review.",
+        offset_days: 380,
+      },
+      {
+        kind: "medicine",
+        label: "Aftercare (first 2 weeks)",
+        detail:
+          "Sleep face-up, avoid wide mouth opening, facials and dental work, and no strenuous exercise for 2 weeks. Analgesia as needed.",
+      },
+    ],
+  },
+
+  // =====================================================================
+  // PRP HAIR RESTORATION (hair) — AI pass only; the transplant density /
+  // hairline fields are owned by the hair-transplant template.
+  // =====================================================================
+  {
+    id: "prp_hair",
+    name: "PRP Hair Restoration",
+    category: "hair",
+    region: "hairline",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the hair and scalp in this photograph to visualize the result of a course of PRP (platelet-rich plasma) hair treatment, about 4-6 months in. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, face and all facial features, skin tone and texture, expression, lighting, camera angle, framing, clothing and background. Use the person's own natural hair colour and texture; do not add a transplanted hairline, only strengthen and thicken existing hair. The result must be unmistakably the SAME person with fuller, healthier hair. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "prp_density",
+        label: "Overall density",
+        hint: "Fullness and thickness of existing hair",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "increase overall hair density and thickness from PRP-stimulated regrowth",
+        negLabel: "As is",
+        posLabel: "Denser",
+      },
+      {
+        key: "prp_thinning",
+        label: "Thinning areas",
+        hint: "Visible scalp along the part and crown",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "reduce visible scalp show in thinning areas along the part and crown",
+        negLabel: "As is",
+        posLabel: "Fuller",
+      },
+      {
+        key: "prp_hairline",
+        label: "Hairline reinforcement",
+        hint: "Strengthening a softly thinning hairline (no grafts)",
+        min: 0,
+        max: 100,
+        posPhrase:
+          "strengthen and slightly reinforce a softly thinning hairline, without any transplanted grafts",
+        negLabel: "As is",
+        posLabel: "Stronger",
+      },
+      {
+        key: "prp_shedding",
+        label: "Shedding control",
+        hint: "Excess shedding and breakage",
+        min: 0,
+        max: 100,
+        posPhrase: "reduce shedding for thicker, healthier-looking hair",
+        negLabel: "As is",
+        posLabel: "Reduced",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Consultation & scalp assessment",
+        detail:
+          "Trichoscopy, Norwood/Ludwig staging and shedding history; PRP suits early-to-moderate thinning. Photos captured; agree the target from the AI visualization.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Medical screening",
+        detail:
+          "Blood disorders, anticoagulants, active scalp infection; baseline bloods if indicated.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Treatment sessions 1-3",
+        detail:
+          "Blood drawn, spun, and PRP injected into the scalp. An induction course is usually monthly for 3 sessions.",
+        offset_days: 7,
+      },
+      {
+        kind: "followup",
+        label: "Review (4 months): photo capture",
+        detail:
+          "Reduced shedding and early thickening. Capture photos and compare with the visualization.",
+        offset_days: 120,
+      },
+      {
+        kind: "followup",
+        label: "Maintenance reminder",
+        detail: "Top-up sessions every 4-6 months maintain the result. Book a review.",
+        offset_days: 180,
+      },
+      {
+        kind: "medicine",
+        label: "Adjunct therapy",
+        detail:
+          "Topical minoxidil and/or finasteride per clinician to support the PRP result. Avoid harsh styling for 24h after each session.",
+      },
+    ],
   },
 ];
 
@@ -964,26 +3112,57 @@ export const PROCEDURE_CATEGORIES: {
   {
     id: "injectable",
     label: "Injectables / Non-invasive",
-    blurb: "Lip filler, chin filler, botox",
-    templateIds: ["lip_filler", "chin_filler", "botox"],
+    blurb: "Botox, dermal fillers, liquid rhinoplasty",
+    templateIds: [
+      "botox",
+      "lip_filler",
+      "cheek_filler",
+      "tear_trough",
+      "nasolabial_filler",
+      "jawline_filler",
+      "chin_filler",
+      "temple_filler",
+      "liquid_rhino",
+    ],
   },
   {
-    id: "hair",
-    label: "Hair Restoration",
-    blurb: "FUE hair transplant, hairline design",
-    templateIds: ["hair_transplant"],
+    id: "skin",
+    label: "Skin / Resurfacing",
+    blurb: "Lasers, peels, microneedling, pigmentation",
+    templateIds: [
+      "laser_resurfacing",
+      "chemical_peel",
+      "microneedling_rf",
+      "hydrafacial",
+      "pigmentation",
+      "acne_scar",
+      "laser_hair_removal",
+    ],
+  },
+  {
+    id: "lifting",
+    label: "Lifting & Tightening",
+    blurb: "HIFU skin tightening, PDO thread lift",
+    templateIds: ["skin_tightening", "thread_lift"],
   },
   {
     id: "surgical",
     label: "Surgical / Structural",
-    blurb: "Rhinoplasty, chin & jaw, eyelids",
-    templateIds: ["rhinoplasty", "chin_jaw", "blepharoplasty"],
+    blurb: "Rhinoplasty, chin & jaw, eyelids, facelift",
+    templateIds: [
+      "rhinoplasty",
+      "chin_jaw",
+      "blepharoplasty",
+      "facelift",
+      "buccal_fat",
+      "fat_transfer",
+    ],
   },
   {
-    id: "skin",
-    label: "Skin / Energy-based",
-    blurb: "Lasers, pigmentation, resurfacing",
-    templateIds: ["laser_resurfacing", "laser_hair_removal", "pigmentation"],
+    id: "hair",
+    label: "Hair Restoration",
+    blurb: "FUE transplant, PRP, hairline design",
+    templateIds: ["hair_transplant", "prp_hair"],
   },
 ];
 

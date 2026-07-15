@@ -51,10 +51,19 @@ export interface ViewReport {
   accepted: boolean;
 }
 
+/**
+ * How much to trust the recovered profile depth:
+ *   high   — both turned photos fused, low reprojection residual
+ *   medium — both fused but with a looser residual
+ *   low    — only a single profile contributed (asymmetric, less constrained)
+ */
+export type Confidence = "high" | "medium" | "low";
+
 export interface MultiViewResult {
   /** refined z in front-photo pixel units, aligned with toPx() convention */
   zPx: number[];
   views: ViewReport[];
+  confidence: Confidence;
 }
 
 const N_MESH = 468; // iris points excluded from the fit
@@ -154,6 +163,31 @@ function corrCentered(a: number[], b: number[]): number {
 }
 
 const PROTOCOL_YAW_RAD = (35 * Math.PI) / 180;
+
+/**
+ * Cheap signed yaw estimate (degrees) from ONE view's normalized landmarks.
+ * The capture gate uses it to confirm the turned photos are actually turned:
+ * a near-frontal "profile" carries no parallax, so the depth solver would
+ * reject it and the mesh would silently fall back to front-only relief — the
+ * exact failure the three-photo protocol exists to prevent.
+ *
+ * Model: under yaw θ the nose tip's lateral offset from the eye midpoint grows
+ * ~ tan θ relative to the inter-eye span (the tip rides forward of the eye
+ * plane, so turning swings it sideways). Positive = turned so the nose points
+ * toward image-right. Rough by design — the gate only needs "clearly turned"
+ * vs "basically straight-on", not a calibrated angle.
+ */
+export function estimateYawDeg(landmarks: number[][]): number {
+  const tip = landmarks[NOSE_TIP];
+  const eyeR = landmarks[33]; // subject right eye outer (viewer left)
+  const eyeL = landmarks[263]; // subject left eye outer (viewer right)
+  if (!tip || !eyeR || !eyeL) return 0;
+  const mid = (eyeR[0] + eyeL[0]) / 2;
+  const span = Math.abs(eyeL[0] - eyeR[0]) || 1e-6;
+  const offset = (tip[0] - mid) / span; // ~0 when frontal
+  const K = 0.6; // nose projection / inter-eye span, approx adult face
+  return (Math.atan2(offset, K) * 180) / Math.PI;
+}
 
 interface PreppedView {
   side: "left" | "right";
@@ -354,5 +388,14 @@ export function refineDepthMultiView(
   // iris points (unused by the mesh triangulation) keep their mp z
   for (let i = N_MESH; i < frontLm.length; i++) zPx[i] = frontLm[i][2] * frontW;
 
-  return { zPx, views };
+  // A single contributing view is inherently less constrained than a fused
+  // pair; a fused pair with a loose reprojection residual sits between.
+  const confidence: Confidence =
+    views.length >= 2
+      ? views.every((v) => v.residual <= 0.04)
+        ? "high"
+        : "medium"
+      : "low";
+
+  return { zPx, views, confidence };
 }

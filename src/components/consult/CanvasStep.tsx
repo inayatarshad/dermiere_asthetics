@@ -160,8 +160,8 @@ export function CanvasStep({
     return (
       <EmptyState
         icon={<ScanFace size={30} />}
-        title="No front photo yet"
-        body="The 3D canvas is built from the patient's front photo. Capture the consultation photos to continue."
+        title="No consultation photos yet"
+        body="The 3D canvas is reconstructed from three photos — front, turned-left and turned-right. The profiles are what give the nose, lips and chin their true projection. Capture all three to continue."
         action={
           <button className="btn btn-primary btn-sm" onClick={() => setCaptureOpen(true)}>
             <Camera size={14} />
@@ -358,11 +358,50 @@ export function CanvasStep({
                     : "Depth from the front photo only. Capture the turned-left and turned-right photos for an accurate side profile"
                 }
               >
-                {face.depth === "multi" ? "3-view depth" : "Front-photo depth"}
+                {face.depth === "multi"
+                  ? face.confidence === "low"
+                    ? "Profile depth · 1 view"
+                    : "Profile depth · 2 views"
+                  : "Front-photo depth"}
               </span>
             </div>
           )}
         </div>
+        {/* Graceful degradation: never fake profile depth from the front —
+            say so plainly and offer the fix. */}
+        {face.status === "ready" && face.depth === "single" && (
+          <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-warning/10 border border-warning/30 px-3.5 py-2.5">
+            <ScanFace size={16} className="text-warning mt-0.5 shrink-0" />
+            <p className="caption flex-1 !text-ink-900">
+              {(face.sidesProvided ?? 0) > 0
+                ? "The turned photos couldn't be fused for depth — retake the profiles with a clear ~35° turn, chin level. "
+                : "This mesh is built from the front photo alone, so nose and lip projection are estimated, not measured. Add the turned-left and turned-right photos for a true side profile. "}
+              <button
+                className="underline font-medium hover:text-warning"
+                onClick={() => setCaptureOpen(true)}
+              >
+                Capture profile photos
+              </button>
+            </p>
+          </div>
+        )}
+        {face.status === "ready" &&
+          face.depth === "multi" &&
+          face.confidence === "low" && (
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-mint-100/60 border border-mint-200 px-3.5 py-2.5">
+              <ScanFace size={16} className="text-mint-500 mt-0.5 shrink-0" />
+              <p className="caption flex-1 !text-ink-900">
+                Depth came from a single usable profile. Add the other side for
+                a fully symmetric reconstruction.{" "}
+                <button
+                  className="underline font-medium hover:text-mint-500"
+                  onClick={() => setCaptureOpen(true)}
+                >
+                  Retake profiles
+                </button>
+              </p>
+            </div>
+          )}
       </GlassCard>
 
       {/* Right rail: morph handles + handoff */}
@@ -486,7 +525,10 @@ export function CanvasStep({
         open={captureOpen}
         onClose={() => setCaptureOpen(false)}
         title={`Capture photos: ${patient.name}`}
-        requiredKinds={["photo_front"]}
+        // The 3D model must be built from all three views: the front fixes
+        // XY, the turned profiles give true nose/lip/chin projection. Require
+        // the full set so the mesh is never silently front-only.
+        requiredKinds={["photo_front", "photo_left", "photo_right"]}
         onComplete={(photos) => {
           for (const photo of photos) {
             addAsset({

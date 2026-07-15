@@ -1,17 +1,12 @@
 /**
- * Brand Discovery Portal storage — invites + responses
- * (spec: Brand-Discovery-Portal-BUILD-SPEC.md, Mythos vault).
- *
- * Same single-blob collection pattern as vyberoStore (1 read per poll,
- * zero list calls; the Postgres step in SCALABILITY_ROADMAP.md replaces
- * it wholesale). Dev file fallback keeps the whole flow testable offline.
- *
- * Layout:
- *   portal/invites.json    -> PortalInvite[]
- *   portal/responses.json  -> PortalResponse[]
+ * Brand Discovery Portal storage — invites + responses, clinic-scoped.
+ * The admin dashboard reads only its own clinic's invites/responses; the
+ * public token lookup returns the invite plus its owning clinic so the
+ * response is filed to the right tenant. Postgres is the source of truth;
+ * the Blob / dev-file fallbacks namespace paths per clinic.
  */
 
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { put } from "@vercel/blob";
 import {
@@ -27,7 +22,7 @@ export type InviteStatus = "PENDING" | "OPENED" | "COMPLETED";
 
 export interface PortalInvite {
   id: string;
-  token: string; // 16-char URL-safe, unguessable
+  token: string;
   clinicName?: string;
   doctorName?: string;
   city?: string;
@@ -71,9 +66,7 @@ export class PortalStoreError extends Error {
 function findBlobToken(): string | undefined {
   if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
   for (const [k, v] of Object.entries(process.env)) {
-    if (/_READ_WRITE_TOKEN$/.test(k) && v && v.startsWith("vercel_blob_rw_")) {
-      return v;
-    }
+    if (/_READ_WRITE_TOKEN$/.test(k) && v && v.startsWith("vercel_blob_rw_")) return v;
   }
   return undefined;
 }
@@ -82,12 +75,10 @@ function mode(): { kind: "blob"; token?: string } | { kind: "dev" } {
   const token = findBlobToken();
   if (token) return { kind: "blob", token };
   if (process.env.BLOB_STORE_ID && process.env.VERCEL) return { kind: "blob" };
-  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-    return { kind: "dev" };
-  }
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) return { kind: "dev" };
   throw new PortalStoreError(
     "not_configured",
-    "Portal storage is not configured. Connect a Vercel Blob store to this project and redeploy."
+    "Portal storage is not configured. Connect Postgres or a Vercel Blob store and redeploy."
   );
 }
 
@@ -104,9 +95,7 @@ function asStoreError(err: unknown): PortalStoreError {
 let storeAccess: "public" | "private" | undefined;
 
 async function putAdaptive(pathname: string, body: string, token?: string) {
-  const order: ("public" | "private")[] = storeAccess
-    ? [storeAccess]
-    : ["private", "public"];
+  const order: ("public" | "private")[] = storeAccess ? [storeAccess] : ["private", "public"];
   let lastErr: unknown;
   for (const access of order) {
     try {
@@ -126,8 +115,6 @@ async function putAdaptive(pathname: string, body: string, token?: string) {
   throw lastErr;
 }
 
-/** Private stores answer 403 for blobs that simply do not exist yet —
- *  a fresh collection must read as empty, not as an error. */
 function isNotFound(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return /403|404|forbidden|not.?found|does not exist/i.test(msg);
@@ -135,9 +122,7 @@ function isNotFound(err: unknown): boolean {
 
 async function readCollection<T>(pathname: string, token?: string): Promise<T[]> {
   const { get } = await import("@vercel/blob");
-  const order: ("public" | "private")[] = storeAccess
-    ? [storeAccess]
-    : ["private", "public"];
+  const order: ("public" | "private")[] = storeAccess ? [storeAccess] : ["private", "public"];
   let lastErr: unknown = null;
   for (const access of order) {
     try {
@@ -150,12 +135,12 @@ async function readCollection<T>(pathname: string, token?: string): Promise<T[]>
       lastErr = err;
     }
   }
-  if (lastErr && isNotFound(lastErr)) return []; // collection not created yet
+  if (lastErr && isNotFound(lastErr)) return [];
   if (lastErr) throw lastErr;
   return [];
 }
 
-// ---- dev file fallback -------------------------------------------------
+// ---- dev file fallback (namespaced per clinic) -----------------------
 
 const DEV_DIR = join(process.cwd(), ".portal-dev-store");
 
@@ -174,81 +159,90 @@ function devWrite(name: string, items: unknown[]) {
   writeFileSync(join(DEV_DIR, `${name}.json`), JSON.stringify(items), "utf8");
 }
 
-// ---- collections ---------------------------------------------------------
+// ---- per-clinic paths ------------------------------------------------
 
-const INVITES = "portal/invites.json";
-const RESPONSES = "portal/responses.json";
+const invitesPath = (clinicId: string) => `portal/${clinicId}/invites.json`;
+const responsesPath = (clinicId: string) => `portal/${clinicId}/responses.json`;
+const invitesDev = (clinicId: string) => `invites_${clinicId}`;
+const responsesDev = (clinicId: string) => `responses_${clinicId}`;
 
-async function readInvites(): Promise<PortalInvite[]> {
+async function readInvites(clinicId: string): Promise<PortalInvite[]> {
   const m = mode();
   try {
     return m.kind === "blob"
-      ? await readCollection<PortalInvite>(INVITES, m.token)
-      : devRead<PortalInvite>("invites");
+      ? await readCollection<PortalInvite>(invitesPath(clinicId), m.token)
+      : devRead<PortalInvite>(invitesDev(clinicId));
   } catch (err) {
     throw asStoreError(err);
   }
 }
 
-async function writeInvites(items: PortalInvite[]): Promise<void> {
+async function writeInvites(clinicId: string, items: PortalInvite[]): Promise<void> {
   const m = mode();
   try {
-    if (m.kind === "blob") {
-      await putAdaptive(INVITES, JSON.stringify(items), m.token);
-    } else {
-      devWrite("invites", items);
-    }
+    if (m.kind === "blob") await putAdaptive(invitesPath(clinicId), JSON.stringify(items), m.token);
+    else devWrite(invitesDev(clinicId), items);
   } catch (err) {
     throw asStoreError(err);
   }
 }
 
-export async function listInvites(): Promise<PortalInvite[]> {
+export async function listInvites(clinicId: string): Promise<PortalInvite[]> {
   if (pgAvailable()) {
     try {
-      return await pgListInvites<PortalInvite>();
+      return await pgListInvites<PortalInvite>(clinicId);
     } catch (err) {
       throw asStoreError(err);
     }
   }
-  const items = await readInvites();
+  const items = await readInvites(clinicId);
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+/** Public token lookup — returns the invite plus its owning clinic id. */
 export async function getInviteByToken(
   token: string
-): Promise<PortalInvite | null> {
+): Promise<{ clinicId: string; invite: PortalInvite } | null> {
   if (pgAvailable()) {
     try {
-      return await pgGetInviteByToken<PortalInvite>(token);
+      const row = await pgGetInviteByToken<PortalInvite>(token);
+      return row ? { clinicId: row.clinic_id, invite: row.payload } : null;
     } catch (err) {
       throw asStoreError(err);
     }
   }
-  const items = await readInvites();
-  return items.find((i) => i.token === token) ?? null;
+  // Fallback: scan namespaced dev files for the token.
+  if (!existsSync(DEV_DIR)) return null;
+  for (const f of readdirSync(DEV_DIR)) {
+    const m = /^invites_(.+)\.json$/.exec(f);
+    if (!m) continue;
+    const clinicId = m[1];
+    const invite = devRead<PortalInvite>(invitesDev(clinicId)).find((i) => i.token === token);
+    if (invite) return { clinicId, invite };
+  }
+  return null;
 }
 
-export async function saveInvite(invite: PortalInvite): Promise<void> {
+export async function saveInvite(clinicId: string, invite: PortalInvite): Promise<void> {
   if (pgAvailable()) {
     try {
-      await pgUpsertInvite(invite.id, invite.token, invite.createdAt, invite);
+      await pgUpsertInvite(clinicId, invite.id, invite.token, invite.createdAt, invite);
       return;
     } catch (err) {
       throw asStoreError(err);
     }
   }
-  const items = await readInvites();
+  const items = await readInvites(clinicId);
   const idx = items.findIndex((i) => i.id === invite.id);
   if (idx >= 0) items[idx] = invite;
   else items.push(invite);
-  await writeInvites(items);
+  await writeInvites(clinicId, items);
 }
 
-export async function listResponses(): Promise<PortalResponse[]> {
+export async function listResponses(clinicId: string): Promise<PortalResponse[]> {
   if (pgAvailable()) {
     try {
-      return await pgListResponses<PortalResponse>();
+      return await pgListResponses<PortalResponse>(clinicId);
     } catch (err) {
       throw asStoreError(err);
     }
@@ -257,24 +251,18 @@ export async function listResponses(): Promise<PortalResponse[]> {
   try {
     const items =
       m.kind === "blob"
-        ? await readCollection<PortalResponse>(RESPONSES, m.token)
-        : devRead<PortalResponse>("responses");
+        ? await readCollection<PortalResponse>(responsesPath(clinicId), m.token)
+        : devRead<PortalResponse>(responsesDev(clinicId));
     return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   } catch (err) {
     throw asStoreError(err);
   }
 }
 
-export async function saveResponse(response: PortalResponse): Promise<void> {
+export async function saveResponse(clinicId: string, response: PortalResponse): Promise<void> {
   if (pgAvailable()) {
     try {
-      // invite_id is unique in the table: a re-submit before lock updates
-      await pgUpsertResponse(
-        response.id,
-        response.inviteId,
-        response.createdAt,
-        response
-      );
+      await pgUpsertResponse(clinicId, response.id, response.inviteId, response.createdAt, response);
       return;
     } catch (err) {
       throw asStoreError(err);
@@ -284,29 +272,25 @@ export async function saveResponse(response: PortalResponse): Promise<void> {
   try {
     const items =
       m.kind === "blob"
-        ? await readCollection<PortalResponse>(RESPONSES, m.token)
-        : devRead<PortalResponse>("responses");
+        ? await readCollection<PortalResponse>(responsesPath(clinicId), m.token)
+        : devRead<PortalResponse>(responsesDev(clinicId));
     const idx = items.findIndex((r) => r.inviteId === response.inviteId);
     if (idx >= 0) {
-      response.id = items[idx].id; // re-submits before lock update in place
+      response.id = items[idx].id;
       items[idx] = response;
     } else {
       items.push(response);
     }
-    if (m.kind === "blob") {
-      await putAdaptive(RESPONSES, JSON.stringify(items), m.token);
-    } else {
-      devWrite("responses", items);
-    }
+    if (m.kind === "blob") await putAdaptive(responsesPath(clinicId), JSON.stringify(items), m.token);
+    else devWrite(responsesDev(clinicId), items);
   } catch (err) {
     throw asStoreError(err);
   }
 }
 
-// ---- helpers --------------------------------------------------------------
+// ---- helpers ----------------------------------------------------------
 
-const ALPHABET =
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 /** nanoid-style 16-char URL-safe token (crypto-random, unguessable). */
 export function newToken(): string {

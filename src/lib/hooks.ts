@@ -16,6 +16,7 @@ import {
   refineDepthMultiView,
   type SideView,
   type ViewReport,
+  type Confidence,
 } from "./face/multiview";
 import type { Asset } from "./types";
 
@@ -53,7 +54,20 @@ export interface FaceData {
   /** "multi" = depth refined from the turned photos; "single" = front only */
   depth: "multi" | "single" | null;
   depthViews?: ViewReport[];
+  /** trust level of a "multi" fit (both profiles vs a single one) */
+  confidence?: Confidence;
+  /** how many turned photos were supplied to this fit (0, 1 or 2) */
+  sidesProvided?: number;
   error?: string;
+}
+
+/** high for a fused pair, low for a lone profile — mirrors multiview.ts. */
+function confidenceFromViews(views: ViewReport[]): Confidence {
+  return views.length >= 2
+    ? views.every((v) => v.residual <= 0.04)
+      ? "high"
+      : "medium"
+    : "low";
 }
 
 async function landmarksForPhoto(
@@ -126,6 +140,7 @@ export function useFaceData(
             image: front.image,
             landmarks: front.landmarks,
             depth: "single",
+            sidesProvided: 0,
           });
           return;
         }
@@ -141,12 +156,15 @@ export function useFaceData(
           );
           if (cancelled) return;
           const isMiss = !!meta && !Array.isArray(meta);
+          const cachedViews = !isMiss && meta ? (meta as ViewReport[]) : undefined;
           setData({
             status: "ready",
             image: front.image,
             landmarks: cachedMv,
             depth: isMiss ? "single" : "multi",
-            depthViews: !isMiss && meta ? (meta as ViewReport[]) : undefined,
+            depthViews: cachedViews,
+            confidence: cachedViews ? confidenceFromViews(cachedViews) : undefined,
+            sidesProvided: sides.length,
           });
           return;
         }
@@ -170,19 +188,26 @@ export function useFaceData(
         }
         if (cancelled) return;
 
-        const refined = refineDepthMultiView(
-          front.landmarks,
-          front.image.naturalWidth,
-          front.image.naturalHeight,
-          sideViews
-        );
+        const fw = front.image.naturalWidth;
+        const fh = front.image.naturalHeight;
+        let refined = refineDepthMultiView(front.landmarks, fw, fh, sideViews);
+        // Robustness: if the two-view fuse fails its quality gates (one blurry
+        // or under-turned profile drags the pair down), retry each profile on
+        // its own single-view path rather than collapsing all the way back to
+        // front-only relief. Real profile depth from one good side beats none.
+        if (!refined && sideViews.length === 2) {
+          refined =
+            refineDepthMultiView(front.landmarks, fw, fh, [sideViews[0]]) ??
+            refineDepthMultiView(front.landmarks, fw, fh, [sideViews[1]]);
+        }
 
         if (refined) {
-          const w = front.image.naturalWidth;
+          // x,y stay the front photo's; only z is replaced with the fused
+          // profile depth, so UVs / the 2D warp / the morph engine are intact.
           const merged = front.landmarks.map((l, i) => [
             l[0],
             l[1],
-            refined.zPx[i] / w,
+            refined.zPx[i] / fw,
           ]);
           await saveLandmarks(mvKey, merged);
           await saveJson(`${mvKey}_meta`, refined.views);
@@ -193,6 +218,8 @@ export function useFaceData(
               landmarks: merged,
               depth: "multi",
               depthViews: refined.views,
+              confidence: refined.confidence,
+              sidesProvided: sides.length,
             });
         } else {
           // remember the miss so we do not re-fit on every open
@@ -204,6 +231,7 @@ export function useFaceData(
               image: front.image,
               landmarks: front.landmarks,
               depth: "single",
+              sidesProvided: sides.length,
             });
         }
       } catch (err) {

@@ -14,7 +14,35 @@ export interface Clinic {
     phone?: string;
     email?: string;
     address?: string;
+    logoUrl?: string;
+    brandColor?: string;
   };
+}
+
+/**
+ * The per-clinic configuration row (clinics.payload in Postgres). This is
+ * the tenant's runtime config — branding, hours, which treatments are on,
+ * prices, voice-agent identity, AI spend caps. Provisioning writes it;
+ * Settings edits it; reports and the portal read it.
+ */
+export interface ClinicConfig {
+  id: string;
+  name: string;
+  slug: string;
+  city: string;
+  branding: Clinic["branding"];
+  hours: ClinicHours;
+  /** Enabled treatment template ids. Empty = every available template. */
+  menu: string[];
+  /** templateId -> price (clinic currency). */
+  prices: Record<string, number>;
+  toxinPricePerUnit: number;
+  vyberoAgentId?: string;
+  bookingUrl?: string;
+  /** Monthly AI spend caps enforced server-side (0 = unlimited). */
+  aiCaps: { generations: number; assessments: number };
+  /** Demo clinic seeds sample data; real clinics start clean. */
+  demo: boolean;
 }
 
 export interface User {
