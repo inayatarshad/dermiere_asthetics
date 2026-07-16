@@ -188,43 +188,43 @@ export default function VyberoAgentPage() {
 
         {agentId ? (
           <div
-            className="relative overflow-hidden rounded-2xl mx-auto w-full max-w-3xl"
+            className="relative overflow-hidden rounded-2xl mx-auto w-full max-w-2xl border border-[rgba(28,26,22,0.08)]"
             style={{
               transform: "translateZ(0)", // containment: widget anchors here
-              height: 560,
+              height: 552,
               background:
-                "radial-gradient(620px 340px at 50% 0%, rgba(196,161,90,0.16) 0%, rgba(28,26,22,0) 60%), linear-gradient(180deg, #24211B 0%, #1C1A16 100%)",
+                "radial-gradient(560px 300px at 50% 0%, rgba(196,161,90,0.14) 0%, rgba(255,255,255,0) 62%), linear-gradient(180deg, #FFFFFF 0%, #FAF6EC 100%)",
             }}
           >
             <div ref={widgetHost} className="absolute inset-0" />
             {!widgetReady && (
-              <div className="absolute inset-0 flex items-center justify-center gap-2 text-[#B9AF9B]">
+              <div className="absolute inset-0 flex items-center justify-center gap-2 text-ink-400">
                 <Spinner className="w-4 h-4" /> Loading the voice widget…
               </div>
             )}
             {/* stage caption */}
             <div className="absolute top-4 left-0 right-0 text-center pointer-events-none">
-              <div className="text-[11px] font-medium uppercase tracking-[0.3em] text-[#C9BFA8]">
+              <div className="text-[11px] font-medium uppercase tracking-[0.3em] text-[color:var(--mint-500)]">
                 VYBERO · Noor
               </div>
-              <div className="text-[12.5px] text-[#8F877A] mt-1">
+              <div className="text-[12.5px] text-ink-400 mt-1">
                 Tap the orb to start the call
               </div>
             </div>
             {/* attribution cover: the stage footer owns the bottom strip */}
             <div
-              className="absolute left-0 right-0 bottom-0 h-[34px] flex items-center justify-center gap-2 bg-[#16140F]/95 border-t border-[rgba(196,161,90,0.25)]"
-              style={{ zIndex: 2147483647 }}
+              className="absolute left-0 right-0 bottom-0 h-[34px] flex items-center justify-center gap-2 border-t border-[rgba(196,161,90,0.4)]"
+              style={{ zIndex: 2147483647, background: "#F6F0DF" }}
               title="Powered by TechGIS"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/brand/techgis-mark-256.png"
                 alt=""
-                className="h-[15px] w-auto opacity-90"
+                className="h-[15px] w-auto"
                 draggable={false}
               />
-              <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-[#D8CDB4]">
+              <span className="text-[11px] font-semibold tracking-[0.14em] uppercase text-ink-900">
                 Powered by TechGIS
               </span>
             </div>
