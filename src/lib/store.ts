@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 /**
  * Central store. Structured records persist to localStorage; images live in
- * IndexedDB (see db.ts). Deliberately simple per the demo build plan —
+ * IndexedDB (see db.ts). Deliberately simple per the demo build plan â€”
  * swap for Postgres + object storage post-IPAAC without touching the UI.
  */
 
@@ -16,14 +16,18 @@ import type {
   CanvasState,
   Clinic,
   ClinicHours,
+  ClinicLocation,
   Consent,
   ConsentType,
   Consultation,
+  Invoice,
   Patient,
   PlanItem,
   PlanStatus,
   Report,
+  Reward,
   Role,
+  SkinAnalysis,
   TreatmentPlan,
   User,
   Visualization,
@@ -100,6 +104,14 @@ interface StoreState {
   appointments: Appointment[];
   vyberoCalls: VyberoCall[];
   clinicHours: ClinicHours;
+
+  // CAPTURE modules: POS, Capture Circle, MARK-VU
+  invoices: Invoice[];
+  rewards: Reward[];
+  skinAnalyses: SkinAnalysis[];
+  locations: ClinicLocation[];
+  taxRate: number;
+  reviewIncentive: { kind: "discount"; value: number; validityDays: number };
 
   /** Rough AI usage counters (drives the cost card in Analytics). */
   aiUsage: { generations: number; assessments: number };
@@ -214,6 +226,22 @@ interface StoreState {
   // reports
   ensureReport: (consultationId: string) => Report;
 
+  // POS
+  addInvoice: (inv: Omit<Invoice, "id" | "created_at">) => Invoice;
+  /** Next human invoice number for a location today, e.g. EC-20260718-003. */
+  nextInvoiceNumber: (locationId: string) => string;
+
+  // Capture Circle
+  mergeRewards: (items: Reward[]) => void;
+  markRewardRedeemed: (code: string, invoiceId: string) => void;
+
+  // MARK-VU
+  addSkinAnalysis: (
+    a: Omit<SkinAnalysis, "id" | "created_at">
+  ) => SkinAnalysis;
+  removeSkinAnalysis: (id: string) => void;
+  setTaxRate: (v: number) => void;
+
   // admin
   addUser: (data: {
     name: string;
@@ -251,6 +279,12 @@ export const useStore = create<StoreState>()(
       appointments: [],
       vyberoCalls: [],
       clinicHours: DEFAULT_CLINIC_HOURS,
+      invoices: [],
+      rewards: [],
+      skinAnalyses: [],
+      locations: [],
+      taxRate: 16,
+      reviewIncentive: { kind: "discount", value: 10, validityDays: 60 },
       aiUsage: { generations: 0, assessments: 0 },
       boothLink: false,
       boothSync: {},
@@ -429,6 +463,9 @@ export const useStore = create<StoreState>()(
                 reports: [] as Report[],
                 appointments: [] as Appointment[],
                 vyberoCalls: [] as VyberoCall[],
+                invoices: [] as Invoice[],
+                rewards: [] as Reward[],
+                skinAnalyses: [] as SkinAnalysis[],
                 boothSync: {},
                 mergedBoothIds: [],
                 newArrivals: [],
@@ -450,6 +487,13 @@ export const useStore = create<StoreState>()(
           plans: b.records.plans,
           planItems: b.records.planItems,
           reports: b.records.reports,
+          invoices: b.records.invoices ?? [],
+          rewards: b.records.rewards ?? [],
+          skinAnalyses: b.records.skinAnalyses ?? [],
+          locations: b.locations ?? [],
+          taxRate: b.taxRate ?? 16,
+          reviewIncentive:
+            b.reviewIncentive ?? { kind: "discount", value: 10, validityDays: 60 },
           appointments: b.appointments,
           vyberoCalls: b.vyberoCalls,
           clinicHours: b.clinicHours,
@@ -499,6 +543,9 @@ export const useStore = create<StoreState>()(
           consultations: seed.consultations,
           plans: seed.plans,
           planItems: seed.planItems,
+          invoices: seed.invoices,
+          rewards: seed.rewards,
+          skinAnalyses: seed.skinAnalyses,
           visualizations: [],
           reports: [],
           appointments: demo.appointments,
@@ -510,6 +557,75 @@ export const useStore = create<StoreState>()(
         // Server is the source of truth now: reload this clinic's data.
         const b = await fetchBootstrap();
         if (b) get().hydrate(b);
+      },
+
+      // ---- POS -------------------------------------------------------
+      nextInvoiceNumber: (locationId) => {
+        const s = get();
+        const loc = s.locations.find((l) => l.id === locationId);
+        const prefix = loc?.invoicePrefix ?? "IN";
+        const dayKey = `${prefix}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
+        const todayCount = s.invoices.filter((i) =>
+          i.number.startsWith(dayKey)
+        ).length;
+        return `${dayKey}-${String(todayCount + 1).padStart(3, "0")}`;
+      },
+
+      addInvoice: (inv) => {
+        const invoice: Invoice = {
+          ...inv,
+          id: uid(),
+          created_at: nowISO(),
+        };
+        set((s) => ({ invoices: [...s.invoices, invoice] }));
+        return invoice;
+      },
+
+      // ---- Capture Circle ---------------------------------------------
+      mergeRewards: (items) =>
+        set((s) => {
+          const byId = new Map(s.rewards.map((r) => [r.id, r]));
+          for (const item of items) {
+            const local = byId.get(item.id);
+            // redeemed/expired beats issued; otherwise newest wins
+            if (!local || local.status === "issued") byId.set(item.id, item);
+          }
+          return { rewards: [...byId.values()] };
+        }),
+
+      markRewardRedeemed: (code, invoiceId) =>
+        set((s) => ({
+          rewards: s.rewards.map((r) =>
+            r.code === code
+              ? {
+                  ...r,
+                  status: "redeemed" as const,
+                  redeemed_at: nowISO(),
+                  redeemed_invoice_id: invoiceId,
+                }
+              : r
+          ),
+        })),
+
+      // ---- MARK-VU ------------------------------------------------------
+      addSkinAnalysis: (a) => {
+        const analysis: SkinAnalysis = {
+          ...a,
+          id: uid(),
+          created_at: nowISO(),
+        };
+        set((s) => ({ skinAnalyses: [...s.skinAnalyses, analysis] }));
+        return analysis;
+      },
+
+      removeSkinAnalysis: (id) =>
+        set((s) => ({
+          skinAnalyses: s.skinAnalyses.filter((a) => a.id !== id),
+        })),
+
+      setTaxRate: (v) => {
+        set({ taxRate: v });
+        void pushClinicConfig({ taxRate: v });
       },
 
       logout: () => {
@@ -547,7 +663,7 @@ export const useStore = create<StoreState>()(
           text_version: CONSENT_TEXT_VERSION,
         };
         set((s) => ({
-          // one active row per (patient, type) — newest wins
+          // one active row per (patient, type) â€” newest wins
           consents: [
             ...s.consents.filter(
               (c) => !(c.patient_id === patientId && c.type === type)
@@ -835,7 +951,7 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: "contour-store",
+      name: "capture-store",
       storage: createJSONStorage(() => localStorage),
       version: 1,
     }

@@ -19,11 +19,13 @@ import {
   Plus,
   Check,
   X,
+  MapPin,
 } from "lucide-react";
 import { useStore, useSessionUser } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import type { Appointment, AppointmentStatus } from "@/lib/types";
 import { TEMPLATES, getTemplate } from "@/lib/templates";
+import { findTreatment, CAPTURE_TREATMENTS } from "@/lib/capture/kb";
 import {
   addDays,
   appointmentsOn,
@@ -80,9 +82,10 @@ function pushToServer(appt: Appointment) {
 export default function CalendarPage() {
   const mounted = useMounted();
   const user = useSessionUser();
-  const appointments = useStore((s) => s.appointments);
+  const allAppointments = useStore((s) => s.appointments);
   const patients = useStore((s) => s.patients);
   const clinicHours = useStore((s) => s.clinicHours);
+  const locations = useStore((s) => s.locations);
   const addAppointment = useStore((s) => s.addAppointment);
   const updateAppointment = useStore((s) => s.updateAppointment);
 
@@ -90,6 +93,18 @@ export default function CalendarPage() {
   const [dayIdx, setDayIdx] = useState(() => (new Date().getDay() + 6) % 7);
   const [booking, setBooking] = useState<{ key: string; offset: number } | null>(null);
   const [detail, setDetail] = useState<Appointment | null>(null);
+  const [locFilter, setLocFilter] = useState<string>("experience-centre");
+
+  // per-location diary: slots and blocks belong to the selected site
+  const appointments = useMemo(
+    () =>
+      locFilter === "all"
+        ? allAppointments
+        : allAppointments.filter(
+            (a) => (a.location_id ?? "experience-centre") === locFilter
+          ),
+    [allAppointments, locFilter]
+  );
 
   const days = useMemo(
     () =>
@@ -149,7 +164,7 @@ export default function CalendarPage() {
               <span className="block text-[10px] opacity-80 leading-tight truncate">
                 {timeLabel(a.start)}
                 {a.procedure_interest
-                  ? ` · ${getTemplate(a.procedure_interest)?.name ?? a.procedure_interest}`
+                  ? ` · ${getTemplate(a.procedure_interest)?.name ?? findTreatment(a.procedure_interest)?.short ?? a.procedure_interest}`
                   : ""}
               </span>
             </button>
@@ -161,7 +176,7 @@ export default function CalendarPage() {
 
   return (
     <div className="fade-up">
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <SectionTitle
           title="Calendar"
           sub={`Open ${clinicHours.open}–${clinicHours.close} · ${freeSlotCount(appointments, todayKey, clinicHours)} free slots today · VYBERO books into the same diary`}
@@ -201,6 +216,24 @@ export default function CalendarPage() {
           </button>
         </div>
       </div>
+
+      {/* location filter — each CAPTURE site keeps its own diary */}
+      {locations.length > 1 && (
+        <div className="flex gap-1.5 flex-wrap mb-3">
+          {locations.map((l) => (
+            <Chip
+              key={l.id}
+              active={locFilter === l.id}
+              onClick={() => setLocFilter(l.id)}
+            >
+              <MapPin size={12} /> {l.short}
+            </Chip>
+          ))}
+          <Chip active={locFilter === "all"} onClick={() => setLocFilter("all")}>
+            All locations
+          </Chip>
+        </div>
+      )}
 
       {/* mobile day picker */}
       <div className="flex gap-1.5 flex-wrap mb-3 lg:hidden">
@@ -278,7 +311,12 @@ export default function CalendarPage() {
           slot={booking}
           onClose={() => setBooking(null)}
           onCreate={(data) => {
-            const appt = addAppointment(data);
+            // bookings land in the diary currently on screen
+            const appt = addAppointment({
+              ...data,
+              location_id:
+                locFilter === "all" ? "experience-centre" : locFilter,
+            });
             pushToServer(appt);
             setBooking(null);
           }}
@@ -420,11 +458,20 @@ function BookingModal({
             onChange={(e) => setProcedure(e.target.value)}
           >
             <option value="">Not specified</option>
-            {TEMPLATES.filter((t) => t.available).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
+            <optgroup label="CAPTURE signature treatments">
+              {CAPTURE_TREATMENTS.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Aesthetic procedures (partner clinics)">
+              {TEMPLATES.filter((t) => t.available).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </Field>
         <Field label="Notes (optional)">
@@ -478,7 +525,11 @@ function DetailModal({
   onClose: () => void;
   onStatus: (s: AppointmentStatus) => void;
 }) {
-  const template = getTemplate(appt.procedure_interest);
+  const procedureName =
+    getTemplate(appt.procedure_interest)?.name ??
+    (appt.procedure_interest
+      ? findTreatment(appt.procedure_interest)?.name
+      : undefined);
   const when = new Date(appt.start);
   return (
     <Modal open onClose={onClose} title={appt.patient_name}>
@@ -504,7 +555,7 @@ function DetailModal({
           </span>
         </p>
         {appt.phone && <p>Phone: {appt.phone}</p>}
-        {template && <p>Interest: {template.name}</p>}
+        {procedureName && <p>Interest: {procedureName}</p>}
         {appt.notes && <p className="caption">{appt.notes}</p>}
       </div>
       <div className="flex flex-wrap gap-2 justify-end mt-5">

@@ -1,80 +1,131 @@
-# Contour · System Documentation
+# CAPTURE Clinic OS · System Documentation
 
-Client-safe technical overview of the aesthetic clinic consultation system.
+Client-safe technical overview of the CAPTURE clinic operating system —
+the platform that carries a client from VYBERO's first hello to the
+Capture Circle reward, across all four Lahore locations.
 
 ## What it is
 
-A web application used inside an aesthetics clinic. The front desk registers patients and captures consent and photos; the doctor runs a visual consultation powered by a 3D face canvas and AI before/after previews; the patient leaves with a polished report and a concrete treatment plan.
+One web application for the whole clinic journey:
+
+```
+Book (VYBERO web/WhatsApp)
+  → Check-in + MARK-VU skin analysis
+    → Consultation + Before/After Visualization Studio
+      → Treatment
+        → Point of Sale + printed A4 invoice
+          → Review link (WhatsApp)
+            → Reviews monitoring dashboard
+              → Capture Circle reward → redeemed at POS
+                → Retention (re-book via VYBERO)
+```
 
 ## Module × Role matrix
 
-| Capability | Front Desk | Doctor | Clinic Admin |
+| Capability | Front Desk | Doctor | Admin (Ops/Marketing) |
 |---|---|---|---|
-| Register a new patient | Yes | Yes | Yes |
-| Capture consent + photos | Yes | Yes | Yes |
-| View patient profiles | Yes | Yes | Yes |
-| Run consultation (brief, canvas, AI, plan) | No | Yes | Yes |
-| Export report | Yes | Yes | Yes |
-| Manage treatment templates | No | No | Yes (view) |
-| Manage staff users | No | No | Yes |
-| Clinic settings / branding | No | No | Yes |
+| Register clients, consent + photos | Yes | Yes | Yes |
+| Patient profiles + MARK-VU scans | Yes | Yes | Yes |
+| Calendar (per-location diaries) | Yes | Yes | Yes |
+| Run consultation (brief, 3D canvas, AI, plan) | No | Yes | Yes |
+| Visualization Studio (glow / body contour) | Yes | Yes | Yes |
+| Point of Sale + invoices + reward redemption | Yes | No | Yes |
+| Send review links | Yes (POS) | Yes | Yes |
+| Reviews monitoring dashboard | No | Yes | Yes |
+| VYBERO analytics + AI spend | No | No | Yes |
+| Discovery (partner-clinic onboarding) | No | No | Yes |
+| Staff, settings, branding, prices | No | No | Yes |
 
-Enforced in the UI (controls hidden or locked per role) and by route guards. Sessions auto-lock after 10 minutes idle.
+Enforced by the server session (JWT cookie, role claims), route middleware
+and per-route guards. Sessions auto-lock after 10 minutes idle.
+
+## The five CAPTURE modules
+
+1. **VYBERO concierge** — public chat on the landing page (and WhatsApp in
+   production). Deterministic knowledge-base engine: treatments, prices,
+   locations, hours, aftercare, EXOMERE/MitoRedLight science, safety.
+   Books real appointments against live availability; every conversation
+   lands in the call log that feeds Analytics. No AI key required — an
+   LLM can be layered on the same engine without changing the logic.
+2. **Visualization Studio** — before/after previews for the two signature
+   families: MitoRedLight glow (radiance/tone/texture/warmth) and Exomere
+   body contour (region pinch-warp + firmness across abdomen/waist/hips/
+   thighs/arms). Renders on-device (no key needed); optional photoreal AI
+   pass via Gemini/OpenAI/FLUX/Higgsfield. Every output carries the
+   "illustrative preview, not a guarantee" watermark. Saves to the client
+   photo timeline.
+3. **Point of Sale** — cart from the CAPTURE catalogue (6 treatments, 25
+   retail products/regimens at real capture.cc prices), client-record
+   linking, Capture Circle code validation and redemption, configurable
+   sales tax (default 16%), cash/card record-only payment, per-location
+   invoice numbering (EC/SC/AD/EX prefixes), print-ready A4 letterhead
+   invoice.
+4. **Reviews + Capture Circle** — per-visit token links (WhatsApp), a
+   branded public review page (stars, highlights, comment), instant
+   reward issuance shown on the thank-you screen, and a monitoring
+   dashboard: average, trend, by-location/by-treatment breakdowns,
+   low-score follow-up flags, invite funnel, reward economy.
+5. **MARK-VU integration** — the intake scanner's six metrics recorded per
+   visit (manual entry mirrors the device report; scan sheet photo
+   attaches as evidence), tracked across scans with deltas on the client
+   profile.
+
+Plus the full Contour engine underneath: 27 aesthetic procedure templates,
+3D face canvas (MediaPipe + three.js), consultation workspace, printed
+reports and consent packs, assessment letterhead, booth phone→desktop
+handoff, and the Discovery portal for partner-clinic onboarding.
 
 ## Architecture
 
 ```
-[ Clinic laptop / tablet browser ]
-  Next.js 16 SPA surface (React 19, Tailwind v4, glassmorphic mint tokens)
-  ├─ 3D canvas: react-three-fiber + MediaPipe Face Landmarker (self-hosted WASM + model)
-  ├─ Live preview: on-device 2D triangulated landmark warp (offline, instant)
-  ├─ Store: Zustand (localStorage) + IndexedDB for images and landmark caches
-  └─ /api/generate (Vercel serverless, 60s max)
-        └─ Model-agnostic provider layer (AI_PROVIDER selects; auto-fallback)
-             ├─ Google Gemini / Nano Banana (primary; identity preservation)
-             ├─ OpenAI GPT Image 2 (input_fidelity=high; spatial reasoning)
-             └─ FLUX.1 Kontext via BFL API (controllable editing)
+[ Browser (clinic devices + public pages) ]
+  Next.js 16 (React 19, Tailwind v4 — CAPTURE Noir & Champagne tokens, Jost type)
+  ├─ Clinic app: zustand store hydrated from server bootstrap; write-through
+  │   diff sync to /api/records (clinic-scoped)
+  ├─ Studio renderers: on-device canvas (glow passes, elliptical pinch warp)
+  ├─ 3D canvas: react-three-fiber + MediaPipe Face Landmarker (self-hosted)
+  └─ Public surfaces: landing + VYBERO widget, /review/[token], /invoice/[id],
+      /report, /assessment, /portal — zero-login, token capabilities
+
+[ Server (Next.js route handlers) ]
+  ├─ Auth: scrypt passwords, JWT session cookie, edge middleware perimeter
+  ├─ Tenant boundary: every query filtered by clinic_id
+  ├─ Stores: clinic/users, records (patients…invoices, rewards,
+  │   skin_analyses), appointments+calls, review invites+reviews
+  ├─ VYBERO chat engine (KB + slot-filling booking, per-IP rate limits)
+  └─ AI providers: Gemini / OpenAI / FLUX / Higgsfield behind aiGuard
+      (per-clinic monthly caps + metering)
+
+[ Storage ]
+  Production: Postgres (Neon) — one jsonb row store per collection
+  Local/demo: file-backed dev database (.dev-db/) — zero infrastructure,
+  identical behavior through the same data layer
 ```
 
-### The face engine (src/lib/face)
+## Multi-location
 
-- `landmarker.ts`: MediaPipe FaceLandmarker singleton. GPU delegate with CPU fallback. WASM runtime and the 3.7MB model file are served from `/public`, so the pipeline runs with zero network.
-- `geometry.ts`: mesh triangulation derived at runtime from the official tessellation edge list (3-clique detection, ~900 triangles, cached); semantic region weights (nose frame, alar, dorsum, tip, radix, lips, cheeks, jaw, chin, under-eye) with smooth falloff; the shared **morph engine** that maps slider params to landmark displacements. Magnitudes are capped to clinically plausible ranges.
-- `subdivide.ts`: uniform 1-to-4 mesh subdivision (2 levels, ~14.4k triangles). The morph engine is a smooth displacement field; the 3D canvas evaluates it at every subdivided vertex, so a handle drag reads as a refined curved push rather than a flat triangle moving. Originals keep their indices, so anatomical anchors stay valid. Field evaluation stays in the low milliseconds.
-- `warp2d.ts`: per-triangle affine warp of the photo from base to morphed landmarks, with seam-hiding clip expansion; also burns the disclaimer bar into saved after-images.
-- The 3D canvas and the 2D preview share the same morph math, so what the doctor sculpts and what the preview shows always agree.
-- Roadmap (owner decision): after IPAAC, the 3D canvas moves to a FLAME / 3DMM dense parametric head model as the final version (anatomically smooth morphs, full head; a few seconds of fit time accepted). The subdivided-mesh approach is the interim solution.
+CAPTURE is one tenant with four locations (Experience Centre + three
+partner clinics). Locations live in the clinic config; appointments,
+invoices and reviews are tagged per location, so calendars filter per
+site, invoices carry the right letterhead + numbering, and the reviews
+dashboard breaks scores down per location. Partner clinic #5 onboards
+through the Discovery portal.
 
-### The AI loop (05_ai-before-after.md)
+## Brand safety
 
-- Each procedure is a `TreatmentTemplate`: slider schema + prompt template + canvas morph handles + plan checklist + preferred model. Four ship fully wired: Rhinoplasty (7 sliders), Lip Filler (8), Chin Filler (6), Botox (6). The lip/chin/brow morph fields are anchored to canonical landmarks (oral line, cupid's bow peaks, menton, eyebrow sets, gonial oval points) so geometry moves anatomically in both the 3D canvas and the 2D preview; skin-level sliders (lines, texture) are rendered by the AI pass and flagged honestly in the UI.
-- Slider values map to phrase bands (under 15 neutral, 15-40 "very slightly", 40-70 "moderately", 70-100 "noticeably") assembled into the identity-preserving edit instruction.
-- Every generation stores `params` and `prompt_used` on the `Visualization` record for reproducibility and audit.
-- Consent gating: no capture or generation without a granted photography consent record.
-- Generations are cached client-side by provider + params hash; revisiting a setting is instant.
-- Admin control: Settings -> AI generation selects the provider clinic-wide, including **None** (photoreal off; on-device simulation only). The GUI reads provider availability from GET `/api/generate` (configured flags and model names only); API keys never leave the server environment.
+- Every visualization output is watermarked "Illustrative preview of an
+  expected outcome, not a guarantee of results."
+- Strengths-first language throughout; no scorecards of flaws.
+- Payments are recorded, never processed — the card terminal stays the
+  merchant of record.
+- Patient photos live device-local (IndexedDB); shared records are
+  clinic-scoped rows behind the session.
 
-### Data model
+## Deployment
 
-Clinic, User, Patient, Consent, Asset, Consultation, Visualization, TreatmentTemplate, TreatmentPlan, PlanItem, Report, exactly per the knowledge base data model. Everything is clinic-scoped. Assets carry `visit_date`, which powers the patient timeline (before, AI-predicted after, healed result at follow-ups).
-
-Persistence is deliberately light for the demo (per the build plan): structured records in localStorage via Zustand persist, images and landmark caches in IndexedDB. The store API is the seam for swapping in Postgres + object storage later without touching the UI.
-
-### The report (07_report-export.md)
-
-Three A4 sheets rendered as HTML/CSS from the same design tokens as the app: cover, consultation + visualization, plan + next steps. Report surfaces use pre-composed opaque glass (no backdrop-filter), so browser print-to-PDF output matches the screen exactly. Page breaks are locked per sheet.
-
-## Design system
-
-Glassmorphic Mint, implemented as CSS variables + Tailwind v4 theme tokens straight from the knowledge base: mint scale (#34D3B0 family), off-white base, ink text scale, the `.glass` recipe (blur 20px, saturate 140%, 1px light border, soft wide shadows), pill buttons with mint glow, the mint slider as the star control, calm 150-250ms ease-out motion. No flat white backgrounds anywhere; panels float over a soft mint radial gradient with ambient glow blobs.
-
-## Scaling to new procedures
-
-Add one object to `src/lib/templates.ts` (sliders, phrases, prompt template, plan items) and set `available: true`. The brief, canvas emphasis, AI visualization, plan and report all pick it up automatically. Lip filler, Botox, chin/jaw, blepharoplasty, laser presets are already declared as placeholders.
-
-## Known demo-scope limits
-
-- Auth is seeded demo credentials with client-side sessions (per the build plan). Replace with real server auth + hashed credentials before handling real patient data.
-- Data lives on the device (no server database yet). "Reset demo" restores the seed.
-- The sculpt brush is a live communication tool; its strokes are not persisted (morph sliders and annotations are).
-- One clinic per deployment in the demo store; the data model is already clinic-scoped for multi-tenant.
+- `npm run build && npm run start` — production build verified green.
+- Local demo needs nothing else (file-backed store, deterministic seed).
+- Production: set `DATABASE_URL` (fresh Neon project for CAPTURE),
+  `SESSION_SECRET`, optional AI keys, `VYBERO_API_KEY` for the phone
+  agent. Deploy as a NEW Vercel project — never over the Contour
+  production deployment.

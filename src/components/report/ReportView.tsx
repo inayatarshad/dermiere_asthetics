@@ -521,12 +521,13 @@ function SheetHeader({ clinic, title }: { clinic: string; title: string }) {
         <span className="rb-header-clinic">{clinic}</span>
         <h2 className="rb-header-title">{title}</h2>
       </div>
-      {/* Contour mark, co-branded top-right (prints on the white sheet) */}
+      {/* CAPTURE mark, co-branded top-right (prints on the white sheet) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/brand/contour-mark-192.png"
-        alt="Contour"
+        src="/brand/capture-logo-black.png"
+        alt="CAPTURE"
         className="rb-header-mark"
+        style={{ width: 96, height: 30, objectFit: "contain" }}
       />
     </header>
   );

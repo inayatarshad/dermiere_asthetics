@@ -406,7 +406,7 @@ function AssessmentInner() {
     );
   }
 
-  const clinicName = clinic?.name ?? "Contour Clinic";
+  const clinicName = clinic?.name ?? "CAPTURE";
   const clinicLine = [clinic?.branding?.phone, clinic?.branding?.email]
     .filter(Boolean)
     .join(" · ");
@@ -472,7 +472,7 @@ function AssessmentInner() {
             <header className="ar-head">
               <div className="ar-head-brand">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/contour-mark-192.png" alt="" />
+                <img src="/brand/capture-logo-black.png" alt="" />
                 <div>
                   <span className="ar-head-clinic">{clinicName}</span>
                   <h1 className="ar-title">Facial Aesthetic Assessment</h1>
@@ -837,7 +837,7 @@ function AssessmentInner() {
                 </div>
               </div>
               <p className="ar-smallprint">
-                Prepared with Contour AI from a single photograph. This
+                Prepared with CAPTURE Clinic OS from a single photograph. This
                 document is an aesthetic guide, not a medical diagnosis or a
                 treatment plan; every observation is qualitative and must be
                 confirmed by a physician in person. Suggestions reference this

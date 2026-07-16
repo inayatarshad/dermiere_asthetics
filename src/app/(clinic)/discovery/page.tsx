@@ -45,7 +45,7 @@ const LABELS: Record<string, string> = {
   front_desk_load: "front-desk load",
   new_patients: "getting new patients",
   vybero: "VYBERO (AI call answering)",
-  contour_3d: "Contour AI (3D consult)",
+  contour_3d: "Clinic OS (3D consult)",
   ai_report: "free AI aesthetic report",
   website_branding: "website & branding",
   chorus_ugc: "Chorus (UGC marketing)",

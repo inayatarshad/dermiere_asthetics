@@ -239,7 +239,7 @@ export function buildAnnotatedImage(
   ctx.font = `500 ${Math.max(11, w / 70)}px system-ui, sans-serif`;
   ctx.textAlign = "right";
   ctx.textBaseline = "bottom";
-  ctx.fillText("Contour AI · assessment overlay", w - w * 0.02, h - h * 0.015);
+  ctx.fillText("CAPTURE · assessment overlay", w - w * 0.02, h - h * 0.015);
 
   return {
     annotatedDataUrl: canvas.toDataURL("image/jpeg", 0.92),

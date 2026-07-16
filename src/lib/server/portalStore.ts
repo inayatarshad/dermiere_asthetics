@@ -1,5 +1,5 @@
-/**
- * Brand Discovery Portal storage — invites + responses, clinic-scoped.
+﻿/**
+ * Brand Discovery Portal storage â€” invites + responses, clinic-scoped.
  * The admin dashboard reads only its own clinic's invites/responses; the
  * public token lookup returns the invite plus its owning clinic so the
  * response is filed to the right tenant. Postgres is the source of truth;
@@ -10,7 +10,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync } from 
 import { join } from "node:path";
 import { put } from "@vercel/blob";
 import {
-  pgAvailable,
+  dbAvailable,
   pgGetInviteByToken,
   pgListInvites,
   pgListResponses,
@@ -188,7 +188,7 @@ async function writeInvites(clinicId: string, items: PortalInvite[]): Promise<vo
 }
 
 export async function listInvites(clinicId: string): Promise<PortalInvite[]> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       return await pgListInvites<PortalInvite>(clinicId);
     } catch (err) {
@@ -199,11 +199,11 @@ export async function listInvites(clinicId: string): Promise<PortalInvite[]> {
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Public token lookup — returns the invite plus its owning clinic id. */
+/** Public token lookup â€” returns the invite plus its owning clinic id. */
 export async function getInviteByToken(
   token: string
 ): Promise<{ clinicId: string; invite: PortalInvite } | null> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       const row = await pgGetInviteByToken<PortalInvite>(token);
       return row ? { clinicId: row.clinic_id, invite: row.payload } : null;
@@ -224,7 +224,7 @@ export async function getInviteByToken(
 }
 
 export async function saveInvite(clinicId: string, invite: PortalInvite): Promise<void> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       await pgUpsertInvite(clinicId, invite.id, invite.token, invite.createdAt, invite);
       return;
@@ -240,7 +240,7 @@ export async function saveInvite(clinicId: string, invite: PortalInvite): Promis
 }
 
 export async function listResponses(clinicId: string): Promise<PortalResponse[]> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       return await pgListResponses<PortalResponse>(clinicId);
     } catch (err) {
@@ -260,7 +260,7 @@ export async function listResponses(clinicId: string): Promise<PortalResponse[]>
 }
 
 export async function saveResponse(clinicId: string, response: PortalResponse): Promise<void> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       await pgUpsertResponse(clinicId, response.id, response.inviteId, response.createdAt, response);
       return;

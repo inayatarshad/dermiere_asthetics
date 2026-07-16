@@ -1,9 +1,29 @@
 /**
- * Contour — data model.
- * Mirrors knowledge base / 09_data-model.md. Everything is clinic-scoped.
+ * CAPTURE Clinic OS — data model.
+ * Everything is clinic-scoped. Extends the Contour engine data model with
+ * CAPTURE entities: Location, Invoice, Review, Reward, SkinAnalysis.
  */
 
 export type Role = "front_desk" | "doctor" | "admin";
+
+/**
+ * One physical CAPTURE location — the Experience Centre or a partner
+ * clinic. Appointments, invoices and reviews are tagged with a location so
+ * calendars, billing and monitoring can be filtered per site.
+ */
+export interface ClinicLocation {
+  id: string;
+  name: string;
+  short: string;
+  kind: "experience_centre" | "partner";
+  doctor?: string;
+  address: string;
+  area: string;
+  city: string;
+  phone?: string;
+  /** Prefix for invoice numbers issued at this location, e.g. "EC". */
+  invoicePrefix: string;
+}
 
 export interface Clinic {
   id: string;
@@ -43,6 +63,17 @@ export interface ClinicConfig {
   aiCaps: { generations: number; assessments: number };
   /** Demo clinic seeds sample data; real clinics start clean. */
   demo: boolean;
+  /** Physical locations (Experience Centre + partner clinics). */
+  locations?: ClinicLocation[];
+  /** Sales tax percentage applied at POS (Punjab services default 16). */
+  taxRate?: number;
+  /** Review incentive: what a submitted review earns ("Capture Circle"). */
+  reviewIncentive?: {
+    kind: "discount";
+    /** percent off the next visit */
+    value: number;
+    validityDays: number;
+  };
 }
 
 export interface User {
@@ -113,8 +144,10 @@ export type AssetKind =
   | "photo_left"
   | "photo_right"
   | "photo_closeup"
+  | "photo_body"
   | "ai_after"
   | "assessment"
+  | "markvu_scan"
   | "report_pdf";
 
 export interface Asset {
@@ -169,6 +202,8 @@ export interface Appointment {
   notes?: string;
   /** Set when the booking came out of a VYBERO call. */
   vybero_call_id?: string;
+  /** Which CAPTURE location the booking is for (defaults to the Experience Centre). */
+  location_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -354,9 +389,156 @@ export interface Report {
   generated_at: string;
 }
 
+// ---------------------------------------------------------------------
+// Point of Sale — invoices
+// ---------------------------------------------------------------------
+
+export type PaymentMethod = "cash" | "card";
+
+export interface InvoiceItem {
+  id: string;
+  /** catalogue reference: treatment id or product id */
+  ref: string;
+  kind: "treatment" | "product" | "regimen";
+  name: string;
+  qty: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: string;
+  /** Human invoice number, e.g. "EC-20260716-014" (location prefix). */
+  number: string;
+  patient_id?: string;
+  patient_name: string;
+  location_id: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  /** percentage applied, e.g. 16 */
+  tax_rate: number;
+  tax_amount: number;
+  /** flat discount from a redeemed reward code */
+  discount_amount: number;
+  /** redeemed Capture Circle code, if any */
+  reward_code?: string;
+  total: number;
+  payment_method: PaymentMethod;
+  amount_received?: number;
+  /** staff user id who rang it up */
+  cashier_id?: string;
+  cashier_name?: string;
+  status: "paid" | "void";
+  consultation_id?: string;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------
+// Reviews + Capture Circle rewards
+// ---------------------------------------------------------------------
+
+/** A submitted client review (synced down from the reviews table). */
+export interface ClinicReview {
+  id: string;
+  invite_id: string;
+  patient_id?: string;
+  patient_name: string;
+  location_id: string;
+  /** treatment ids covered by the visit */
+  treatments: string[];
+  /** practitioner credited with the visit, if known */
+  staff_name?: string;
+  rating: number; // 1..5
+  comment?: string;
+  /** what the client highlighted, e.g. "results", "comfort", "staff" */
+  highlights: string[];
+  /** set once a team member follows up a low score */
+  followed_up?: boolean;
+  invoice_id?: string;
+  created_at: string;
+}
+
+export type ReviewInviteStatus = "PENDING" | "OPENED" | "COMPLETED";
+
+/** A per-visit review link (token capability, portal pattern). */
+export interface ReviewInvite {
+  id: string;
+  token: string;
+  patient_id?: string;
+  patient_name: string;
+  location_id: string;
+  treatments: string[];
+  staff_name?: string;
+  invoice_id?: string;
+  status: ReviewInviteStatus;
+  created_at: string;
+  opened_at?: string;
+  completed_at?: string;
+  review_id?: string;
+}
+
+export type RewardStatus = "issued" | "redeemed" | "expired";
+
+/** A Capture Circle reward issued for a review, redeemable at POS. */
+export interface Reward {
+  id: string;
+  /** short human code, e.g. "CIRCLE-4F7K" */
+  code: string;
+  patient_id?: string;
+  patient_name: string;
+  review_id: string;
+  kind: "discount";
+  /** percent off the next visit */
+  value: number;
+  status: RewardStatus;
+  issued_at: string;
+  expires_at: string;
+  redeemed_at?: string;
+  redeemed_invoice_id?: string;
+}
+
+// ---------------------------------------------------------------------
+// MARK-VU skin analysis (intake device integration)
+// ---------------------------------------------------------------------
+
+/** Metrics as reported by the clinic's MARK-VU scanner (0-100, higher = more concern). */
+export interface SkinMetrics {
+  pigmentation: number;
+  pores: number;
+  wrinkles: number;
+  sebum: number;
+  uv_damage: number;
+  moisture: number; // higher = better hydrated
+}
+
+export interface SkinAnalysis {
+  id: string;
+  patient_id: string;
+  taken_at: string;
+  metrics: SkinMetrics;
+  /** optional scan sheet photographed/uploaded from the MARK-VU station */
+  scan_asset_id?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export const SKIN_METRIC_LABELS: Array<{
+  key: keyof SkinMetrics;
+  label: string;
+  /** true when a HIGH value is good (moisture); everything else is a concern scale */
+  positive?: boolean;
+}> = [
+  { key: "pigmentation", label: "Pigmentation" },
+  { key: "pores", label: "Pores" },
+  { key: "wrinkles", label: "Wrinkles" },
+  { key: "sebum", label: "Sebum" },
+  { key: "uv_damage", label: "UV damage" },
+  { key: "moisture", label: "Moisture", positive: true },
+];
+
 /** The standing disclaimer burned into every AI output and report. */
 export const AI_DISCLAIMER =
-  "Illustrative AI visualization, not a guarantee of surgical outcome.";
+  "Illustrative preview of an expected outcome, not a guarantee of results.";
 
 export const CONSENT_TEXT_VERSION = "v1.0 (2026-07)";
 

@@ -82,10 +82,10 @@ const PAINS = [
 ];
 const INTERESTS = [
   { v: "vybero", label: "AI call answering & booking (VYBERO)" },
-  { v: "contour_3d", label: "patient database & 3D consult (Contour AI)" },
-  { v: "ai_report", label: "free AI aesthetic report" },
-  { v: "website_branding", label: "website & branding" },
-  { v: "chorus_ugc", label: "UGC & influencer marketing (Chorus)" },
+  { v: "contour_3d", label: "clinic OS: patients, POS & 3D consult" },
+  { v: "ai_report", label: "free AI skin assessment reports" },
+  { v: "website_branding", label: "EXOMERE treatments at my clinic" },
+  { v: "chorus_ugc", label: "co-branded marketing with CAPTURE" },
 ];
 
 function TapChip({
@@ -302,7 +302,7 @@ export default function PortalPage() {
     <span className="portal-wordmark">{brandName}</span>
   ) : (
     <span className="portal-wordmark">
-      Con<i>tour&nbsp;AI</i>
+      CAPTURE <i>partners</i>
     </span>
   );
 
@@ -319,7 +319,7 @@ export default function PortalPage() {
       <div className="portal-stage portal-center">
         <div className="portal-card portal-msg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/contour-mark-192.png" alt="" width={56} height={56} />
+          <img src="/brand/capture-logo-black.png" alt="" width={132} height={34} style={{ objectFit: "contain", margin: "0 auto" }} />
           <h1>this link is not active</h1>
           <p>
             it may have expired or been replaced. message us on WhatsApp and
@@ -360,28 +360,25 @@ export default function PortalPage() {
             proposal tailored to your clinic.
           </p>
 
-          {/* the product they can buy */}
+          {/* the partnership they can join */}
           <div className="portal-product">
             <div className="portal-product-head">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/contour-mark-192.png" alt="" />
-              <span className="portal-wordmark">
-                Con<i>tour&nbsp;AI</i>
-              </span>
+              <img src="/brand/capture-logo-black.png" alt="" style={{ width: 110, height: 28, objectFit: "contain" }} />
             </div>
             <p>
-              the aesthetic clinic operating system: 3D consultations, AI
-              before &amp; after previews, free assessment reports and an AI
-              receptionist that books your calls. available for your clinic,
-              included in your proposal.
+              the CAPTURE partner network: EXOMERE &amp; MitoRedLight
+              treatments, the Clinic OS with bookings, point of sale and
+              review monitoring, and an AI receptionist that answers your
+              calls. tailored for your clinic, included in your proposal.
             </p>
           </div>
 
-          {/* the company behind it */}
+          {/* the brand behind it */}
           <div className="portal-madeby">
-            <span>a product by</span>
+            <span>the intimate science of beauty</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/techgis-mark-256.png" alt="TechGIS" />
+            <img src="/brand/capture-logo-black.png" alt="CAPTURE" />
           </div>
         </div>
       </div>
@@ -414,11 +411,11 @@ export default function PortalPage() {
             please take a moment to fill out this form.
           </p>
           <p className="pi-line pi-line-3">
-            all of your data is protected and secured by TechGIS.
+            all of your data is protected and secured by CAPTURE.
           </p>
           <div className="pi-logo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/techgis-mark-256.png" alt="TechGIS" />
+            <img src="/brand/capture-logo-black.png" alt="CAPTURE" />
           </div>
           <span className="pi-skip">tap to skip</span>
         </div>
@@ -427,7 +424,7 @@ export default function PortalPage() {
       <main className="portal-shell">
         <header className="portal-head">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/contour-mark-192.png" alt="" width={44} height={44} />
+          <img src="/brand/capture-logo-black.png" alt="" width={118} height={30} style={{ objectFit: "contain" }} />
           {wordmark}
         </header>
 
@@ -435,7 +432,7 @@ export default function PortalPage() {
           let&rsquo;s build something made for your clinic.
         </h1>
         <p className="portal-sub">
-          it was a pleasure meeting you at the ipaac conference. this quick
+          thank you for your interest in partnering with CAPTURE. this quick
           form helps us tailor pricing and a proposal exactly to you. it takes
           about two minutes.
         </p>
@@ -600,7 +597,7 @@ export default function PortalPage() {
             checked={form.consent}
             onChange={(e) => set("consent", e.target.checked)}
           />
-          <span>yes, TechGIS can contact me about my proposal.</span>
+          <span>yes, CAPTURE can contact me about my proposal.</span>
         </label>
 
         {errorMsg && <p className="portal-error">{errorMsg}</p>}

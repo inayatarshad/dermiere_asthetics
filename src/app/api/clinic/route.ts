@@ -48,6 +48,12 @@ export async function PUT(req: NextRequest) {
     vyberoAgentId: patch.vyberoAgentId ?? current.vyberoAgentId,
     bookingUrl: patch.bookingUrl ?? current.bookingUrl,
     aiCaps: { ...current.aiCaps, ...(patch.aiCaps ?? {}) },
+    locations: patch.locations ?? current.locations,
+    taxRate:
+      typeof patch.taxRate === "number" && patch.taxRate >= 0 && patch.taxRate <= 40
+        ? patch.taxRate
+        : current.taxRate,
+    reviewIncentive: patch.reviewIncentive ?? current.reviewIncentive,
   };
   await saveClinicConfig(next);
   return NextResponse.json({ ok: true, config: next });

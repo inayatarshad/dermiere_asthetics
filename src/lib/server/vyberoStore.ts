@@ -1,5 +1,5 @@
-/**
- * VYBERO integration storage — the per-clinic appointment book + call log
+﻿/**
+ * VYBERO integration storage â€” the per-clinic appointment book + call log
  * the voice agent writes into and clinic screens sync from. Every function
  * is clinic-scoped: Postgres rows carry clinic_id and every query filters on
  * it; the Blob / dev-file fallbacks namespace their paths by clinic so one
@@ -12,7 +12,7 @@ import { put } from "@vercel/blob";
 import type { Appointment, ClinicHours, VyberoCall } from "@/lib/types";
 import { DEFAULT_CLINIC_HOURS } from "@/lib/types";
 import {
-  pgAvailable,
+  dbAvailable,
   pgListAppointments,
   pgListCalls,
   pgUpsertAppointment,
@@ -158,7 +158,7 @@ async function upsertInto<T extends { id: string }>(
 }
 
 export async function saveAppointment(clinicId: string, appt: Appointment): Promise<void> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       await pgUpsertAppointment(clinicId, appt.id, appt.start, appt.status, appt);
       return;
@@ -183,7 +183,7 @@ export async function saveAppointment(clinicId: string, appt: Appointment): Prom
 }
 
 export async function listAppointments(clinicId: string): Promise<Appointment[]> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       return await pgListAppointments<Appointment>(clinicId);
     } catch (err) {
@@ -211,7 +211,7 @@ export async function getAppointment(
 }
 
 export async function saveCall(clinicId: string, call: VyberoCall): Promise<void> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       await pgUpsertCall(clinicId, call.id, call.started_at, call);
       return;
@@ -236,7 +236,7 @@ export async function saveCall(clinicId: string, call: VyberoCall): Promise<void
 }
 
 export async function listCalls(clinicId: string): Promise<VyberoCall[]> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       return await pgListCalls<VyberoCall>(clinicId, CALLS_CAP);
     } catch (err) {

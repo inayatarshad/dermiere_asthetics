@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { Jost, Fraunces } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// CAPTURE brand face — geometric sans, matches capture.cc
+const jost = Jost({
+  variable: "--font-jost",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
 });
 
-// Serif display for printed clinic artefacts (assessment letterhead)
+// Serif display for printed clinic artefacts (invoice + assessment letterhead)
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
@@ -17,39 +18,38 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.PUBLIC_BASE_URL || "https://aesthetics-mu.vercel.app"
+    process.env.PUBLIC_BASE_URL || "https://capture-clinic.vercel.app"
   ),
-  title: "Contour AI · Aesthetic Clinic OS",
+  title: "CAPTURE · The Intimate Science of Beauty",
   description:
-    "The consultation, made visible. 3D face canvas, AI before/after visualization, aesthetic assessment reports and treatment plans - by TechGIS.",
+    "CAPTURE Clinic OS — bookings, MARK-VU skin analysis, before/after visualization, point of sale, reviews and the Capture Circle. Advanced Korean skincare & needle-free regenerative treatments, Lahore.",
   openGraph: {
-    title: "Contour AI",
+    title: "CAPTURE · Clinic OS",
     description:
-      "The consultation, made visible. 3D face canvas, AI before/after and aesthetic assessment reports - by TechGIS.",
-    siteName: "Contour AI",
+      "The intimate science of beauty. EXOMERE & MitoRedLight therapy — bookings, visualization, reviews and the Capture Circle.",
+    siteName: "CAPTURE",
     type: "website",
     images: [
       {
         // JPEG: WhatsApp's scraper is far more reliable with small JPEGs
-        // than with PNGs; 64KB scrapes instantly on any connection
         url: "/og-card.jpg",
         width: 1200,
         height: 630,
         type: "image/jpeg",
-        alt: "Contour AI - The consultation, made visible. By TechGIS.",
+        alt: "CAPTURE — The intimate science of beauty.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Contour AI",
-    description: "The consultation, made visible. By TechGIS.",
+    title: "CAPTURE · Clinic OS",
+    description: "The intimate science of beauty.",
     images: ["/og-card.jpg"],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#E6FAF5",
+  themeColor: "#F9F3E4",
   width: "device-width",
   initialScale: 1,
 };
@@ -62,7 +62,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${jost.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-stage">{children}</body>
     </html>

@@ -1,42 +1,44 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 /* ============================================================
-   STAR FIGHTER — Glassmorphic Mint design system
-   Tokens sourced from knowledge base / 08_design-system.md
+   CAPTURE — Noir & Champagne design system
+   The intimate science of beauty: ivory stage, warm charcoal ink,
+   champagne-gold accent, Jost type. Token NAMES keep the engine's
+   legacy "mint" prefix so 100+ component classes retune from here.
    ============================================================ */
 
 :root {
-  /* Mint / brand */
-  --mint-500: #34d3b0;
-  --mint-400: #58dcc0;
-  --mint-300: #8be8d5;
-  --mint-200: #bff2e7;
-  --mint-100: #e6faf5;
+  /* Champagne gold / brand accent (legacy "mint" token names) */
+  --mint-500: #C4A15A;
+  --mint-400: #D4B878;
+  --mint-300: #E3CD9C;
+  --mint-200: #F0E3C4;
+  --mint-100: #F9F3E4;
 
   /* Base / neutrals */
   --white: #ffffff;
-  --off-white: #f6fbfa;
-  --ink-900: #0e2a26;
-  --ink-700: #35514c;
-  --ink-400: #8aa39d;
+  --off-white: #FBF8F1;
+  --ink-900: #1C1A16;
+  --ink-700: #4A443A;
+  --ink-400: #9A927F;
 
   /* Glass */
   --glass-fill: rgba(255, 255, 255, 0.55);
   --glass-border: rgba(255, 255, 255, 0.65);
-  --glass-shadow: rgba(20, 80, 70, 0.12);
+  --glass-shadow: rgba(70, 60, 40, 0.12);
 
-  /* Gradient background (the mint light) */
+  /* Gradient background (warm ivory light) */
   --bg-gradient: radial-gradient(
     1200px 800px at 20% 10%,
-    #e6faf5 0%,
-    #f6fbfa 45%,
-    #eaf6f3 100%
+    #F9F3E4 0%,
+    #FBF8F1 45%,
+    #F5F0E3 100%
   );
 
   /* States */
-  --success: #34d3b0;
-  --warning: #e7b549;
-  --danger: #e06a6a;
+  --success: #6E9F70;
+  --warning: #B8862F;
+  --danger: #C86060;
 }
 
 @theme inline {
@@ -52,10 +54,10 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+  --font-sans: var(--font-jost), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", sans-serif;
-  --radius-card: 20px;
-  --radius-input: 12px;
+  --radius-card: 14px;
+  --radius-input: 10px;
 }
 
 html {
@@ -67,12 +69,12 @@ body {
   background: var(--bg-gradient);
   background-attachment: fixed;
   color: var(--ink-900);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jost), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.005em;
 }
 
-/* Ambient mint glow blobs behind everything */
+/* Ambient champagne glow blobs behind everything */
 .bg-stage::before,
 .bg-stage::after {
   content: "";
@@ -89,8 +91,8 @@ body {
   top: -120px;
   background: radial-gradient(
     circle,
-    rgba(52, 211, 176, 0.22),
-    rgba(52, 211, 176, 0)
+    rgba(196, 161, 90, 0.22),
+    rgba(196, 161, 90, 0)
   );
 }
 .bg-stage::after {
@@ -100,8 +102,8 @@ body {
   bottom: -200px;
   background: radial-gradient(
     circle,
-    rgba(139, 232, 213, 0.28),
-    rgba(139, 232, 213, 0)
+    rgba(212, 184, 120, 0.28),
+    rgba(212, 184, 120, 0)
   );
 }
 
@@ -118,7 +120,7 @@ body {
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid var(--glass-border);
-  border-radius: 20px;
+  border-radius: 14px;
   box-shadow: 0 8px 32px var(--glass-shadow);
 }
 
@@ -132,7 +134,7 @@ body {
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.75);
-  border-radius: 20px;
+  border-radius: 14px;
   box-shadow: 0 8px 32px var(--glass-shadow);
 }
 
@@ -141,8 +143,8 @@ body {
   backdrop-filter: blur(14px) saturate(130%);
   -webkit-backdrop-filter: blur(14px) saturate(130%);
   border: 1px solid rgba(255, 255, 255, 0.55);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(20, 80, 70, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(70, 60, 40, 0.08);
 }
 
 .card-hover {
@@ -152,7 +154,7 @@ body {
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 40px rgba(20, 80, 70, 0.16);
+  box-shadow: 0 14px 40px rgba(70, 60, 40, 0.16);
 }
 
 /* ------------------------------------------------------------
@@ -165,7 +167,8 @@ body {
   gap: 0.5rem;
   font-weight: 500;
   font-size: 0.9375rem;
-  border-radius: 9999px;
+  letter-spacing: 0.02em;
+  border-radius: 12px;
   padding: 0.625rem 1.375rem;
   transition:
     transform 0.15s ease-out,
@@ -185,13 +188,13 @@ body {
 }
 
 .btn-primary {
-  background: var(--mint-500);
-  color: #ffffff;
-  box-shadow: 0 6px 20px rgba(52, 211, 176, 0.35);
+  background: var(--ink-900);
+  color: #F6EBD3;
+  box-shadow: 0 6px 20px rgba(28, 26, 22, 0.28);
 }
 .btn-primary:hover:not(:disabled) {
-  background: #2cc4a2;
-  box-shadow: 0 8px 28px rgba(52, 211, 176, 0.48);
+  background: #2E2A22;
+  box-shadow: 0 8px 28px rgba(196, 161, 90, 0.45);
   transform: translateY(-1px);
 }
 .btn-primary:active:not(:disabled) {
@@ -204,11 +207,11 @@ body {
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.7);
   color: var(--ink-900);
-  box-shadow: 0 4px 16px rgba(20, 80, 70, 0.1);
+  box-shadow: 0 4px 16px rgba(70, 60, 40, 0.1);
 }
 .btn-secondary:hover:not(:disabled) {
   border-color: var(--mint-400);
-  box-shadow: 0 6px 20px rgba(52, 211, 176, 0.2);
+  box-shadow: 0 6px 20px rgba(196, 161, 90, 0.2);
   transform: translateY(-1px);
 }
 
@@ -217,7 +220,7 @@ body {
   color: var(--ink-700);
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(52, 211, 176, 0.1);
+  background: rgba(196, 161, 90, 0.1);
   color: var(--ink-900);
 }
 
@@ -252,7 +255,7 @@ body {
   padding: 0.7rem 1rem;
   font-size: 0.9375rem;
   color: var(--ink-900);
-  box-shadow: inset 0 1px 3px rgba(20, 80, 70, 0.06);
+  box-shadow: inset 0 1px 3px rgba(70, 60, 40, 0.06);
   transition:
     border-color 0.2s ease-out,
     box-shadow 0.2s ease-out;
@@ -264,13 +267,13 @@ body {
 .input:focus {
   border-color: var(--mint-400);
   box-shadow:
-    inset 0 1px 3px rgba(20, 80, 70, 0.06),
-    0 0 0 3px rgba(52, 211, 176, 0.22);
+    inset 0 1px 3px rgba(70, 60, 40, 0.06),
+    0 0 0 3px rgba(196, 161, 90, 0.22);
 }
 
 select.input {
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238AA39D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239A927F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.85rem center;
   background-size: 1em;
@@ -308,7 +311,7 @@ select.input {
   border-color: var(--mint-300);
 }
 .chip-active {
-  background: rgba(52, 211, 176, 0.16);
+  background: rgba(196, 161, 90, 0.16);
   border-color: var(--mint-400);
   color: var(--ink-900);
 }
@@ -317,7 +320,7 @@ select.input {
 }
 
 /* ------------------------------------------------------------
-   The star control — procedure slider
+   The star control â€” procedure slider
    ------------------------------------------------------------ */
 input[type="range"].mint-slider {
   -webkit-appearance: none;
@@ -329,8 +332,8 @@ input[type="range"].mint-slider {
     to right,
     var(--mint-500) 0%,
     var(--mint-500) var(--fill, 50%),
-    rgba(14, 42, 38, 0.1) var(--fill, 50%),
-    rgba(14, 42, 38, 0.1) 100%
+    rgba(28, 26, 22, 0.1) var(--fill, 50%),
+    rgba(28, 26, 22, 0.1) 100%
   );
   outline: none;
   cursor: pointer;
@@ -344,15 +347,15 @@ input[type="range"].mint-slider::-webkit-slider-thumb {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow:
-    0 2px 10px rgba(20, 80, 70, 0.25),
-    0 0 0 4px rgba(52, 211, 176, 0.15);
+    0 2px 10px rgba(70, 60, 40, 0.25),
+    0 0 0 4px rgba(196, 161, 90, 0.15);
   transition: box-shadow 0.15s ease-out, transform 0.15s ease-out;
 }
 input[type="range"].mint-slider::-webkit-slider-thumb:hover {
   transform: scale(1.08);
   box-shadow:
-    0 3px 14px rgba(20, 80, 70, 0.3),
-    0 0 0 6px rgba(52, 211, 176, 0.22);
+    0 3px 14px rgba(70, 60, 40, 0.3),
+    0 0 0 6px rgba(196, 161, 90, 0.22);
 }
 input[type="range"].mint-slider::-moz-range-thumb {
   width: 22px;
@@ -361,8 +364,8 @@ input[type="range"].mint-slider::-moz-range-thumb {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow:
-    0 2px 10px rgba(20, 80, 70, 0.25),
-    0 0 0 4px rgba(52, 211, 176, 0.15);
+    0 2px 10px rgba(70, 60, 40, 0.25),
+    0 0 0 4px rgba(196, 161, 90, 0.15);
   cursor: pointer;
 }
 input[type="range"].mint-slider::-moz-range-track {
@@ -379,7 +382,7 @@ input[type="range"].mint-slider::-moz-range-track {
   width: 46px;
   height: 26px;
   border-radius: 9999px;
-  background: rgba(14, 42, 38, 0.14);
+  background: rgba(28, 26, 22, 0.14);
   transition: background 0.2s ease-out;
   cursor: pointer;
   flex-shrink: 0;
@@ -394,7 +397,7 @@ input[type="range"].mint-slider::-moz-range-track {
   height: 20px;
   border-radius: 9999px;
   background: #fff;
-  box-shadow: 0 2px 6px rgba(20, 80, 70, 0.25);
+  box-shadow: 0 2px 6px rgba(70, 60, 40, 0.25);
   transition: transform 0.2s ease-out;
 }
 .toggle[aria-checked="true"] {
@@ -441,8 +444,8 @@ input[type="range"].mint-slider::-moz-range-track {
 }
 
 @keyframes pulse-mint {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 176, 0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(52, 211, 176, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 161, 90, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(196, 161, 90, 0); }
 }
 .pulse-mint {
   animation: pulse-mint 2s infinite;
@@ -453,7 +456,7 @@ input[type="range"].mint-slider::-moz-range-track {
 }
 
 /* ------------------------------------------------------------
-   Scrollbars — thin & minty
+   Scrollbars â€” thin & minty
    ------------------------------------------------------------ */
 ::-webkit-scrollbar {
   width: 8px;
@@ -463,11 +466,11 @@ input[type="range"].mint-slider::-moz-range-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(52, 211, 176, 0.35);
+  background: rgba(196, 161, 90, 0.35);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(52, 211, 176, 0.55);
+  background: rgba(196, 161, 90, 0.55);
 }
 
 /* ------------------------------------------------------------
@@ -544,7 +547,7 @@ input[type="range"].mint-slider::-moz-range-track {
 }
 
 /* ============================================================
-   REPORT — glassmorphic mint sheets (07_report-export.md).
+   REPORT â€” glassmorphic mint sheets (07_report-export.md).
    Pre-composed opaque glass: no backdrop-filter, so print/PDF
    output matches the screen exactly.
    ============================================================ */
@@ -563,11 +566,11 @@ input[type="range"].mint-slider::-moz-range-track {
   flex-shrink: 0;
   border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 18px 60px rgba(20, 80, 70, 0.18);
+  box-shadow: 0 18px 60px rgba(70, 60, 40, 0.18);
   background:
-    radial-gradient(560px 420px at 12% 6%, #dff7f0 0%, rgba(223, 247, 240, 0) 60%),
-    radial-gradient(520px 460px at 92% 96%, #e2f8f2 0%, rgba(226, 248, 242, 0) 55%),
-    linear-gradient(160deg, #f6fbfa 0%, #eef9f5 55%, #f2faf7 100%);
+    radial-gradient(560px 420px at 12% 6%, #F5EEDD 0%, rgba(223, 247, 240, 0) 60%),
+    radial-gradient(520px 460px at 92% 96%, #F7F1E3 0%, rgba(226, 248, 242, 0) 55%),
+    linear-gradient(160deg, #FBF8F1 0%, #F6F1E5 55%, #F9F5EC 100%);
   padding: 16mm 15mm 12mm;
   display: flex;
   flex-direction: column;
@@ -588,21 +591,21 @@ input[type="range"].mint-slider::-moz-range-track {
   height: 380px;
   right: -110px;
   top: -90px;
-  background: radial-gradient(circle, rgba(52, 211, 176, 0.2) 0%, rgba(52, 211, 176, 0) 68%);
+  background: radial-gradient(circle, rgba(196, 161, 90, 0.2) 0%, rgba(196, 161, 90, 0) 68%);
 }
 .rc-orb-2 {
   width: 460px;
   height: 460px;
   left: -160px;
   bottom: -140px;
-  background: radial-gradient(circle, rgba(139, 232, 213, 0.32) 0%, rgba(139, 232, 213, 0) 66%);
+  background: radial-gradient(circle, rgba(212, 184, 120, 0.32) 0%, rgba(212, 184, 120, 0) 66%);
 }
 .rc-orb-3 {
   width: 190px;
   height: 190px;
   left: 26%;
   top: 30%;
-  background: radial-gradient(circle, rgba(191, 242, 231, 0.45) 0%, rgba(191, 242, 231, 0) 70%);
+  background: radial-gradient(circle, rgba(240, 227, 196, 0.45) 0%, rgba(240, 227, 196, 0) 70%);
 }
 .rc-header {
   display: flex;
@@ -624,7 +627,7 @@ input[type="range"].mint-slider::-moz-range-track {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 22px rgba(52, 211, 176, 0.45);
+  box-shadow: 0 8px 22px rgba(196, 161, 90, 0.45);
 }
 .rc-mark svg {
   width: 22px;
@@ -672,8 +675,8 @@ input[type="range"].mint-slider::-moz-range-track {
   font-size: 14px;
   font-weight: 500;
   color: var(--ink-900);
-  background: rgba(52, 211, 176, 0.16);
-  border: 1px solid rgba(52, 211, 176, 0.4);
+  background: rgba(196, 161, 90, 0.16);
+  border: 1px solid rgba(196, 161, 90, 0.4);
   border-radius: 9999px;
   padding: 8px 22px;
 }
@@ -695,7 +698,7 @@ input[type="range"].mint-slider::-moz-range-track {
   padding: 14px 20px;
   font-size: 13px;
   color: var(--ink-700);
-  box-shadow: 0 6px 24px rgba(20, 80, 70, 0.1);
+  box-shadow: 0 6px 24px rgba(70, 60, 40, 0.1);
 }
 .rc-page {
   font-size: 11px;
@@ -751,7 +754,7 @@ input[type="range"].mint-slider::-moz-range-track {
   );
   border: 1px solid rgba(255, 255, 255, 0.92);
   border-radius: 18px;
-  box-shadow: 0 6px 24px rgba(20, 80, 70, 0.09);
+  box-shadow: 0 6px 24px rgba(70, 60, 40, 0.09);
   padding: 20px 22px;
   margin-bottom: 14px;
 }
@@ -788,13 +791,13 @@ input[type="range"].mint-slider::-moz-range-track {
   font-weight: 500;
   color: var(--ink-700);
   background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(20, 80, 70, 0.1);
+  border: 1px solid rgba(70, 60, 40, 0.1);
   border-radius: 9999px;
   padding: 5px 12px;
 }
 .rb-chip-mint {
-  background: rgba(52, 211, 176, 0.15);
-  border-color: rgba(52, 211, 176, 0.4);
+  background: rgba(196, 161, 90, 0.15);
+  border-color: rgba(196, 161, 90, 0.4);
   color: var(--ink-900);
 }
 .rb-ba-grid {
@@ -809,10 +812,10 @@ input[type="range"].mint-slider::-moz-range-track {
   aspect-ratio: 4 / 4.6;
   background: var(--mint-100);
   border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 8px 26px rgba(20, 80, 70, 0.14);
+  box-shadow: 0 8px 26px rgba(70, 60, 40, 0.14);
 }
 .rb-photo-after {
-  border-color: rgba(52, 211, 176, 0.55);
+  border-color: rgba(196, 161, 90, 0.55);
 }
 .rb-photo img {
   width: 100%;
@@ -826,12 +829,12 @@ input[type="range"].mint-slider::-moz-range-track {
   font-size: 11px;
   font-weight: 500;
   color: #fff;
-  background: rgba(14, 42, 38, 0.55);
+  background: rgba(28, 26, 22, 0.55);
   border-radius: 9999px;
   padding: 4px 12px;
 }
 .rb-photo-tag-mint {
-  background: rgba(44, 196, 162, 0.92);
+  background: rgba(176, 143, 76, 0.92);
 }
 .rb-photo-empty {
   display: flex;
@@ -963,7 +966,7 @@ input[type="range"].mint-slider::-moz-range-track {
   color: var(--ink-400);
   letter-spacing: 0.08em;
   padding-top: 10px;
-  border-top: 1px solid rgba(20, 80, 70, 0.08);
+  border-top: 1px solid rgba(70, 60, 40, 0.08);
   margin-top: 10px;
 }
 
@@ -983,7 +986,7 @@ input[type="range"].mint-slider::-moz-range-track {
   object-fit: cover;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4px 14px rgba(20, 80, 70, 0.12);
+  box-shadow: 0 4px 14px rgba(70, 60, 40, 0.12);
 }
 .cp-caption {
   margin-top: 8px;
@@ -1062,7 +1065,7 @@ input[type="range"].mint-slider::-moz-range-track {
 }
 
 /* ------------------------------------------------------------
-   Print — the report must export pixel-identical.
+   Print â€” the report must export pixel-identical.
    backdrop-filter is unreliable in print engines, so report
    surfaces use pre-composed opaque fills (see report styles).
    ------------------------------------------------------------ */
@@ -1103,13 +1106,13 @@ input[type="range"].mint-slider::-moz-range-track {
 }
 
 /* ============================================================
-   Facial Aesthetic Assessment (ar-*) — printed clinic artefact.
+   Facial Aesthetic Assessment (ar-*) â€” printed clinic artefact.
    Flat white letterhead: Fraunces display, Inter body, hairline
    rules, mint as the single restrained accent. No glass, no
    cards, no dashboard furniture on paper.
    ============================================================ */
 .ar-sheet {
-  font-family: var(--font-inter), ui-sans-serif, sans-serif;
+  font-family: var(--font-jost), ui-sans-serif, sans-serif;
   color: var(--ink-900);
   display: flex;
   flex-direction: column;
@@ -1122,7 +1125,7 @@ input[type="range"].mint-slider::-moz-range-track {
   align-items: flex-end;
   gap: 24px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(14, 42, 38, 0.14);
+  border-bottom: 1px solid rgba(28, 26, 22, 0.14);
   margin-bottom: 14px;
 }
 .ar-head-brand {
@@ -1188,7 +1191,7 @@ input[type="range"].mint-slider::-moz-range-track {
   object-position: center 20%;
   display: block;
   border-radius: 10px;
-  border: 1px solid rgba(14, 42, 38, 0.1);
+  border: 1px solid rgba(28, 26, 22, 0.1);
 }
 .ar-fig-pending {
   display: flex;
@@ -1196,7 +1199,7 @@ input[type="range"].mint-slider::-moz-range-track {
   justify-content: center;
   font-size: 11px;
   color: var(--ink-400);
-  background: rgba(14, 42, 38, 0.03);
+  background: rgba(28, 26, 22, 0.03);
 }
 .ar-figures figcaption {
   font-size: 9px;
@@ -1277,14 +1280,14 @@ input[type="range"].mint-slider::-moz-range-track {
   color: var(--ink-400);
   font-weight: 500;
   padding: 0 8px 4px 0;
-  border-bottom: 1px solid rgba(14, 42, 38, 0.14);
+  border-bottom: 1px solid rgba(28, 26, 22, 0.14);
 }
 .ar-table thead th.ar-th-align {
   width: 92px;
 }
 .ar-table tbody td {
   padding: 3.5px 8px 3.5px 0;
-  border-bottom: 1px solid rgba(14, 42, 38, 0.06);
+  border-bottom: 1px solid rgba(28, 26, 22, 0.06);
   color: var(--ink-900);
   vertical-align: middle;
 }
@@ -1335,7 +1338,7 @@ input[type="range"].mint-slider::-moz-range-track {
   height: 38px;
   object-fit: cover;
   border-radius: 7px;
-  border: 1px solid rgba(14, 42, 38, 0.1);
+  border: 1px solid rgba(28, 26, 22, 0.1);
   display: block;
 }
 .ar-fig-num {
@@ -1434,7 +1437,7 @@ input[type="range"].mint-slider::-moz-range-track {
 .ar-signoff {
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid rgba(14, 42, 38, 0.14);
+  border-top: 1px solid rgba(28, 26, 22, 0.14);
 }
 .ar-sign-lines {
   display: flex;
@@ -1450,7 +1453,7 @@ input[type="range"].mint-slider::-moz-range-track {
 .ar-sign-rule {
   display: block;
   width: 130px;
-  border-bottom: 1px solid rgba(14, 42, 38, 0.35);
+  border-bottom: 1px solid rgba(28, 26, 22, 0.35);
   height: 16px;
 }
 .ar-sign-lines span:not(.ar-sign-rule) {
@@ -1486,11 +1489,11 @@ input[type="range"].mint-slider::-moz-range-track {
 /* ---- doctor edit mode ---- */
 .ar-editable {
   outline: none;
-  border-bottom: 1px dashed rgba(52, 211, 176, 0.7);
+  border-bottom: 1px dashed rgba(196, 161, 90, 0.7);
   cursor: text;
 }
 .ar-editable:focus {
-  background: rgba(52, 211, 176, 0.08);
+  background: rgba(196, 161, 90, 0.08);
   border-bottom-color: var(--mint-500);
 }
 .ar-remove {
@@ -1552,7 +1555,7 @@ input[type="range"].mint-slider::-moz-range-track {
   display: block;
   height: 3px;
   border-radius: 2px;
-  background: rgba(14, 42, 38, 0.07);
+  background: rgba(28, 26, 22, 0.07);
   overflow: hidden;
   max-width: 150px;
 }
@@ -1594,15 +1597,15 @@ input[type="range"].mint-slider::-moz-range-track {
   font-size: 10px;
   font-weight: 500;
   color: var(--mint-500);
-  border: 1px dashed rgba(52, 211, 176, 0.55);
+  border: 1px dashed rgba(196, 161, 90, 0.55);
   border-radius: 999px;
   padding: 3px 12px;
 }
 .ar-add:hover {
-  background: rgba(52, 211, 176, 0.08);
+  background: rgba(196, 161, 90, 0.08);
 }
 /* ============================================================
-   Brand Discovery Portal (portal-*) — public, mobile-first,
+   Brand Discovery Portal (portal-*) â€” public, mobile-first,
    WhatsApp-tap friendly. Accent themeable per invite via
    --portal-accent (defaults to Contour mint).
    ============================================================ */
@@ -1611,9 +1614,9 @@ input[type="range"].mint-slider::-moz-range-track {
   min-height: 100vh;
   min-height: 100dvh;
   background:
-    radial-gradient(900px 500px at 15% -5%, rgba(52, 211, 176, 0.13), transparent 60%),
-    radial-gradient(700px 500px at 110% 20%, rgba(52, 211, 176, 0.09), transparent 55%),
-    #fbfefd;
+    radial-gradient(900px 500px at 15% -5%, rgba(196, 161, 90, 0.13), transparent 60%),
+    radial-gradient(700px 500px at 110% 20%, rgba(196, 161, 90, 0.09), transparent 55%),
+    #FDFBF6;
   color: var(--ink-900);
 }
 .portal-center {
@@ -1719,7 +1722,7 @@ input[type="range"].mint-slider::-moz-range-track {
   font-size: 16px; /* prevents iOS zoom-on-focus */
   padding: 12px 14px;
   border-radius: 13px;
-  border: 1.5px solid rgba(14, 42, 38, 0.12);
+  border: 1.5px solid rgba(28, 26, 22, 0.12);
   background: #ffffff;
   color: var(--ink-900);
   outline: none;
@@ -1758,7 +1761,7 @@ input[type="range"].mint-slider::-moz-range-track {
   min-height: 44px; /* thumb-friendly */
   padding: 10px 16px;
   border-radius: 14px;
-  border: 1.5px solid rgba(14, 42, 38, 0.12);
+  border: 1.5px solid rgba(28, 26, 22, 0.12);
   background: #ffffff;
   font-size: 14.5px;
   color: var(--ink-900);
@@ -1820,7 +1823,7 @@ input[type="range"].mint-slider::-moz-range-track {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-top: 1px solid rgba(14, 42, 38, 0.08);
+  border-top: 1px solid rgba(28, 26, 22, 0.08);
   display: flex;
   align-items: center;
   gap: 14px;
@@ -1830,7 +1833,7 @@ input[type="range"].mint-slider::-moz-range-track {
   flex: 1;
   height: 6px;
   border-radius: 999px;
-  background: rgba(14, 42, 38, 0.08);
+  background: rgba(28, 26, 22, 0.08);
   overflow: hidden;
 }
 .portal-progress span {
@@ -1861,9 +1864,9 @@ input[type="range"].mint-slider::-moz-range-track {
 /* status cards */
 .portal-card {
   background: #ffffff;
-  border: 1px solid rgba(14, 42, 38, 0.08);
+  border: 1px solid rgba(28, 26, 22, 0.08);
   border-radius: 22px;
-  box-shadow: 0 18px 50px rgba(14, 42, 38, 0.08);
+  box-shadow: 0 18px 50px rgba(28, 26, 22, 0.08);
   padding: 36px 30px;
   max-width: 420px;
 }
@@ -1922,7 +1925,7 @@ input[type="range"].mint-slider::-moz-range-track {
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  border: 3px solid rgba(14, 42, 38, 0.1);
+  border: 3px solid rgba(28, 26, 22, 0.1);
   border-top-color: var(--mint-500);
   animation: portal-spin 0.8s linear infinite;
 }
@@ -1938,8 +1941,8 @@ input[type="range"].mint-slider::-moz-range-track {
   inset: 0;
   z-index: 60;
   background:
-    radial-gradient(700px 420px at 50% 30%, rgba(52, 211, 176, 0.14), transparent 65%),
-    #fbfefd;
+    radial-gradient(700px 420px at 50% 30%, rgba(196, 161, 90, 0.14), transparent 65%),
+    #FDFBF6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2060,7 +2063,7 @@ input[type="range"].mint-slider::-moz-range-track {
 .portal-product {
   margin-top: 26px;
   padding-top: 20px;
-  border-top: 1px solid rgba(14, 42, 38, 0.09);
+  border-top: 1px solid rgba(28, 26, 22, 0.09);
 }
 .portal-product-head {
   display: flex;

@@ -7,14 +7,7 @@
  * box. Real clinics are provisioned clean (one admin, no sample data).
  */
 
-import type {
-  ClinicConfig,
-  ClinicHours,
-  Patient,
-  Appointment,
-  VyberoCall,
-  Role,
-} from "@/lib/types";
+import type { ClinicConfig, Role } from "@/lib/types";
 import { DEFAULT_CLINIC_HOURS } from "@/lib/types";
 import { hashPassword, verifyPassword } from "./auth";
 import {
@@ -30,13 +23,25 @@ import {
   pgReplaceRecords,
   pgUpsertAppointment,
   pgUpsertCall,
+  pgUpsertReviewInvite,
+  pgUpsertReview,
   type UserRow,
 } from "./db";
+import {
+  CAPTURE_BRAND,
+  CAPTURE_LOCATIONS,
+  CAPTURE_TREATMENTS,
+} from "@/lib/capture/kb";
+import {
+  CAPTURE_STAFF,
+  CAPTURE_DEMO_PASSWORD,
+  buildCaptureCast,
+} from "@/lib/capture/cast";
 
 const uid = () => crypto.randomUUID();
 
-export const DEMO_CLINIC_SLUG = "meridian";
-const DEMO_PASSWORD = "contour";
+export const DEMO_CLINIC_SLUG = "capture";
+const DEMO_PASSWORD = CAPTURE_DEMO_PASSWORD;
 
 // ---------------------------------------------------------------------
 // Config defaults + shape
@@ -61,6 +66,9 @@ export function defaultConfig(base: {
     toxinPricePerUnit: 1500,
     aiCaps: { generations: 0, assessments: 0 },
     demo: base.demo ?? false,
+    locations: [],
+    taxRate: 16,
+    reviewIncentive: { kind: "discount", value: 10, validityDays: 60 },
   };
 }
 
@@ -96,6 +104,9 @@ function normalizeConfig(
     menu: payload?.menu ?? d.menu,
     prices: payload?.prices ?? d.prices,
     aiCaps: { ...d.aiCaps, ...(payload?.aiCaps ?? {}) },
+    locations: payload?.locations ?? d.locations,
+    taxRate: payload?.taxRate ?? d.taxRate,
+    reviewIncentive: payload?.reviewIncentive ?? d.reviewIncentive,
   };
 }
 
@@ -235,9 +246,11 @@ export async function provisionClinic(
 }
 
 /**
- * Seeds the demo clinic (Meridian) with three staff roles and a little
- * sample data, but only when the database has no clinics yet. Idempotent
- * and safe to call on every login attempt / bootstrap.
+ * Seeds the demo clinic (CAPTURE) with the full team and the complete
+ * demo story — patients, MARK-VU scans, appointments across all four
+ * locations, VYBERO calls, invoices, reviews and Capture Circle rewards —
+ * but only when the database has no clinics yet. Idempotent and safe to
+ * call on every login attempt / bootstrap.
  */
 let seedOnce: Promise<void> | null = null;
 export function ensureSeedClinic(): Promise<void> {
@@ -250,30 +263,50 @@ export function ensureSeedClinic(): Promise<void> {
       const config: ClinicConfig = {
         ...defaultConfig({
           id,
-          name: "Meridian Aesthetics",
+          name: CAPTURE_BRAND.name,
           slug: DEMO_CLINIC_SLUG,
           city: "Lahore",
           demo: true,
         }),
         branding: {
-          tagline: "Refined, natural-looking aesthetic medicine.",
-          phone: "+92 42 111 000 111",
-          email: "care@meridianaesthetics.pk",
-          address: "Gulberg III, Lahore",
-          brandColor: "#12b8a6",
+          tagline: CAPTURE_BRAND.tagline,
+          phone: CAPTURE_BRAND.whatsapp,
+          email: CAPTURE_BRAND.email,
+          address: CAPTURE_LOCATIONS[0].address + ", " + CAPTURE_LOCATIONS[0].city,
+          brandColor: "#C4A15A",
+          logoUrl: "/brand/capture-logo-black.png",
         },
+        hours: {
+          open: CAPTURE_BRAND.hours.open,
+          close: CAPTURE_BRAND.hours.close,
+          slot_min: 30,
+          days: [...CAPTURE_BRAND.hours.openDays],
+        },
+        menu: CAPTURE_TREATMENTS.map((t) => t.id),
+        prices: Object.fromEntries(
+          CAPTURE_TREATMENTS.map((t) => [t.id, t.pricePkr])
+        ),
+        locations: CAPTURE_LOCATIONS.map((l) => ({
+          id: l.id,
+          name: l.name,
+          short: l.short,
+          kind: l.kind,
+          doctor: l.doctor,
+          address: l.address,
+          area: l.area,
+          city: l.city,
+          phone: l.phone,
+          invoicePrefix: l.invoicePrefix,
+        })),
+        taxRate: 16,
+        reviewIncentive: { kind: "discount", value: 10, validityDays: 60 },
       };
       await saveClinicConfig(config);
 
-      const staff: Array<{ email: string; role: Role; name: string; title?: string }> = [
-        { email: "doctor@meridian.clinic", role: "doctor", name: "Dr. Ayesha Rahman", title: "Consultant Aesthetic Physician" },
-        { email: "frontdesk@meridian.clinic", role: "front_desk", name: "Sana Malik" },
-        { email: "admin@meridian.clinic", role: "admin", name: "Omar Farooq", title: "Clinic Administrator" },
-      ];
       const ids: Record<string, string> = {};
-      for (const s of staff) {
+      for (const s of CAPTURE_STAFF) {
         const userId = uid();
-        ids[s.role] = userId;
+        ids[s.key] = userId;
         await pgUpsertUser(
           userId,
           id,
@@ -285,7 +318,11 @@ export function ensureSeedClinic(): Promise<void> {
         );
       }
 
-      await seedDemoData(id, ids.doctor);
+      await seedDemoData(id, {
+        doctorId: ids.doctor,
+        doctorName: CAPTURE_STAFF[0].name,
+        frontDeskId: ids.frontdesk,
+      });
     })();
     seedOnce = seedOnce.catch((err) => {
       seedOnce = null;
@@ -295,71 +332,38 @@ export function ensureSeedClinic(): Promise<void> {
   return seedOnce;
 }
 
-/** A compact, image-free demo story so the demo clinic looks alive. */
-async function seedDemoData(clinicId: string, doctorId: string): Promise<void> {
-  const now = Date.now();
-  const iso = (offsetMs: number) => new Date(now + offsetMs).toISOString();
-  const day = 86_400_000;
+/** Writes the full CAPTURE demo story (built by capture/cast.ts). */
+async function seedDemoData(
+  clinicId: string,
+  staff: { doctorId: string; doctorName: string; frontDeskId: string }
+): Promise<void> {
+  const cast = buildCaptureCast(clinicId, staff, 16);
 
-  const patients: Patient[] = [
-    {
-      id: uid(), clinic_id: clinicId, name: "Mahnoor Baig", phone: "0300 8471234",
-      email: "mahnoor.b@gmail.com", age: 27, gender: "female", city: "Lahore",
-      language: "english", source: "social",
-      clinical_flags: { fitzpatrick: 3, prior_treatments: "None. First aesthetic consultation", allergies: "None known" },
-      created_at: iso(-2 * day),
-    },
-    {
-      id: uid(), clinic_id: clinicId, name: "Hassan Raza", phone: "0321 5567890",
-      age: 32, gender: "male", city: "Karachi", language: "english", source: "vibro",
-      clinical_flags: { fitzpatrick: 4 }, created_at: iso(-1 * day),
-    },
-    {
-      id: uid(), clinic_id: clinicId, name: "Zainab Qureshi", phone: "0333 2211004",
-      age: 24, gender: "female", city: "Islamabad", language: "english", source: "referral",
-      clinical_flags: { fitzpatrick: 3 }, created_at: iso(-5 * day),
-    },
-  ];
-  await pgReplaceRecords(
-    clinicId,
-    "patients",
-    patients.map((p) => ({ id: p.id, payload: p }))
-  );
+  const replace = (table: string, rows: Array<{ id: string }>) =>
+    pgReplaceRecords(
+      clinicId,
+      table,
+      rows.map((r) => ({ id: r.id, payload: r }))
+    );
 
-  const appts: Appointment[] = [
-    {
-      id: uid(), patient_id: patients[0].id, patient_name: "Mahnoor Baig", phone: "0300 8471234",
-      start: iso(2 * 3600_000), duration_min: 30, type: "consultation",
-      procedure_interest: "rhinoplasty", source: "front_desk", status: "confirmed",
-      created_at: iso(-day), updated_at: iso(-day),
-    },
-    {
-      id: uid(), patient_name: "Ali Hamza", phone: "0300 1122334",
-      start: iso(day + 3 * 3600_000), duration_min: 30, type: "consultation",
-      procedure_interest: "lip_filler", source: "vybero", status: "booked",
-      created_at: iso(-3600_000), updated_at: iso(-3600_000),
-    },
-  ];
-  for (const a of appts) {
+  await replace("patients", cast.patients);
+  await replace("consents", cast.consents);
+  await replace("assets", cast.assets);
+  await replace("consultations", cast.consultations);
+  await replace("invoices", cast.invoices);
+  await replace("rewards", cast.rewards);
+  await replace("skin_analyses", cast.skinAnalyses);
+
+  for (const a of cast.appointments) {
     await pgUpsertAppointment(clinicId, a.id, a.start, a.status, a);
   }
-
-  const topics = ["rhinoplasty", "lip_filler", "botox", "pricing", "aftercare"];
-  const outcomes: VyberoCall["outcome"][] = ["booked", "info", "callback", "booked", "info"];
-  for (let i = 0; i < 12; i++) {
-    const call: VyberoCall = {
-      id: uid(), started_at: iso(-i * 6 * 3600_000 - 3600_000),
-      duration_secs: 90 + ((i * 37) % 180), direction: "inbound",
-      caller_name: ["Ayesha", "Bilal", "Fatima", "Usman", "Hira"][i % 5],
-      caller_phone: `0300 12${(1000 + i).toString()}`,
-      language: i % 3 === 0 ? "urdu" : "english",
-      outcome: outcomes[i % outcomes.length],
-      topics: [topics[i % topics.length]],
-      questions: ["How much does it cost?", "What is the recovery time?"].slice(0, (i % 2) + 1),
-      summary: "Caller asked about the procedure and pricing; guided to booking.",
-      rating: 4 + (i % 2),
-    };
-    await pgUpsertCall(clinicId, call.id, call.started_at, call);
+  for (const c of cast.vyberoCalls) {
+    await pgUpsertCall(clinicId, c.id, c.started_at, c);
   }
-  void doctorId;
+  for (const inv of cast.reviewInvites) {
+    await pgUpsertReviewInvite(clinicId, inv.id, inv.token, inv.created_at, inv);
+  }
+  for (const r of cast.reviews) {
+    await pgUpsertReview(clinicId, r.id, r.created_at, r);
+  }
 }

@@ -277,26 +277,28 @@ export function StatusChip({ status }: { status: string }) {
 }
 
 /**
- * Brand lockup: the Contour mark (half face, half wireframe — transparent
- * PNG derived from the owner's master in Design Assets) + the wordmark
- * with its bold-Con / light-tour contrast.
+ * Brand lockup: the CAPTURE wordmark (official black logo from capture.cc)
+ * with a champagne-gold "Clinic OS" microtag so the operational product is
+ * distinguishable from the retail brand.
  */
 export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const dims =
-    size === "lg" ? "w-12 h-12" : size === "sm" ? "w-8 h-8" : "w-9 h-9";
-  const text =
-    size === "lg" ? "text-xl" : size === "sm" ? "text-sm" : "text-base";
+    size === "lg" ? "h-9" : size === "sm" ? "h-5" : "h-6";
+  const tag =
+    size === "lg" ? "text-[11px]" : size === "sm" ? "text-[8px]" : "text-[9px]";
   return (
-    <span className="inline-flex items-center gap-2 select-none">
+    <span className="inline-flex items-end gap-2 select-none">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/brand/contour-mark-192.png"
-        alt=""
-        className={`${dims} shrink-0`}
+        src="/brand/capture-logo-black.png"
+        alt="CAPTURE"
+        className={`${dims} w-auto shrink-0`}
         draggable={false}
       />
-      <span className={`font-semibold tracking-tight text-ink-900 ${text}`}>
-        Con<span className="font-light">tour</span>
+      <span
+        className={`${tag} font-medium uppercase tracking-[0.22em] text-[color:var(--mint-500)] pb-[2px]`}
+      >
+        Clinic OS
       </span>
     </span>
   );

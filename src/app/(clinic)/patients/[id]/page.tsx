@@ -28,6 +28,7 @@ import {
   Check,
   RefreshCcw,
   ScanSearch,
+  Sparkles,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useStore, useSessionUser, can, usePatientConsents } from "@/lib/store";
@@ -39,6 +40,7 @@ import { useAssetUrl } from "@/lib/hooks";
 import { GlassCard, EmptyState, StatusChip, Toggle, Chip, Modal, Spinner } from "@/components/ui";
 import { PatientAvatar } from "@/components/PatientAvatar";
 import { CameraCapture } from "@/components/CameraCapture";
+import { MarkVuPanel } from "@/components/MarkVuPanel";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: UserIcon },
@@ -203,6 +205,19 @@ export default function PatientProfilePage() {
             </button>
             <button
               className="btn btn-secondary"
+              onClick={() => router.push(`/visualize/${patient.id}`)}
+              disabled={!photographyConsent}
+              title={
+                photographyConsent
+                  ? "Red-light glow and body contour before/after previews"
+                  : "Photography consent required"
+              }
+            >
+              <Sparkles size={16} />
+              Visualization Studio
+            </button>
+            <button
+              className="btn btn-secondary"
               onClick={() => setCaptureOpen(true)}
               disabled={!photographyConsent}
               title={
@@ -332,6 +347,9 @@ export default function PatientProfilePage() {
               )}
             </dl>
           </GlassCard>
+
+          {/* MARK-VU intake scanner integration (§5.6) */}
+          <MarkVuPanel patientId={patient.id} />
 
           {latestConsult && (
             <GlassCard className="p-6 lg:col-span-2">

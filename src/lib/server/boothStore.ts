@@ -1,9 +1,9 @@
-/**
- * Booth inbox storage (T1) — the courier between a clinic's booth phone and
+﻿/**
+ * Booth inbox storage (T1) â€” the courier between a clinic's booth phone and
  * its desktop. Every item is clinic-scoped: Postgres rows carry clinic_id;
  * the Blob and dev-file fallbacks namespace their paths by clinic. Both the
  * phone (push) and the desktop (pull) are authenticated clinic sessions, so
- * scoping is by the caller's clinic_id — never a shared inbox.
+ * scoping is by the caller's clinic_id â€” never a shared inbox.
  *
  * Items expire after 24h (privacy) and are purged lazily on pull.
  */
@@ -12,7 +12,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync
 import { join } from "node:path";
 import { put, del, list, get } from "@vercel/blob";
 import {
-  pgAvailable,
+  dbAvailable,
   pgDeleteBoothItem,
   pgListBoothItems,
   pgUpsertBoothItem,
@@ -177,7 +177,7 @@ async function readBlobResponse(pathname: string, token?: string): Promise<Respo
 }
 
 /**
- * Same-origin streaming for the photo route — clinic-scoped: the path must
+ * Same-origin streaming for the photo route â€” clinic-scoped: the path must
  * live under this clinic's prefix, so one clinic cannot stream another's
  * booth photos even by guessing a path.
  */
@@ -279,7 +279,7 @@ export async function putBoothItem(
   itemBase: Omit<BoothItem, "photos">,
   photos: BoothPhotoIn[]
 ): Promise<void> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       const item: BoothItem = {
         ...itemBase,
@@ -307,7 +307,7 @@ export async function putBoothItem(
 }
 
 export async function listBoothItems(clinicId: string): Promise<BoothItem[]> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       return await pgListBoothItems<BoothItem>(clinicId, EXPIRY_MS);
     } catch (err) {
@@ -323,7 +323,7 @@ export async function listBoothItems(clinicId: string): Promise<BoothItem[]> {
 }
 
 export async function deleteBoothItem(clinicId: string, id: string): Promise<void> {
-  if (pgAvailable()) {
+  if (dbAvailable()) {
     try {
       await pgDeleteBoothItem(clinicId, id);
       return;
@@ -341,6 +341,6 @@ export async function deleteBoothItem(clinicId: string, id: string): Promise<voi
 }
 
 export function boothStorageInfo(): { mode: "pg" | "blob" | "dev" } {
-  if (pgAvailable()) return { mode: "pg" };
+  if (dbAvailable()) return { mode: "pg" };
   return { mode: mode().kind };
 }

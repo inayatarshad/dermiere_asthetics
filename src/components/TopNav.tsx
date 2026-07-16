@@ -14,6 +14,8 @@ import {
   RadioTower,
   Check,
   ExternalLink,
+  ShoppingBag,
+  MessageSquareHeart,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { ROLE_LABELS } from "@/lib/format";
@@ -82,6 +84,14 @@ export function TopNav() {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/patients", label: "Patients", icon: Users },
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
+    // POS is front-of-house: front desk + admin ring up the visit
+    ...(user?.role !== "doctor"
+      ? [{ href: "/pos", label: "Point of Sale", icon: ShoppingBag }]
+      : []),
+    // Reviews monitoring: doctors + admins watch the client voice
+    ...(user?.role !== "front_desk"
+      ? [{ href: "/reviews", label: "Reviews", icon: MessageSquareHeart }]
+      : []),
     ...(can.manageUsers(user?.role)
       ? [
           { href: "/analytics", label: "Analytics", icon: ChartColumn },
@@ -107,7 +117,7 @@ export function TopNav() {
                 href={href}
                 className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-mint-500 text-white shadow-md"
+                    ? "bg-ink-900 text-[#F6EBD3] shadow-md"
                     : "text-ink-700 hover:bg-mint-100"
                 }`}
               >

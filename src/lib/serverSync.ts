@@ -138,6 +138,9 @@ const COLLECTIONS: Array<[string, string]> = [
   ["plans", "plans"],
   ["planItems", "plan_items"],
   ["reports", "reports"],
+  ["invoices", "invoices"],
+  ["rewards", "rewards"],
+  ["skinAnalyses", "skin_analyses"],
   ["appointments", "appointments"],
 ];
 

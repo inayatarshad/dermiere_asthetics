@@ -9,11 +9,15 @@ import type {
   Appointment,
   Asset,
   ClinicHours,
+  ClinicLocation,
   Consent,
   Consultation,
+  Invoice,
   Patient,
   PlanItem,
   Report,
+  Reward,
+  SkinAnalysis,
   TreatmentPlan,
   User,
   Visualization,
@@ -45,6 +49,9 @@ export interface BootstrapPayload {
   aiCaps: { generations: number; assessments: number };
   demo: boolean;
   aiUsage: { generations: number; assessments: number };
+  locations?: ClinicLocation[];
+  taxRate?: number;
+  reviewIncentive?: { kind: "discount"; value: number; validityDays: number };
   records: {
     patients: Patient[];
     consents: Consent[];
@@ -54,6 +61,9 @@ export interface BootstrapPayload {
     plans: TreatmentPlan[];
     planItems: PlanItem[];
     reports: Report[];
+    invoices?: Invoice[];
+    rewards?: Reward[];
+    skinAnalyses?: SkinAnalysis[];
   };
   appointments: Appointment[];
   vyberoCalls: VyberoCall[];
@@ -76,6 +86,9 @@ export async function buildBootstrap(
     plans,
     planItems,
     reports,
+    invoices,
+    rewards,
+    skinAnalyses,
     appointments,
     vyberoCalls,
     usage,
@@ -89,6 +102,9 @@ export async function buildBootstrap(
     pgListRecords<TreatmentPlan>(clinicId, "plans"),
     pgListRecords<PlanItem>(clinicId, "plan_items"),
     pgListRecords<Report>(clinicId, "reports"),
+    pgListRecords<Invoice>(clinicId, "invoices"),
+    pgListRecords<Reward>(clinicId, "rewards"),
+    pgListRecords<SkinAnalysis>(clinicId, "skin_analyses"),
     pgListAppointments<Appointment>(clinicId),
     pgListCalls<VyberoCall>(clinicId),
     pgGetUsage(clinicId, currentMonth()),
@@ -132,6 +148,9 @@ export async function buildBootstrap(
     aiCaps: config.aiCaps,
     demo: config.demo,
     aiUsage: usage,
+    locations: config.locations ?? [],
+    taxRate: config.taxRate ?? 16,
+    reviewIncentive: config.reviewIncentive,
     records: {
       patients,
       consents,
@@ -141,6 +160,9 @@ export async function buildBootstrap(
       plans,
       planItems,
       reports,
+      invoices,
+      rewards,
+      skinAnalyses,
     },
     appointments,
     vyberoCalls,

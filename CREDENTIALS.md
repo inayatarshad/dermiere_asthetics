@@ -1,26 +1,47 @@
-# Contour · Demo Credentials
+# CAPTURE Clinic OS · Demo Credentials
 
-**Live URL:** _add after Vercel deploy_
-**Local:** http://localhost:3000
+**Live URL:** _add after Vercel deploy (new project — do NOT deploy over the Contour production project)_
+**Local:** `npm run build && npm run start -- -p 3210` → http://localhost:3210
+**Storage:** runs with zero infrastructure locally (file-backed dev database in `.dev-db/`); set `DATABASE_URL` (fresh Neon for CAPTURE) in production.
 
-Shared demo password for all roles: `contour`
+Shared demo password for all roles: `capture`
 
 | Role | Email | What they see |
 |---|---|---|
-| **Doctor** | doctor@meridian.clinic | Dashboard + queue with Start/Resume consultation. Full workspace: Brief, 3D Canvas, AI Visualize, Plan, Report. |
-| **Front Desk** | frontdesk@meridian.clinic | Dashboard + queue (view only), patient registration with consent + photo capture, profiles, report export. Consultation tools are locked (doctor-only). |
-| **Clinic Admin** | admin@meridian.clinic | Everything the doctor sees, plus Settings: staff management, treatment templates, clinic branding, demo reset. |
+| **Medical Director** | dr.sadia@capture.cc | Dashboard, patients + MARK-VU, consultations, Visualization Studio, calendar, Reviews monitoring. |
+| **Front Desk** | frontdesk@capture.cc | Check-in + registration, calendar, **Point of Sale** (invoices, Capture Circle redemption, review links). |
+| **Operations (admin)** | shahrukh@capture.cc | Everything: all four locations, Analytics (VYBERO calls + AI spend), Reviews, Discovery (partner onboarding), Settings. |
+| **Marketing (admin)** | rameez@capture.cc | Same as Operations — story focus: review scores, call insights, Capture Circle performance. |
+| **Creative (front desk)** | ryan@capture.cc | Front-of-house view for content days: patients, gallery, calendar, POS. |
 
-## Seeded demo data (Meridian Aesthetics, Lahore)
+The public **VYBERO concierge** chat floats on the landing page — no login needed. It answers CAPTURE questions (treatments, prices, locations, aftercare, EXOMERE science) and books real appointments into the calendar.
 
-| Patient | Story |
+## The four locations
+
+| Location | Kind | Invoice prefix |
+|---|---|---|
+| CAPTURE Experience Centre — Vogue Towers, M.M. Alam Road | Owned | EC |
+| The Skin Clinic by Dr. Haroon Nabi — Ghalib Road, Gulberg III | Partner | SC |
+| Alta Derm by Dr. Nazia — M.M. Alam Road | Partner | AD |
+| Experts by Dr. Ashba Cheema — DHA Broadway | Partner | EX |
+
+## Seeded demo story
+
+| Client | Story |
 |---|---|
-| **Mahnoor Baig** (27, Lahore) | Today's hero. Open rhinoplasty consultation with the brief pre-filled ("soften the bump on my bridge") and a front photo ready for the canvas and AI. Marketing consent granted. |
-| **Hassan Raza** (32, Karachi) | Booked via the Vibro voice agent, waiting in today's queue. Marketing consent declined (shows consent gating). Penicillin allergy on record. |
-| **Zainab Qureshi** (24, Islamabad) | Consultation completed three weeks ago; rhinoplasty plan in progress with the first milestones ticked. Shows the treatment-tracking story. |
+| **Mahnoor Baig** (27, Lahore) | Bridal glow journey: MitoRedLight Regenerative Glow course, session 3 today. Two MARK-VU scans show pigmentation −14, moisture +17. Photo on record → run the **Visualization Studio glow preset** on her. |
+| **Zainab Qureshi** (24, Islamabad) | EXOMERE Skin Implant course (post-acne), session 4 booked. MARK-VU pores −14. Two 5★ reviews. |
+| **Hassan Raza** (32, Karachi) | Booked via VYBERO. Full Body Reset for training recovery + sleep. 4★ review, reward redeemed. |
+| **Amina Shahid** (34, Lahore) | Post-partum Body Contour, 2 sessions done. Her 5★ review issued a **Capture Circle code that is still unredeemed — use it live at POS**. |
+| **Zara Iqbal** (41, Lahore) | Face Contour consult **open today** (jawline + pigmentation), MARK-VU baseline, invoice paid this morning. |
+| **Bilal Chaudhry** (38, Lahore) | Regeneration session; left a 3★ review (waiting time) → shows the **follow-up flag** on the Reviews dashboard. |
 
-Sessions auto-lock after 10 minutes of inactivity (patient privacy on shared devices). Reset all demo data anytime: sign in as Admin -> Settings -> Demo utilities -> Reset demo.
+Plus ~24 more reviews across all four locations (avg ≈ 4.6), ~20 invoices over 3 weeks, ~45 VYBERO calls over 14 days, and a full appointment book.
+
+To find Amina's live redemption code: Reviews dashboard → or open `.dev-db/data.json` and search `"CIRCLE-`; any reward with `"status":"issued"` works at POS.
+
+Sessions auto-lock after 10 minutes of inactivity. Reset demo data: delete `.dev-db/` and restart (the seed rebuilds on first login).
 
 ## AI generation
 
-Photoreal generation activates when `GEMINI_API_KEY` is set in the environment (see `.env.example`). Without it the app runs in simulation mode: the live on-device preview still works and the UI says photoreal AI is not configured.
+Photoreal enhancement activates when `GEMINI_API_KEY` (or OpenAI/FLUX/Higgsfield keys) is set — see `.env.example`. Without any key the Studio still renders live glow/contour previews on-device and every consultation warp works; the UI says photoreal AI is not configured. Demo never blocks on a key.

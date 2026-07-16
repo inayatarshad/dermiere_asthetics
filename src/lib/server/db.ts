@@ -18,6 +18,7 @@
  */
 
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import * as devDb from "./devDb";
 
 let cachedUrl: string | null | undefined;
 
@@ -50,6 +51,21 @@ export function pgUrl(): string | undefined {
 
 export function pgAvailable(): boolean {
   return !!pgUrl();
+}
+
+/**
+ * Dev fallback: with no Postgres configured and not running on Vercel,
+ * every pg* helper below routes to the file-backed devDb twin, so the
+ * whole system works with zero infrastructure (demo-grade reliability).
+ * On Vercel the filesystem is ephemeral, so this never activates there.
+ */
+export function devDbActive(): boolean {
+  return !pgAvailable() && !process.env.VERCEL;
+}
+
+/** True when SOME durable store is available (Postgres or the dev twin). */
+export function dbAvailable(): boolean {
+  return pgAvailable() || devDbActive();
 }
 
 type Sql = NeonQueryFunction<false, false>;
@@ -115,6 +131,9 @@ export const RECORD_TABLES = [
   "plans",
   "plan_items",
   "reports",
+  "invoices",
+  "rewards",
+  "skin_analyses",
 ] as const;
 export type RecordTable = (typeof RECORD_TABLES)[number];
 
@@ -213,6 +232,23 @@ export function ensureSchema(): Promise<void> {
       await q`CREATE INDEX IF NOT EXISTS idx_invites_clinic ON portal_invites (clinic_id, created_at)`;
       await q`CREATE INDEX IF NOT EXISTS idx_responses_clinic ON portal_responses (clinic_id, created_at)`;
 
+      // --- reviews (public token capture -> monitoring) -------------
+      await q`CREATE TABLE IF NOT EXISTS review_invites (
+        id text PRIMARY KEY,
+        clinic_id text NOT NULL,
+        token text UNIQUE NOT NULL,
+        created_at timestamptz NOT NULL,
+        payload jsonb NOT NULL
+      )`;
+      await q`CREATE TABLE IF NOT EXISTS reviews (
+        id text PRIMARY KEY,
+        clinic_id text NOT NULL,
+        created_at timestamptz NOT NULL,
+        payload jsonb NOT NULL
+      )`;
+      await q`CREATE INDEX IF NOT EXISTS idx_review_invites_clinic ON review_invites (clinic_id, created_at)`;
+      await q`CREATE INDEX IF NOT EXISTS idx_reviews_clinic ON reviews (clinic_id, created_at)`;
+
       // --- usage metering ------------------------------------------
       await q`CREATE TABLE IF NOT EXISTS usage_counters (
         clinic_id text NOT NULL,
@@ -265,6 +301,7 @@ export async function pgUpsertClinic(
   slug: string | null,
   payload: unknown
 ): Promise<void> {
+  if (devDbActive()) return devDb.upsertClinic(id, name, slug, payload);
   await ensureSchema();
   await sql().query(
     `INSERT INTO clinics (id, name, slug, payload) VALUES ($1, $2, $3, $4::jsonb)
@@ -274,6 +311,7 @@ export async function pgUpsertClinic(
 }
 
 export async function pgGetClinic<T>(id: string): Promise<ClinicRow<T> | null> {
+  if (devDbActive()) return devDb.getClinic<T>(id);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT id, name, slug, payload FROM clinics WHERE id = $1 LIMIT 1`,
@@ -285,6 +323,7 @@ export async function pgGetClinic<T>(id: string): Promise<ClinicRow<T> | null> {
 export async function pgGetClinicBySlug<T>(
   slug: string
 ): Promise<ClinicRow<T> | null> {
+  if (devDbActive()) return devDb.getClinicBySlug<T>(slug);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT id, name, slug, payload FROM clinics WHERE slug = $1 LIMIT 1`,
@@ -294,6 +333,7 @@ export async function pgGetClinicBySlug<T>(
 }
 
 export async function pgListClinics<T>(): Promise<ClinicRow<T>[]> {
+  if (devDbActive()) return devDb.listClinics<T>();
   await ensureSchema();
   return (await sql().query(
     `SELECT id, name, slug, payload FROM clinics ORDER BY created_at ASC`
@@ -301,6 +341,7 @@ export async function pgListClinics<T>(): Promise<ClinicRow<T>[]> {
 }
 
 export async function pgCountClinics(): Promise<number> {
+  if (devDbActive()) return devDb.countClinics();
   await ensureSchema();
   const rows = (await sql().query(`SELECT count(*)::int AS n FROM clinics`)) as {
     n: number;
@@ -331,6 +372,8 @@ export async function pgUpsertUser(
   active: boolean,
   payload: unknown
 ): Promise<void> {
+  if (devDbActive())
+    return devDb.upsertUser(id, clinicId, email, role, passwordHash, active, payload);
   await ensureSchema();
   await sql().query(
     `INSERT INTO users (id, clinic_id, email, role, password_hash, active, payload)
@@ -344,6 +387,7 @@ export async function pgUpsertUser(
 export async function pgGetUserByEmail<T>(
   email: string
 ): Promise<UserRow<T> | null> {
+  if (devDbActive()) return devDb.getUserByEmail<T>(email);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT id, clinic_id, email, role, password_hash, active, payload
@@ -354,6 +398,7 @@ export async function pgGetUserByEmail<T>(
 }
 
 export async function pgListUsers<T>(clinicId: string): Promise<UserRow<T>[]> {
+  if (devDbActive()) return devDb.listUsers<T>(clinicId);
   await ensureSchema();
   return (await sql().query(
     `SELECT id, clinic_id, email, role, password_hash, active, payload
@@ -367,6 +412,7 @@ export async function pgSetUserActive(
   id: string,
   active: boolean
 ): Promise<void> {
+  if (devDbActive()) return devDb.setUserActive(clinicId, id, active);
   await ensureSchema();
   await sql().query(
     `UPDATE users SET active = $3 WHERE clinic_id = $1 AND id = $2`,
@@ -382,6 +428,7 @@ export async function pgListRecords<T>(
   clinicId: string,
   table: string
 ): Promise<T[]> {
+  if (devDbActive()) return devDb.listRecords<T>(clinicId, record(table));
   await ensureSchema();
   const t = record(table);
   const rows = (await sql().query(
@@ -397,6 +444,7 @@ export async function pgUpsertRecord(
   id: string,
   payload: unknown
 ): Promise<void> {
+  if (devDbActive()) return devDb.upsertRecord(clinicId, record(table), id, payload);
   await ensureSchema();
   const t = record(table);
   await sql().query(
@@ -412,6 +460,7 @@ export async function pgDeleteRecord(
   table: string,
   id: string
 ): Promise<void> {
+  if (devDbActive()) return devDb.deleteRecord(clinicId, record(table), id);
   await ensureSchema();
   const t = record(table);
   await sql().query(`DELETE FROM ${t} WHERE clinic_id = $1 AND id = $2`, [
@@ -426,6 +475,7 @@ export async function pgReplaceRecords(
   table: string,
   items: { id: string; payload: unknown }[]
 ): Promise<void> {
+  if (devDbActive()) return devDb.replaceRecords(clinicId, record(table), items);
   await ensureSchema();
   const t = record(table);
   const q = sql();
@@ -450,6 +500,7 @@ export async function pgUpsertAppointment(
   status: string,
   payload: unknown
 ): Promise<void> {
+  if (devDbActive()) return devDb.upsertAppointment(clinicId, id, startAt, status, payload);
   await ensureSchema();
   await sql().query(
     `INSERT INTO appointments (id, clinic_id, start_at, status, payload)
@@ -462,6 +513,7 @@ export async function pgUpsertAppointment(
 }
 
 export async function pgListAppointments<T>(clinicId: string): Promise<T[]> {
+  if (devDbActive()) return devDb.listAppointments<T>(clinicId);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT payload FROM appointments WHERE clinic_id = $1 ORDER BY start_at ASC`,
@@ -480,6 +532,7 @@ export async function pgUpsertCall(
   startedAt: string,
   payload: unknown
 ): Promise<void> {
+  if (devDbActive()) return devDb.upsertCall(clinicId, id, startedAt, payload);
   await ensureSchema();
   await sql().query(
     `INSERT INTO vybero_calls (id, clinic_id, started_at, payload)
@@ -494,6 +547,7 @@ export async function pgListCalls<T>(
   clinicId: string,
   limit = 500
 ): Promise<T[]> {
+  if (devDbActive()) return devDb.listCalls<T>(clinicId, limit);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT payload FROM vybero_calls WHERE clinic_id = $1 ORDER BY started_at DESC LIMIT $2`,
@@ -512,6 +566,7 @@ export async function pgUpsertBoothItem(
   createdAt: string,
   payload: unknown
 ): Promise<void> {
+  if (devDbActive()) return devDb.upsertBoothItem(clinicId, id, createdAt, payload);
   await ensureSchema();
   await sql().query(
     `INSERT INTO booth_items (id, clinic_id, created_at, payload)
@@ -527,6 +582,7 @@ export async function pgListBoothItems<T>(
   clinicId: string,
   expiryMs: number
 ): Promise<T[]> {
+  if (devDbActive()) return devDb.listBoothItems<T>(clinicId, expiryMs);
   await ensureSchema();
   const cutoff = new Date(Date.now() - expiryMs).toISOString();
   await sql().query(
@@ -544,6 +600,7 @@ export async function pgDeleteBoothItem(
   clinicId: string,
   id: string
 ): Promise<void> {
+  if (devDbActive()) return devDb.deleteBoothItem(clinicId, id);
   await ensureSchema();
   await sql().query(
     `DELETE FROM booth_items WHERE clinic_id = $1 AND id = $2`,
@@ -562,6 +619,7 @@ export async function pgUpsertInvite(
   createdAt: string,
   payload: unknown
 ): Promise<void> {
+  if (devDbActive()) return devDb.upsertInvite(clinicId, id, token, createdAt, payload);
   await ensureSchema();
   await sql().query(
     `INSERT INTO portal_invites (id, clinic_id, token, created_at, payload)
@@ -573,6 +631,7 @@ export async function pgUpsertInvite(
 }
 
 export async function pgListInvites<T>(clinicId: string): Promise<T[]> {
+  if (devDbActive()) return devDb.listInvites<T>(clinicId);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT payload FROM portal_invites WHERE clinic_id = $1 ORDER BY created_at DESC`,
@@ -589,6 +648,7 @@ export async function pgListInvites<T>(clinicId: string): Promise<T[]> {
 export async function pgGetInviteByToken<T>(
   token: string
 ): Promise<{ clinic_id: string; payload: T } | null> {
+  if (devDbActive()) return devDb.getInviteByToken<T>(token);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT clinic_id, payload FROM portal_invites WHERE token = $1 LIMIT 1`,
@@ -604,6 +664,7 @@ export async function pgUpsertResponse(
   createdAt: string,
   payload: unknown
 ): Promise<void> {
+  if (devDbActive()) return devDb.upsertResponse(clinicId, id, inviteId, createdAt, payload);
   await ensureSchema();
   await sql().query(
     `INSERT INTO portal_responses (id, clinic_id, invite_id, created_at, payload)
@@ -614,9 +675,82 @@ export async function pgUpsertResponse(
 }
 
 export async function pgListResponses<T>(clinicId: string): Promise<T[]> {
+  if (devDbActive()) return devDb.listResponses<T>(clinicId);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT payload FROM portal_responses WHERE clinic_id = $1 ORDER BY created_at DESC`,
+    [clinicId]
+  )) as { payload: T }[];
+  return rows.map((r) => r.payload);
+}
+
+// =====================================================================
+// Reviews: invite tokens + submitted reviews (same pattern as portal)
+// =====================================================================
+
+export async function pgUpsertReviewInvite(
+  clinicId: string,
+  id: string,
+  token: string,
+  createdAt: string,
+  payload: unknown
+): Promise<void> {
+  if (devDbActive()) return devDb.upsertReviewInvite(clinicId, id, token, createdAt, payload);
+  await ensureSchema();
+  await sql().query(
+    `INSERT INTO review_invites (id, clinic_id, token, created_at, payload)
+     VALUES ($1, $2, $3, $4, $5::jsonb)
+     ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload
+     WHERE review_invites.clinic_id = $2`,
+    [id, clinicId, token, createdAt, S()(payload)]
+  );
+}
+
+export async function pgListReviewInvites<T>(clinicId: string): Promise<T[]> {
+  if (devDbActive()) return devDb.listReviewInvites<T>(clinicId);
+  await ensureSchema();
+  const rows = (await sql().query(
+    `SELECT payload FROM review_invites WHERE clinic_id = $1 ORDER BY created_at DESC`,
+    [clinicId]
+  )) as { payload: T }[];
+  return rows.map((r) => r.payload);
+}
+
+/** Public token lookup (client opens their review link). */
+export async function pgGetReviewInviteByToken<T>(
+  token: string
+): Promise<{ clinic_id: string; payload: T } | null> {
+  if (devDbActive()) return devDb.getReviewInviteByToken<T>(token);
+  await ensureSchema();
+  const rows = (await sql().query(
+    `SELECT clinic_id, payload FROM review_invites WHERE token = $1 LIMIT 1`,
+    [token]
+  )) as { clinic_id: string; payload: T }[];
+  return rows[0] ?? null;
+}
+
+export async function pgUpsertReview(
+  clinicId: string,
+  id: string,
+  createdAt: string,
+  payload: unknown
+): Promise<void> {
+  if (devDbActive()) return devDb.upsertReview(clinicId, id, createdAt, payload);
+  await ensureSchema();
+  await sql().query(
+    `INSERT INTO reviews (id, clinic_id, created_at, payload)
+     VALUES ($1, $2, $3, $4::jsonb)
+     ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload
+     WHERE reviews.clinic_id = $2`,
+    [id, clinicId, createdAt, S()(payload)]
+  );
+}
+
+export async function pgListReviews<T>(clinicId: string): Promise<T[]> {
+  if (devDbActive()) return devDb.listReviews<T>(clinicId);
+  await ensureSchema();
+  const rows = (await sql().query(
+    `SELECT payload FROM reviews WHERE clinic_id = $1 ORDER BY created_at DESC`,
     [clinicId]
   )) as { payload: T }[];
   return rows.map((r) => r.payload);
@@ -635,6 +769,7 @@ export async function pgGetUsage(
   clinicId: string,
   month: string
 ): Promise<UsageRow> {
+  if (devDbActive()) return devDb.getUsage(clinicId, month);
   await ensureSchema();
   const rows = (await sql().query(
     `SELECT generations, assessments FROM usage_counters WHERE clinic_id = $1 AND month = $2 LIMIT 1`,
@@ -648,6 +783,7 @@ export async function pgIncrUsage(
   month: string,
   kind: "generations" | "assessments"
 ): Promise<UsageRow> {
+  if (devDbActive()) return devDb.incrUsage(clinicId, month, kind);
   await ensureSchema();
   const col = kind === "generations" ? "generations" : "assessments";
   const rows = (await sql().query(
@@ -664,6 +800,7 @@ export async function pgIncrUsage(
 export async function pgListUsage(
   month: string
 ): Promise<(UsageRow & { clinic_id: string })[]> {
+  if (devDbActive()) return [];
   await ensureSchema();
   return (await sql().query(
     `SELECT clinic_id, generations, assessments FROM usage_counters WHERE month = $1`,

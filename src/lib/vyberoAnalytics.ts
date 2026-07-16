@@ -11,19 +11,21 @@
 
 import type { VyberoCall } from "./types";
 
-/** Procedure + interest taxonomy detected in call summaries. */
+/** CAPTURE treatment + interest taxonomy detected in call summaries. */
 export const CALL_TOPICS: { id: string; label: string; keywords: string[] }[] = [
-  { id: "rhinoplasty", label: "Rhinoplasty", keywords: ["rhinoplasty", "nose job", "nose reshape", "nose"] },
-  { id: "lip_filler", label: "Lip Filler", keywords: ["lip filler", "lips", "lip volume", "lip injection"] },
-  { id: "chin_filler", label: "Chin Filler", keywords: ["chin filler", "chin", "jawline filler", "profile balancing"] },
-  { id: "botox", label: "Botox", keywords: ["botox", "toxin", "wrinkle injection", "forehead lines", "frown lines", "masseter"] },
-  { id: "hair_transplant", label: "Hair Transplant", keywords: ["hair transplant", "hairline", "fue", "hair loss", "balding", "hair restoration"] },
-  { id: "skin", label: "Skin / Laser", keywords: ["laser", "pigmentation", "acne", "resurfacing", "facial", "skin"] },
-  { id: "pricing", label: "Pricing", keywords: ["price", "cost", "how much", "fees", "charges", "payment", "installment"] },
+  { id: "mito-regenerative-glow", label: "Regenerative Glow", keywords: ["regenerative glow", "glow", "red light facial", "pre-event", "bridal"] },
+  { id: "exomere-body-contour", label: "Body Contour", keywords: ["body contour", "stomach", "tummy", "abdomen", "cellulite", "slimming", "thighs", "arms"] },
+  { id: "exomere-face-contour", label: "Face Contour", keywords: ["face contour", "jawline", "neck firmness", "sagging", "lifting"] },
+  { id: "exomere-face-implant", label: "Skin Implant", keywords: ["skin implant", "implant regimen", "spicus", "acne", "scars", "pigmentation", "pores"] },
+  { id: "exomere-regeneration", label: "Regeneration", keywords: ["regeneration", "sensitive skin", "barrier", "dryness", "restorative facial"] },
+  { id: "mito-full-body-reset", label: "Full Body Reset", keywords: ["full body reset", "full body", "sleep", "muscle recovery", "wellness", "fatigue"] },
+  { id: "products", label: "Home-care products", keywords: ["product", "serum", "cleanser", "cream", "ampoule", "mask", "balm", "delivery", "shop", "order"] },
+  { id: "markvu", label: "MARK-VU analysis", keywords: ["mark-vu", "markvu", "skin analysis", "skin scan", "scan"] },
+  { id: "pricing", label: "Pricing", keywords: ["price", "cost", "how much", "fees", "charges", "payment", "installment", "package"] },
   { id: "availability", label: "Appointments / timing", keywords: ["appointment", "book", "slot", "available", "timing", "schedule", "evening", "weekend"] },
-  { id: "location", label: "Location / directions", keywords: ["location", "address", "where", "directions", "parking", "branch"] },
-  { id: "aftercare", label: "Aftercare / recovery", keywords: ["aftercare", "recovery", "downtime", "swelling", "healing", "side effect", "safe", "pain"] },
-  { id: "doctor", label: "Doctor / credentials", keywords: ["doctor", "surgeon", "dr ", "qualified", "experience", "who performs"] },
+  { id: "location", label: "Location / directions", keywords: ["location", "address", "where", "directions", "parking", "vogue", "branch"] },
+  { id: "aftercare", label: "Aftercare / recovery", keywords: ["aftercare", "recovery", "downtime", "healing", "side effect", "safe", "pain", "needle"] },
+  { id: "capture-circle", label: "Capture Circle", keywords: ["capture circle", "loyalty", "reward", "points", "discount", "voucher"] },
 ];
 
 export function topicLabel(id: string): string {
