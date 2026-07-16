@@ -122,14 +122,18 @@ export async function buildBootstrap(
   }));
 
   const me = users.find((u) => u.id === userId);
+  // A session whose user no longer exists (demo reset, deleted staff) or
+  // was deactivated must not hydrate a ghost workspace — the caller
+  // answers 401/404 and the client returns to login.
+  if (!me || !me.active) return null;
 
   return {
     user: {
       id: userId,
-      name: me?.name ?? "",
-      email: me?.email ?? "",
-      role: me?.role ?? "front_desk",
-      title: me?.title,
+      name: me.name,
+      email: me.email,
+      role: me.role,
+      title: me.title,
       clinic_id: clinicId,
     },
     clinic: {

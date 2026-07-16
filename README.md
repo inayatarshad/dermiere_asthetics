@@ -81,9 +81,14 @@ the browser. Per-clinic monthly caps + usage metering guard the spend.
 2. Vercel → **Add New Project** → import. **Do not deploy over the Contour
    production project** — CAPTURE gets its own project + domain.
 3. Provision a **fresh Neon Postgres** for CAPTURE and set `DATABASE_URL`;
-   set `SESSION_SECRET`; optionally AI keys and `VYBERO_API_KEY`.
+   set `SESSION_SECRET` and `PLATFORM_ADMIN_KEY`; optionally AI keys and
+   `VYBERO_API_KEY`.
 4. Deploy. First login seeds the CAPTURE demo clinic (only on an empty
-   database; real clinics provision clean via `/api/admin/provision`).
+   database). **For a real-data deployment set `SEED_DEMO=false`** and
+   provision clean clinics via `/api/admin/provision` — demo patients can
+   then never mix with client records.
+5. Rotate every seeded password on day one: Settings → Staff → Reset
+   password.
 
 ## Stack
 

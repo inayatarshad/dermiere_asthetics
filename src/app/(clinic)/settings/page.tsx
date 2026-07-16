@@ -17,12 +17,16 @@ import {
   Sparkles,
   Check,
   CloudOff,
+  KeyRound,
+  ReceiptText,
 } from "lucide-react";
 import { useStore, useSessionUser, can, type AiProviderSetting } from "@/lib/store";
 import { ROLE_LABELS } from "@/lib/format";
 import { TEMPLATES } from "@/lib/templates";
-import type { Role } from "@/lib/types";
+import type { Role, User } from "@/lib/types";
 import { GlassCard, EmptyState, Field, Toggle, SectionTitle, Modal, Spinner } from "@/components/ui";
+import { CAPTURE_TREATMENTS, formatPkr } from "@/lib/capture/kb";
+import { pushSetStaffPassword } from "@/lib/serverSync";
 
 type ProviderId = "gemini" | "openai" | "flux" | "higgsfield";
 
@@ -104,10 +108,20 @@ export default function SettingsPage() {
   const setClinicHours = useStore((s) => s.setClinicHours);
   const toxinPricePerUnit = useStore((s) => s.toxinPricePerUnit);
   const setToxinPricePerUnit = useStore((s) => s.setToxinPricePerUnit);
+  const taxRate = useStore((s) => s.taxRate);
+  const setTaxRate = useStore((s) => s.setTaxRate);
+  const prices = useStore((s) => s.prices);
+  const setTreatmentPrice = useStore((s) => s.setTreatmentPrice);
 
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  // password reset modal
+  const [pwUser, setPwUser] = useState<User | null>(null);
+  const [pw1, setPw1] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [providerStatus, setProviderStatus] = useState<ProviderStatus | null>(null);
   const [statusError, setStatusError] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -131,6 +145,27 @@ export default function SettingsPage() {
       cancelled = true;
     };
   }, []);
+
+  const submitPassword = async () => {
+    if (!pwUser || pwBusy) return;
+    if (pw1.length < 8) {
+      setPwMsg({ ok: false, text: "Use at least 8 characters." });
+      return;
+    }
+    if (pw1 !== pw2) {
+      setPwMsg({ ok: false, text: "The passwords do not match." });
+      return;
+    }
+    setPwBusy(true);
+    const r = await pushSetStaffPassword(pwUser.id, pw1);
+    setPwBusy(false);
+    if (r.ok) {
+      setPwMsg({ ok: true, text: "Password updated." });
+      setTimeout(() => setPwUser(null), 900);
+    } else {
+      setPwMsg({ ok: false, text: r.error ?? "Could not update the password." });
+    }
+  };
 
   if (!can.manageUsers(user?.role)) {
     return (
@@ -181,6 +216,19 @@ export default function SettingsPage() {
                 <div className="caption">{u.email}</div>
               </div>
               <span className="chip chip-static text-xs">{ROLE_LABELS[u.role]}</span>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setPwUser(u);
+                  setPw1("");
+                  setPw2("");
+                  setPwMsg(null);
+                }}
+                title={`Reset ${u.name}'s password`}
+              >
+                <KeyRound size={14} />
+                <span className="hidden sm:inline">Reset password</span>
+              </button>
               <div className="flex items-center gap-2">
                 <span className="caption">{u.active ? "Active" : "Disabled"}</span>
                 <Toggle
@@ -579,6 +627,77 @@ export default function SettingsPage() {
         </GlassCard>
       </section>
 
+      {/* Billing & treatment prices */}
+      <section className="fade-up-4">
+        <SectionTitle
+          title="Billing & treatment prices"
+          sub="POS, printed invoices and VYBERO quotes all read from here"
+          className="mb-4"
+        />
+        <GlassCard className="p-6 space-y-5">
+          <div className="max-w-xs">
+            <Field
+              label="Sales tax (%)"
+              hint="Applied at Point of Sale after any Capture Circle discount"
+            >
+              <input
+                className="input"
+                inputMode="numeric"
+                value={String(taxRate)}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value.replace(/\D/g, "") || "0", 10);
+                  setTaxRate(Math.min(40, Math.max(0, v)));
+                }}
+              />
+            </Field>
+          </div>
+          <div>
+            <div className="field-label flex items-center gap-1.5">
+              <ReceiptText size={13} className="text-[color:var(--mint-500)]" />
+              Session prices (PKR)
+            </div>
+            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
+              {CAPTURE_TREATMENTS.map((t) => {
+                const current = prices[t.id] ?? t.pricePkr;
+                const changed = current !== t.pricePkr;
+                return (
+                  <div key={t.id} className="flex items-center gap-3">
+                    <span className="text-sm text-ink-900 flex-1 min-w-0 truncate">
+                      {t.name}
+                    </span>
+                    <input
+                      className="input !w-32 !py-2 text-right tabular-nums"
+                      inputMode="numeric"
+                      value={String(current)}
+                      onChange={(e) =>
+                        setTreatmentPrice(
+                          t.id,
+                          parseInt(e.target.value.replace(/\D/g, "") || "0", 10)
+                        )
+                      }
+                      aria-label={`${t.name} session price`}
+                    />
+                    {changed && (
+                      <button
+                        className="caption underline decoration-dotted hover:text-ink-900"
+                        onClick={() => setTreatmentPrice(t.id, t.pricePkr)}
+                        title={`Reset to ${formatPkr(t.pricePkr)}`}
+                      >
+                        reset
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="caption mt-3">
+              Changes apply immediately to the POS catalogue and to VYBERO&rsquo;s
+              chat quotes. Retail product prices follow capture.cc.
+            </p>
+          </div>
+        </GlassCard>
+      </section>
+
       {/* Demo utilities */}
       <section className="fade-up-4 pb-8">
         <SectionTitle
@@ -667,6 +786,54 @@ export default function SettingsPage() {
           >
             Add staff member
           </button>
+        </div>
+      </Modal>
+
+      {/* Password reset modal */}
+      <Modal
+        open={!!pwUser}
+        onClose={() => setPwUser(null)}
+        title={pwUser ? `Reset password · ${pwUser.name}` : "Reset password"}
+      >
+        <div className="space-y-4">
+          <Field label="New password" hint="Minimum 8 characters">
+            <input
+              className="input"
+              type="password"
+              value={pw1}
+              onChange={(e) => setPw1(e.target.value)}
+              autoComplete="new-password"
+            />
+          </Field>
+          <Field label="Confirm new password">
+            <input
+              className="input"
+              type="password"
+              value={pw2}
+              onChange={(e) => setPw2(e.target.value)}
+              autoComplete="new-password"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void submitPassword();
+              }}
+            />
+          </Field>
+          {pwMsg && (
+            <p className={`text-sm ${pwMsg.ok ? "text-[#5B8A5E]" : "text-danger"}`}>
+              {pwMsg.text}
+            </p>
+          )}
+          <button
+            className="btn btn-primary w-full"
+            disabled={pwBusy || pw1.length === 0}
+            onClick={() => void submitPassword()}
+          >
+            {pwBusy ? <Spinner className="w-4 h-4" /> : <KeyRound size={15} />}
+            Update password
+          </button>
+          <p className="caption">
+            Takes effect on their next sign-in. Sessions already open stay
+            signed in until they lock or sign out.
+          </p>
         </div>
       </Modal>
 

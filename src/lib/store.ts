@@ -241,6 +241,8 @@ interface StoreState {
   ) => SkinAnalysis;
   removeSkinAnalysis: (id: string) => void;
   setTaxRate: (v: number) => void;
+  /** Admin sets a treatment's session price (POS + VYBERO quote from it). */
+  setTreatmentPrice: (treatmentId: string, price: number) => void;
 
   // admin
   addUser: (data: {
@@ -626,6 +628,12 @@ export const useStore = create<StoreState>()(
       setTaxRate: (v) => {
         set({ taxRate: v });
         void pushClinicConfig({ taxRate: v });
+      },
+
+      setTreatmentPrice: (treatmentId, price) => {
+        const prices = { ...get().prices, [treatmentId]: price };
+        set({ prices });
+        void pushClinicConfig({ prices });
       },
 
       logout: () => {

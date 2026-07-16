@@ -74,6 +74,21 @@ export interface ConciergeContext {
   hours: ClinicHours;
   /** free slot start times (ISO) for a date */
   availability: (date: string) => Promise<{ start: string; end: string }[]>;
+  /** admin price overrides (clinic config) — quotes must match POS */
+  prices?: Record<string, number>;
+}
+
+/** Session price honoring the admin override. */
+function priceOf(t: CaptureTreatment, prices?: Record<string, number>): number {
+  return prices?.[t.id] ?? t.pricePkr;
+}
+
+/** The KB course line only holds when the session price is unchanged. */
+function courseLine(t: CaptureTreatment, prices?: Record<string, number>): string {
+  const overridden =
+    prices?.[t.id] !== undefined && prices[t.id] !== t.pricePkr;
+  if (overridden || !t.courseSessions) return "";
+  return ` A course of ${t.courseSessions} is ${formatPkr(t.coursePricePkr ?? 0)}.`;
 }
 
 // ---------------------------------------------------------------------
@@ -208,22 +223,19 @@ function locName(id: string): string {
 
 const DEFAULT_CHIPS = ["Book a session", "Treatments", "Prices", "Where are you?"];
 
-function treatmentCard(t: CaptureTreatment): string {
-  const course = t.courseSessions
-    ? ` A course of ${t.courseSessions} is ${formatPkr(t.coursePricePkr ?? 0)}.`
-    : "";
+function treatmentCard(t: CaptureTreatment, prices?: Record<string, number>): string {
   return (
     `${t.name} — ${t.pitch}\n\n` +
     `Best for: ${t.bestFor.slice(0, 5).join(", ")}.\n` +
-    `Session: about ${t.durationMin} minutes · ${formatPkr(t.pricePkr)}.${course}\n\n` +
+    `Session: about ${t.durationMin} minutes · ${formatPkr(priceOf(t, prices))}.${courseLine(t, prices)}\n\n` +
     `Shall I book you a session, or would you like the aftercare and preparation details first?`
   );
 }
 
-function treatmentsList(): string {
+function treatmentsList(prices?: Record<string, number>): string {
   return (
     `Our six signature treatments at the Experience Centre:\n\n` +
-    CAPTURE_TREATMENTS.map((t) => `· ${t.name} — from ${formatPkr(t.pricePkr)}`).join("\n") +
+    CAPTURE_TREATMENTS.map((t) => `· ${t.name} — from ${formatPkr(priceOf(t, prices))}`).join("\n") +
     `\n\nEvery programme opens with a complimentary MARK-VU skin analysis so your specialist can personalise the plan. Which one shall I tell you more about?`
   );
 }
@@ -347,7 +359,7 @@ export async function conciergeRespond(
   // ---- treatments list -------------------------------------------------
   if (/\b(treatments?|services|menu|what do you (do|offer)|offerings)\b/.test(t)) {
     touch("treatments");
-    return { reply: treatmentsList(), chips: CAPTURE_TREATMENTS.map((tr) => tr.short), state: next };
+    return { reply: treatmentsList(ctx.prices), chips: CAPTURE_TREATMENTS.map((tr) => tr.short), state: next };
   }
 
   // ---- specific treatment ----------------------------------------------
@@ -366,7 +378,7 @@ export async function conciergeRespond(
         state: next,
       };
     }
-    return { reply: treatmentCard(tr), chips: [`Book ${tr.short}`, "Aftercare", "Prices"], state: next };
+    return { reply: treatmentCard(tr, ctx.prices), chips: [`Book ${tr.short}`, "Aftercare", "Prices"], state: next };
   }
 
   // ---- price with treatment context -------------------------------------
@@ -374,11 +386,12 @@ export async function conciergeRespond(
     touch("pricing");
     if (tr) {
       touch(tr.id);
-      const course = tr.courseSessions
-        ? ` A course of ${tr.courseSessions} sessions is ${formatPkr(tr.coursePricePkr ?? 0)} — the way most clients experience the full transformation.`
-        : "";
+      const course = courseLine(tr, ctx.prices).replace(
+        /\.$/,
+        " — the way most clients experience the full transformation."
+      );
       return {
-        reply: `${tr.name} is ${formatPkr(tr.pricePkr)} per session (about ${tr.durationMin} minutes).${course} Shall I reserve one for you?`,
+        reply: `${tr.name} is ${formatPkr(priceOf(tr, ctx.prices))} per session (about ${tr.durationMin} minutes).${course} Shall I reserve one for you?`,
         chips: [`Book ${tr.short}`, "Treatments", "Where are you?"],
         state: next,
       };

@@ -117,6 +117,30 @@ export async function pushSetStaffActive(id: string, active: boolean): Promise<v
   }
 }
 
+/** Admin resets a staff password; server validates length + clinic scope. */
+export async function pushSetStaffPassword(
+  id: string,
+  password: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch("/api/clinic/staff", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, password }),
+    });
+    const body = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      message?: string;
+    };
+    if (!res.ok || !body.ok) {
+      return { ok: false, error: body.message ?? "Could not update the password." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "No connection." };
+  }
+}
+
 // ---------------------------------------------------------------------
 // Record write-through (diff-based subscription)
 // ---------------------------------------------------------------------

@@ -180,6 +180,26 @@ export async function setStaffActive(
   await pgSetUserActive(clinicId, id, active);
 }
 
+/** Admin resets a staff member's password (no old password needed). */
+export async function setStaffPassword(
+  clinicId: string,
+  id: string,
+  password: string
+): Promise<void> {
+  const rows = await pgListUsers<{ name?: string; title?: string }>(clinicId);
+  const row = rows.find((r) => r.id === id);
+  if (!row) throw new Error("User not found in this clinic.");
+  await pgUpsertUser(
+    row.id,
+    clinicId,
+    row.email,
+    row.role,
+    hashPassword(password),
+    row.active,
+    row.payload
+  );
+}
+
 // ---------------------------------------------------------------------
 // Authentication
 // ---------------------------------------------------------------------
@@ -246,14 +266,25 @@ export async function provisionClinic(
 }
 
 /**
+ * Production gate: with SEED_DEMO=false (or 0/off) an empty database is
+ * left empty — real deployments provision clean clinics via
+ * /api/admin/provision and demo data can never mix with client data.
+ */
+function demoSeedDisabled(): boolean {
+  const v = (process.env.SEED_DEMO ?? "").trim().toLowerCase();
+  return v === "false" || v === "0" || v === "off" || v === "no";
+}
+
+/**
  * Seeds the demo clinic (CAPTURE) with the full team and the complete
  * demo story — patients, MARK-VU scans, appointments across all four
  * locations, VYBERO calls, invoices, reviews and Capture Circle rewards —
  * but only when the database has no clinics yet. Idempotent and safe to
- * call on every login attempt / bootstrap.
+ * call on every login attempt / bootstrap. Disabled by SEED_DEMO=false.
  */
 let seedOnce: Promise<void> | null = null;
 export function ensureSeedClinic(): Promise<void> {
+  if (demoSeedDisabled()) return Promise.resolve();
   if (!seedOnce) {
     seedOnce = (async () => {
       const count = await pgCountClinics();

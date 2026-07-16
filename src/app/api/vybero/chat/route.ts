@@ -122,6 +122,7 @@ export async function POST(req: NextRequest) {
     const turn = await conciergeRespond(message, state, {
       hours,
       availability: (date) => availabilityFor(clinicId, date, hours),
+      prices: config?.prices,
     });
 
     // The engine asked us to finalise a booking
