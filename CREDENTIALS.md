@@ -12,7 +12,7 @@ Shared demo password for all roles: `capture`
 | **Front Desk** | frontdesk@capture.cc | Check-in + registration, calendar, **Point of Sale** (invoices, Capture Circle redemption, review links). |
 | **Operations (admin)** | shahrukh@capture.cc | Everything: all four locations, Analytics (VYBERO calls + AI spend), Reviews, Discovery (partner onboarding), Settings. |
 | **Marketing (admin)** | rameez@capture.cc | Same as Operations — story focus: review scores, call insights, Capture Circle performance. |
-| **Creative (front desk)** | ryan@capture.cc | Front-of-house view for content days: patients, gallery, calendar, POS. |
+| **Creative (front desk)** | ryan@capture.cc | Ryan Hikmat — front-of-house view for content days: patients, gallery, calendar, POS. |
 
 The public **VYBERO concierge** chat floats on the landing page — no login needed. It answers CAPTURE questions (treatments, prices, locations, aftercare, EXOMERE science) and books real appointments into the calendar.
 

@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   Users,
   CalendarClock,
-  Sparkles,
   ClipboardCheck,
   UserPlus,
   ArrowRight,
   Play,
+  ReceiptText,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { firstName, formatDateTime, isToday, SOURCE_LABELS } from "@/lib/format";
@@ -23,9 +23,14 @@ export default function DashboardPage() {
   const patients = useStore((s) => s.patients);
   const consultations = useStore((s) => s.consultations);
   const plans = useStore((s) => s.plans);
+  const invoices = useStore((s) => s.invoices);
   const createConsultation = useStore((s) => s.createConsultation);
   const users = useStore((s) => s.users);
   const newArrivals = useStore((s) => s.newArrivals);
+
+  const revenueToday = invoices
+    .filter((i) => isToday(i.created_at) && i.status === "paid")
+    .reduce((s, i) => s + i.total, 0);
 
   const openConsults = consultations.filter((c) => c.status === "open");
   const waiting = patients.filter(
@@ -85,9 +90,9 @@ export default function DashboardPage() {
           accent
         />
         <StatCard
-          label="Open consultations"
-          value={openConsults.length}
-          icon={<Sparkles size={20} />}
+          label="Revenue today"
+          value={`Rs. ${revenueToday.toLocaleString("en-PK")}`}
+          icon={<ReceiptText size={20} />}
         />
         <StatCard
           label="Plans in progress"

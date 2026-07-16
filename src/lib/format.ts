@@ -67,7 +67,7 @@ export function firstName(name: string): string {
 
 export const SOURCE_LABELS: Record<string, string> = {
   walk_in: "Walk-in",
-  vibro: "Vibro",
+  vibro: "VYBERO",
   referral: "Referral",
   social: "Social",
   tourism: "Medical tourism",

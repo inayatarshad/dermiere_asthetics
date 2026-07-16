@@ -23,10 +23,12 @@ import {
   RotateCcw,
   Banknote,
   CreditCard,
+  CalendarCheck2,
+  Trash2,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
-import { formatPkr, CAPTURE_TREATMENTS, CAPTURE_PRODUCTS } from "@/lib/capture/kb";
+import { formatPkr, CAPTURE_TREATMENTS, CAPTURE_PRODUCTS, findTreatment } from "@/lib/capture/kb";
 import type { Invoice, InvoiceItem, PaymentMethod } from "@/lib/types";
 import { Modal, Spinner } from "@/components/ui";
 
@@ -53,6 +55,7 @@ export default function PosPage() {
   const taxRate = useStore((s) => s.taxRate);
   const prices = useStore((s) => s.prices);
   const invoices = useStore((s) => s.invoices);
+  const appointments = useStore((s) => s.appointments);
   const addInvoice = useStore((s) => s.addInvoice);
   const nextInvoiceNumber = useStore((s) => s.nextInvoiceNumber);
   const markRewardRedeemed = useStore((s) => s.markRewardRedeemed);
@@ -85,6 +88,43 @@ export default function PosPage() {
       ),
     [patients, clientName]
   );
+
+  // Today's sessions at this location — one tap closes the visit out
+  const todaysSessions = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return appointments
+      .filter(
+        (a) =>
+          a.start.slice(0, 10) === today &&
+          (a.location_id ?? "experience-centre") === locationId &&
+          a.status !== "cancelled" &&
+          a.status !== "no_show" &&
+          a.procedure_interest &&
+          findTreatment(a.procedure_interest)
+      )
+      .sort((a, b) => a.start.localeCompare(b.start));
+  }, [appointments, locationId]);
+
+  const addFromAppointment = (apptId: string) => {
+    const appt = todaysSessions.find((a) => a.id === apptId);
+    if (!appt) return;
+    const t = findTreatment(appt.procedure_interest!);
+    if (!t) return;
+    setClientName(appt.patient_name);
+    setCart((c) => {
+      if (c.some((l) => l.ref === t.id)) return c;
+      return [
+        ...c,
+        {
+          ref: t.id,
+          kind: "treatment",
+          name: t.name,
+          qty: 1,
+          unitPrice: prices[t.id] ?? t.pricePkr,
+        },
+      ];
+    });
+  };
 
   const catalogue = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -411,6 +451,33 @@ export default function PosPage() {
           </div>
         ) : (
           <div className="glass-strong p-5 fade-up-1 space-y-4 lg:sticky lg:top-[84px]">
+            {/* today's sessions: one-tap visit close-out */}
+            {todaysSessions.length > 0 && (
+              <div>
+                <span className="field-label flex items-center gap-1.5">
+                  <CalendarCheck2 size={13} className="text-[color:var(--mint-500)]" />
+                  Today&rsquo;s sessions here
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {todaysSessions.slice(0, 4).map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => addFromAppointment(a.id)}
+                      className="chip"
+                      title={`Bill ${a.patient_name} for ${findTreatment(a.procedure_interest!)?.name}`}
+                    >
+                      {new Date(a.start).toLocaleTimeString("en-GB", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      · {a.patient_name.split(" ")[0]} ·{" "}
+                      {findTreatment(a.procedure_interest!)?.short}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* client + location */}
             <div className="grid grid-cols-1 gap-3">
               <div>
@@ -454,6 +521,20 @@ export default function PosPage() {
 
             {/* cart lines */}
             <div className="space-y-2 min-h-[90px]">
+              {cart.length > 0 && (
+                <div className="flex items-center justify-between -mb-0.5">
+                  <span className="field-label mb-0">
+                    Bill · {cart.reduce((s, l) => s + l.qty, 0)} item
+                    {cart.reduce((s, l) => s + l.qty, 0) === 1 ? "" : "s"}
+                  </span>
+                  <button
+                    onClick={() => setCart([])}
+                    className="inline-flex items-center gap-1 text-[11.5px] text-ink-400 hover:text-danger transition-colors"
+                  >
+                    <Trash2 size={12} /> Clear
+                  </button>
+                </div>
+              )}
               {cart.length === 0 && (
                 <p className="caption text-center py-6">
                   Tap items on the left to build the bill.

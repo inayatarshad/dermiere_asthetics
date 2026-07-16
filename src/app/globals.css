@@ -74,7 +74,8 @@ body {
   letter-spacing: 0.005em;
 }
 
-/* Ambient champagne glow blobs behind everything */
+/* Ambient champagne glow blobs — slow liquid-light drift (transform-only,
+   GPU-cheap; stilled under prefers-reduced-motion) */
 .bg-stage::before,
 .bg-stage::after {
   content: "";
@@ -83,28 +84,65 @@ body {
   filter: blur(90px);
   z-index: -1;
   pointer-events: none;
+  will-change: transform;
 }
 .bg-stage::before {
-  width: 560px;
-  height: 560px;
-  left: -140px;
-  top: -120px;
+  width: 620px;
+  height: 620px;
+  left: -160px;
+  top: -140px;
   background: radial-gradient(
     circle,
-    rgba(196, 161, 90, 0.22),
+    rgba(196, 161, 90, 0.26),
+    rgba(214, 178, 112, 0.1) 45%,
     rgba(196, 161, 90, 0)
   );
+  animation: glow-drift-a 26s ease-in-out infinite alternate;
 }
 .bg-stage::after {
-  width: 640px;
-  height: 640px;
-  right: -180px;
-  bottom: -200px;
+  width: 700px;
+  height: 700px;
+  right: -200px;
+  bottom: -220px;
   background: radial-gradient(
     circle,
-    rgba(212, 184, 120, 0.28),
+    rgba(212, 184, 120, 0.3),
+    rgba(226, 200, 150, 0.12) 48%,
     rgba(212, 184, 120, 0)
   );
+  animation: glow-drift-b 32s ease-in-out infinite alternate;
+}
+/* third glow: a soft blush veil drifting across the upper right */
+.bg-stage {
+  position: relative;
+}
+body.bg-stage {
+  background-image:
+    radial-gradient(
+      760px 520px at 78% -6%,
+      rgba(222, 184, 158, 0.16) 0%,
+      rgba(222, 184, 158, 0) 62%
+    ),
+    radial-gradient(
+      520px 420px at 46% 108%,
+      rgba(196, 161, 90, 0.1) 0%,
+      rgba(196, 161, 90, 0) 60%
+    ),
+    var(--bg-gradient);
+}
+@keyframes glow-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(70px, 46px, 0) scale(1.08); }
+}
+@keyframes glow-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to { transform: translate3d(-64px, -40px, 0) scale(0.97); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-stage::before,
+  .bg-stage::after {
+    animation: none;
+  }
 }
 
 /* ------------------------------------------------------------
@@ -150,11 +188,15 @@ body {
 .card-hover {
   transition:
     transform 0.2s ease-out,
-    box-shadow 0.2s ease-out;
+    box-shadow 0.2s ease-out,
+    border-color 0.2s ease-out;
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 40px rgba(70, 60, 40, 0.16);
+  border-color: rgba(212, 184, 120, 0.65);
+  box-shadow:
+    0 14px 40px rgba(70, 60, 40, 0.14),
+    0 4px 18px rgba(196, 161, 90, 0.16);
 }
 
 /* ------------------------------------------------------------
@@ -191,14 +233,43 @@ body {
   background: var(--ink-900);
   color: #F6EBD3;
   box-shadow: 0 6px 20px rgba(28, 26, 22, 0.28);
+  position: relative;
+  overflow: hidden;
+}
+/* champagne shine that sweeps across on hover */
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -80%;
+  width: 55%;
+  background: linear-gradient(
+    100deg,
+    rgba(246, 235, 211, 0) 8%,
+    rgba(246, 235, 211, 0.16) 48%,
+    rgba(212, 184, 120, 0.28) 55%,
+    rgba(246, 235, 211, 0) 92%
+  );
+  transform: skewX(-18deg);
+  transition: left 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
 }
 .btn-primary:hover:not(:disabled) {
   background: #2E2A22;
   box-shadow: 0 8px 28px rgba(196, 161, 90, 0.45);
   transform: translateY(-1px);
 }
+.btn-primary:hover:not(:disabled)::after {
+  left: 125%;
+}
 .btn-primary:active:not(:disabled) {
   transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary::after {
+    display: none;
+  }
 }
 
 .btn-secondary {
@@ -308,7 +379,12 @@ select.input {
   user-select: none;
 }
 .chip:hover {
-  border-color: var(--mint-300);
+  border-color: var(--mint-400);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(196, 161, 90, 0.18);
+}
+.chip:active {
+  transform: translateY(0);
 }
 .chip-active {
   background: rgba(196, 161, 90, 0.16);

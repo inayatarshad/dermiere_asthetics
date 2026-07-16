@@ -29,6 +29,14 @@ const ROLE_CARDS = [
   },
   {
     role: "front_desk",
+    email: "ryan@capture.cc",
+    label: "Creative",
+    name: "Ryan Hikmat",
+    desc: "Client stories, before/after gallery, content-day scheduling",
+    icon: Palette,
+  },
+  {
+    role: "front_desk",
     email: "frontdesk@capture.cc",
     label: "Front Desk",
     name: "Amal Fatima",
@@ -50,14 +58,6 @@ const ROLE_CARDS = [
     name: "Rameez Hasan",
     desc: "Review scores, VYBERO call insights, Capture Circle performance",
     icon: Megaphone,
-  },
-  {
-    role: "front_desk",
-    email: "ryan@capture.cc",
-    label: "Creative",
-    name: "Ryan D'Souza",
-    desc: "Client stories, before/after gallery, content-day scheduling",
-    icon: Palette,
   },
 ];
 

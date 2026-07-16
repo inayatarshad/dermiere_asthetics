@@ -278,27 +278,27 @@ export function StatusChip({ status }: { status: string }) {
 
 /**
  * Brand lockup: the CAPTURE wordmark (official black logo from capture.cc)
- * with a champagne-gold "Clinic OS" microtag so the operational product is
- * distinguishable from the retail brand.
+ * stacked over a champagne-gold "Clinic OS" line — two-line lockup so the
+ * operational product reads separately from the retail brand.
  */
 export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const dims =
-    size === "lg" ? "h-9" : size === "sm" ? "h-5" : "h-6";
+    size === "lg" ? "h-8" : size === "sm" ? "h-[18px]" : "h-[22px]";
   const tag =
-    size === "lg" ? "text-[11px]" : size === "sm" ? "text-[8px]" : "text-[9px]";
+    size === "lg" ? "text-[11px] mt-1.5" : size === "sm" ? "text-[7.5px] mt-[3px]" : "text-[9px] mt-1";
   return (
-    <span className="inline-flex items-end gap-2 select-none">
+    <span className="inline-flex flex-col items-start select-none leading-none">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/brand/capture-logo-black.png"
-        alt="CAPTURE"
+        alt="Capture"
         className={`${dims} w-auto shrink-0`}
         draggable={false}
       />
       <span
-        className={`${tag} font-medium uppercase tracking-[0.22em] text-[color:var(--mint-500)] pb-[2px]`}
+        className={`${tag} font-medium uppercase tracking-[0.3em] text-[color:var(--mint-500)]`}
       >
-        Clinic OS
+        Clinic&nbsp;OS
       </span>
     </span>
   );
