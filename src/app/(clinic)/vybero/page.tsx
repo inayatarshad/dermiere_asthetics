@@ -63,10 +63,40 @@ export default function VyberoAgentPage() {
     if (!agentId) return;
     let cancelled = false;
     const existing = document.querySelector(`script[src="${WIDGET_SRC}"]`);
+
+    /**
+     * The widget anchors its panel bottom-RIGHT of its containing block
+     * (.overlay is align-items:flex-end; .sheet gets a left inset with
+     * right:0). On our stage we want it dead centre, so we inject two
+     * rules into its shadow root: centre the overlay's cross axis and
+     * release the sheet's horizontal insets, letting it settle on its
+     * centred static position at its own natural width — no hardcoded
+     * sizes, so their responsive rules keep working.
+     */
+    const centreWidget = (): boolean => {
+      const host = widgetHost.current?.querySelector("elevenlabs-convai");
+      const sr = (host as HTMLElement & { shadowRoot?: ShadowRoot | null })?.shadowRoot;
+      if (!sr) return false;
+      if (sr.querySelector("style[data-capture-centre]")) return true;
+      const style = document.createElement("style");
+      style.setAttribute("data-capture-centre", "1");
+      style.textContent =
+        ".overlay{align-items:center!important}" +
+        ".sheet{left:auto!important;right:auto!important}";
+      sr.appendChild(style);
+      return true;
+    };
+
     const mountEl = () => {
       if (cancelled || !widgetHost.current) return;
       widgetHost.current.innerHTML = `<elevenlabs-convai agent-id="${agentId}" variant="expanded"></elevenlabs-convai>`;
       setWidgetReady(true);
+      // the custom element upgrades (and attaches its shadow root)
+      // asynchronously — retry briefly until the injection lands
+      let tries = 0;
+      const timer = setInterval(() => {
+        if (cancelled || centreWidget() || ++tries > 40) clearInterval(timer);
+      }, 100);
     };
     if (existing) {
       mountEl();

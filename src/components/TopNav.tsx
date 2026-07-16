@@ -86,7 +86,7 @@ export function TopNav() {
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
     // POS is front-of-house: front desk + admin ring up the visit
     ...(user?.role !== "doctor"
-      ? [{ href: "/pos", label: "Point of Sale", icon: ShoppingBag }]
+      ? [{ href: "/pos", label: "POS", icon: ShoppingBag }]
       : []),
     // Reviews monitoring: doctors + admins watch the client voice
     ...(user?.role !== "front_desk"
