@@ -317,6 +317,8 @@ export function ensureSeedClinic(): Promise<void> {
         prices: Object.fromEntries(
           CAPTURE_TREATMENTS.map((t) => [t.id, t.pricePkr])
         ),
+        // Noor — the ElevenLabs voice agent behind the VYBERO page widget
+        vyberoAgentId: "agent_5601kxp631h7fgmthsaq3w3729qv",
         locations: CAPTURE_LOCATIONS.map((l) => ({
           id: l.id,
           name: l.name,

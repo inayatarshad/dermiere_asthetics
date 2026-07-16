@@ -65,7 +65,7 @@ export default function VyberoAgentPage() {
     const existing = document.querySelector(`script[src="${WIDGET_SRC}"]`);
     const mountEl = () => {
       if (cancelled || !widgetHost.current) return;
-      widgetHost.current.innerHTML = `<elevenlabs-convai agent-id="${agentId}"></elevenlabs-convai>`;
+      widgetHost.current.innerHTML = `<elevenlabs-convai agent-id="${agentId}" variant="expanded"></elevenlabs-convai>`;
       setWidgetReady(true);
     };
     if (existing) {
@@ -163,88 +163,124 @@ export default function VyberoAgentPage() {
         </GlassCard>
       )}
 
-      <div className="grid lg:grid-cols-[1.1fr_1fr] gap-5 items-start">
-        {/* The widget stage */}
-        <GlassCard className="p-6 fade-up-1 min-h-[380px] flex flex-col">
+      {/* The widget stage — front and center. The wrapper's transform makes
+          it the containing block for the widget's fixed-position UI, so the
+          ElevenLabs orb/panel renders INSIDE this stage instead of the
+          browser corner; the TechGIS bar owns the attribution strip. */}
+      <GlassCard strong className="p-4 sm:p-5 fade-up-1">
+        <div className="flex items-center gap-3 mb-3 px-1">
           <SectionTitle
             title="Call Noor"
-            sub="The ElevenLabs widget below opens a live voice session with the CAPTURE agent"
+            sub="Live voice session with the CAPTURE agent — bookings land on the calendar below"
           />
-          {agentId ? (
-            <div className="flex-1 flex flex-col">
-              <div ref={widgetHost} className="flex-1 min-h-[240px]" />
-              {!widgetReady && (
-                <div className="flex items-center gap-2 justify-center py-10 text-ink-400">
-                  <Spinner className="w-4 h-4" /> Loading the voice widget…
-                </div>
-              )}
-              <p className="caption mt-3 flex items-center gap-1.5">
-                <RadioTower size={12} className="text-[color:var(--mint-500)]" />
-                Agent <b className="font-mono">{agentId.slice(0, 18)}…</b>
-                {isAdmin && (
-                  <button
-                    className="underline decoration-dotted hover:text-ink-900 ml-1"
-                    onClick={() => {
-                      setIdDraft(agentId);
-                      setEditing(true);
-                    }}
-                  >
-                    change
-                  </button>
-                )}
-              </p>
-            </div>
-          ) : (
-            <EmptyState
-              icon={<Phone size={26} />}
-              title="Link the ElevenLabs agent"
-              body={
-                isAdmin
-                  ? "Paste the agent id from ElevenLabs (Agents → your agent → ID, looks like agent_...) and the call widget appears here for the whole team."
-                  : "An admin needs to link the ElevenLabs agent id — then the whole team can test calls from this page."
-              }
-              action={
-                isAdmin ? (
-                  <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>
-                    Add agent id
-                  </button>
-                ) : undefined
-              }
-            />
+          {agentId && isAdmin && (
+            <button
+              className="btn btn-ghost btn-sm ml-auto"
+              onClick={() => {
+                setIdDraft(agentId);
+                setEditing(true);
+              }}
+            >
+              <RadioTower size={13} /> {agentId.slice(0, 14)}…
+            </button>
           )}
+        </div>
 
-          {editing && isAdmin && (
-            <div className="mt-4 flex gap-2">
-              <input
-                className="input flex-1 font-mono text-sm"
-                placeholder="agent_XXXXXXXXXXXXXXXX"
-                value={idDraft}
-                onChange={(e) => setIdDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    setVyberoAgentId(cleanAgentId(idDraft));
-                    setEditing(false);
-                  }
-                }}
+        {agentId ? (
+          <div
+            className="relative overflow-hidden rounded-2xl mx-auto w-full max-w-3xl"
+            style={{
+              transform: "translateZ(0)", // containment: widget anchors here
+              height: 560,
+              background:
+                "radial-gradient(620px 340px at 50% 0%, rgba(196,161,90,0.16) 0%, rgba(28,26,22,0) 60%), linear-gradient(180deg, #24211B 0%, #1C1A16 100%)",
+            }}
+          >
+            <div ref={widgetHost} className="absolute inset-0" />
+            {!widgetReady && (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 text-[#B9AF9B]">
+                <Spinner className="w-4 h-4" /> Loading the voice widget…
+              </div>
+            )}
+            {/* stage caption */}
+            <div className="absolute top-4 left-0 right-0 text-center pointer-events-none">
+              <div className="text-[11px] font-medium uppercase tracking-[0.3em] text-[#C9BFA8]">
+                VYBERO · Noor
+              </div>
+              <div className="text-[12.5px] text-[#8F877A] mt-1">
+                Tap the orb to start the call
+              </div>
+            </div>
+            {/* attribution cover: the stage footer owns the bottom strip */}
+            <div
+              className="absolute left-0 right-0 bottom-0 h-[34px] flex items-center justify-center gap-2 bg-[#16140F]/95 border-t border-[rgba(196,161,90,0.25)]"
+              style={{ zIndex: 2147483647 }}
+              title="Powered by TechGIS"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/techgis-mark-256.png"
+                alt=""
+                className="h-[15px] w-auto opacity-90"
+                draggable={false}
               />
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => {
+              <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-[#D8CDB4]">
+                Powered by TechGIS
+              </span>
+            </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Phone size={26} />}
+            title="Link the ElevenLabs agent"
+            body={
+              isAdmin
+                ? "Paste the agent id from ElevenLabs (Agents → your agent → ID, looks like agent_...) and the call widget appears here for the whole team."
+                : "An admin needs to link the ElevenLabs agent id — then the whole team can test calls from this page."
+            }
+            action={
+              isAdmin ? (
+                <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>
+                  Add agent id
+                </button>
+              ) : undefined
+            }
+          />
+        )}
+
+        {editing && isAdmin && (
+          <div className="mt-4 flex gap-2 max-w-3xl mx-auto">
+            <input
+              className="input flex-1 font-mono text-sm"
+              placeholder="agent_XXXXXXXXXXXXXXXX"
+              value={idDraft}
+              onChange={(e) => setIdDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
                   setVyberoAgentId(cleanAgentId(idDraft));
                   setEditing(false);
-                }}
-              >
-                Save
-              </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>
-                Cancel
-              </button>
-            </div>
-          )}
-        </GlassCard>
+                }
+              }}
+            />
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setVyberoAgentId(cleanAgentId(idDraft));
+                setEditing(false);
+              }}
+            >
+              Save
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>
+              Cancel
+            </button>
+          </div>
+        )}
+      </GlassCard>
 
+      <div className="grid lg:grid-cols-2 gap-5 items-start">
         {/* Live proof: voice bookings + calls */}
-        <div className="space-y-4">
+        <div className="space-y-4 lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
           <GlassCard className="p-5 fade-up-2">
             <SectionTitle
               title="Voice bookings"
