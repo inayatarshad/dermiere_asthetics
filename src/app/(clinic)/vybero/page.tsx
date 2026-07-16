@@ -1,0 +1,365 @@
+"use client";
+
+/**
+ * VYBERO Voice Agent console — the in-app home of the ElevenLabs phone
+ * agent (Noor). Hosts the call widget so the CAPTURE team can talk to
+ * the agent right here, shows voice bookings landing on the calendar
+ * live (the background VyberoAgent poller refreshes every 45s), and
+ * gives admins the exact webhook configuration to paste into ElevenLabs.
+ *
+ * Replaces the Discovery slot in the nav for the CAPTURE deployment —
+ * open to every staff role so the whole team can test the agent.
+ */
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AudioLines,
+  Phone,
+  CalendarCheck2,
+  Settings2,
+  Copy,
+  Check,
+  RadioTower,
+} from "lucide-react";
+import { useStore, useSessionUser, can } from "@/lib/store";
+import { useMounted } from "@/lib/hooks";
+import { findTreatment, CAPTURE_LOCATIONS } from "@/lib/capture/kb";
+import { GlassCard, SectionTitle, EmptyState, Spinner } from "@/components/ui";
+
+const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+
+/** ElevenLabs agent ids are url-safe tokens; refuse anything else. */
+const cleanAgentId = (id: string) => id.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
+
+function useOrigin(): string {
+  const [origin, setOrigin] = useState("https://YOUR-DEPLOYMENT");
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+  return origin;
+}
+
+export default function VyberoAgentPage() {
+  const mounted = useMounted();
+  const user = useSessionUser();
+  const vyberoAgentId = useStore((s) => s.vyberoAgentId);
+  const setVyberoAgentId = useStore((s) => s.setVyberoAgentId);
+  const appointments = useStore((s) => s.appointments);
+  const vyberoCalls = useStore((s) => s.vyberoCalls);
+
+  const isAdmin = can.manageUsers(user?.role);
+  const origin = useOrigin();
+
+  const [idDraft, setIdDraft] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [widgetReady, setWidgetReady] = useState(false);
+  const widgetHost = useRef<HTMLDivElement>(null);
+
+  const agentId = cleanAgentId(vyberoAgentId ?? "");
+
+  // Load the ElevenLabs widget script once, then mount the element.
+  useEffect(() => {
+    if (!agentId) return;
+    let cancelled = false;
+    const existing = document.querySelector(`script[src="${WIDGET_SRC}"]`);
+    const mountEl = () => {
+      if (cancelled || !widgetHost.current) return;
+      widgetHost.current.innerHTML = `<elevenlabs-convai agent-id="${agentId}"></elevenlabs-convai>`;
+      setWidgetReady(true);
+    };
+    if (existing) {
+      mountEl();
+      return () => {
+        cancelled = true;
+      };
+    }
+    const script = document.createElement("script");
+    script.src = WIDGET_SRC;
+    script.async = true;
+    script.onload = mountEl;
+    script.onerror = () => setWidgetReady(false);
+    document.body.appendChild(script);
+    return () => {
+      cancelled = true;
+    };
+  }, [agentId]);
+
+  const voiceBookings = useMemo(
+    () =>
+      appointments
+        .filter((a) => a.source === "vybero")
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+        .slice(0, 8),
+    [appointments]
+  );
+
+  const recentCalls = useMemo(
+    () =>
+      [...vyberoCalls]
+        .sort((a, b) => b.started_at.localeCompare(a.started_at))
+        .slice(0, 5),
+    [vyberoCalls]
+  );
+
+  if (!mounted) return null;
+
+  return (
+    <div className="space-y-5">
+      <div className="fade-up flex flex-wrap items-center gap-3">
+        <div>
+          <h1 className="h1 text-ink-900 flex items-center gap-2.5">
+            <AudioLines size={22} className="text-[color:var(--mint-500)]" />
+            VYBERO Voice Agent
+          </h1>
+          <p className="caption mt-0.5">
+            Talk to Noor right here — bookings land on the calendar below,
+            live. The same agent answers the clinic&rsquo;s phone line.
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setSetupOpen(!setupOpen)}
+            className={`btn btn-sm ml-auto ${setupOpen ? "btn-primary" : "btn-secondary"}`}
+          >
+            <Settings2 size={14} /> Webhook setup
+          </button>
+        )}
+      </div>
+
+      {/* Admin: ElevenLabs webhook cheat-sheet (the source of truth) */}
+      {isAdmin && setupOpen && (
+        <GlassCard strong className="p-6 fade-up space-y-4">
+          <SectionTitle
+            title="ElevenLabs webhook tools"
+            sub="Agent → Tools → Add tool → Webhook. Auth: attach the secret as either header — both are accepted."
+          />
+          <div className="grid gap-3">
+            <ToolRow
+              name="get_current_time"
+              method="GET"
+              url={`${origin}/api/vybero/time`}
+              note="No auth needed. Returns date, day and time in Asia/Karachi so the agent can resolve 'tomorrow' and 'Saturday'."
+            />
+            <ToolRow
+              name="check_availability"
+              method="GET"
+              url={`${origin}/api/vybero/availability?date={date}`}
+              note='Query param date = YYYY-MM-DD. Header: "Authorization: Bearer <VYBERO_API_KEY>" (or "x-vybero-key: <key>"). Reads open_slots like ["11:30","16:00"] in Pakistan time.'
+            />
+            <ToolRow
+              name="book_appointment"
+              method="POST"
+              url={`${origin}/api/vybero/book`}
+              note='Same auth header. Body: customer_name, phone, treatment (name is fine), date YYYY-MM-DD, time HH:MM (Pakistan time), notes?, email?, location?. Replies {"status":"confirmed","booking_id",...} or {"status":"unavailable","alternatives":[...]}.'
+            />
+          </div>
+          <p className="caption">
+            The secret is the <b>VYBERO_API_KEY</b> environment variable on
+            this deployment — store it in ElevenLabs Secrets and attach it to
+            both authenticated tools. Full copy-paste guide:{" "}
+            <b>VYBERO_VOICE_SETUP.md</b> in the project root.
+          </p>
+        </GlassCard>
+      )}
+
+      <div className="grid lg:grid-cols-[1.1fr_1fr] gap-5 items-start">
+        {/* The widget stage */}
+        <GlassCard className="p-6 fade-up-1 min-h-[380px] flex flex-col">
+          <SectionTitle
+            title="Call Noor"
+            sub="The ElevenLabs widget below opens a live voice session with the CAPTURE agent"
+          />
+          {agentId ? (
+            <div className="flex-1 flex flex-col">
+              <div ref={widgetHost} className="flex-1 min-h-[240px]" />
+              {!widgetReady && (
+                <div className="flex items-center gap-2 justify-center py-10 text-ink-400">
+                  <Spinner className="w-4 h-4" /> Loading the voice widget…
+                </div>
+              )}
+              <p className="caption mt-3 flex items-center gap-1.5">
+                <RadioTower size={12} className="text-[color:var(--mint-500)]" />
+                Agent <b className="font-mono">{agentId.slice(0, 18)}…</b>
+                {isAdmin && (
+                  <button
+                    className="underline decoration-dotted hover:text-ink-900 ml-1"
+                    onClick={() => {
+                      setIdDraft(agentId);
+                      setEditing(true);
+                    }}
+                  >
+                    change
+                  </button>
+                )}
+              </p>
+            </div>
+          ) : (
+            <EmptyState
+              icon={<Phone size={26} />}
+              title="Link the ElevenLabs agent"
+              body={
+                isAdmin
+                  ? "Paste the agent id from ElevenLabs (Agents → your agent → ID, looks like agent_...) and the call widget appears here for the whole team."
+                  : "An admin needs to link the ElevenLabs agent id — then the whole team can test calls from this page."
+              }
+              action={
+                isAdmin ? (
+                  <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>
+                    Add agent id
+                  </button>
+                ) : undefined
+              }
+            />
+          )}
+
+          {editing && isAdmin && (
+            <div className="mt-4 flex gap-2">
+              <input
+                className="input flex-1 font-mono text-sm"
+                placeholder="agent_XXXXXXXXXXXXXXXX"
+                value={idDraft}
+                onChange={(e) => setIdDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setVyberoAgentId(cleanAgentId(idDraft));
+                    setEditing(false);
+                  }
+                }}
+              />
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  setVyberoAgentId(cleanAgentId(idDraft));
+                  setEditing(false);
+                }}
+              >
+                Save
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>
+                Cancel
+              </button>
+            </div>
+          )}
+        </GlassCard>
+
+        {/* Live proof: voice bookings + calls */}
+        <div className="space-y-4">
+          <GlassCard className="p-5 fade-up-2">
+            <SectionTitle
+              title="Voice bookings"
+              sub="Appointments created by the agent — refreshes automatically"
+            />
+            {voiceBookings.length === 0 ? (
+              <p className="caption py-4">
+                None yet. Call Noor and say &ldquo;book me a face contour
+                tomorrow at 4&rdquo; — it appears here and on the Calendar.
+              </p>
+            ) : (
+              <div className="space-y-2 mt-2">
+                {voiceBookings.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-3 rounded-xl bg-white/50 border border-[rgba(28,26,22,0.06)] px-3.5 py-2.5"
+                  >
+                    <span className="w-8 h-8 rounded-lg bg-mint-100 text-[color:var(--mint-500)] flex items-center justify-center shrink-0">
+                      <CalendarCheck2 size={15} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-ink-900 truncate">
+                        {a.patient_name}
+                        <span className="text-ink-400 font-normal">
+                          {" "}
+                          ·{" "}
+                          {a.procedure_interest
+                            ? findTreatment(a.procedure_interest)?.short ?? "Consultation"
+                            : "Consultation"}
+                        </span>
+                      </div>
+                      <div className="text-[11.5px] text-ink-400">
+                        {new Date(a.start).toLocaleString("en-GB", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {" · "}
+                        {CAPTURE_LOCATIONS.find((l) => l.id === (a.location_id ?? "experience-centre"))?.short}
+                      </div>
+                    </div>
+                    <span className="chip chip-static text-[10.5px]">{a.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassCard>
+
+          <GlassCard className="p-5 fade-up-3">
+            <SectionTitle title="Recent calls" sub="From the agent's call log" />
+            {recentCalls.length === 0 ? (
+              <p className="caption py-3">No calls logged yet.</p>
+            ) : (
+              <div className="space-y-1.5 mt-2">
+                {recentCalls.map((c) => (
+                  <div key={c.id} className="flex items-center gap-2.5 text-sm px-1 py-1">
+                    <Phone size={13} className="text-ink-400 shrink-0" />
+                    <span className="text-ink-900 truncate">
+                      {c.caller_name ?? "Unknown caller"}
+                    </span>
+                    <span className="caption truncate hidden sm:inline">
+                      {c.summary?.slice(0, 46)}
+                    </span>
+                    <span
+                      className={`ml-auto chip chip-static text-[10.5px] ${
+                        c.outcome === "booked" ? "!bg-mint-100" : ""
+                      }`}
+                    >
+                      {c.outcome}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassCard>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ToolRow({
+  name,
+  method,
+  url,
+  note,
+}: {
+  name: string;
+  method: string;
+  url: string;
+  note: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="rounded-xl bg-white/55 border border-[rgba(28,26,22,0.07)] px-4 py-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-mono text-[12.5px] font-semibold text-ink-900">{name}</span>
+        <span className="chip chip-static text-[10px]">{method}</span>
+        <code className="text-[11.5px] text-ink-700 truncate flex-1 min-w-[200px]">{url}</code>
+        <button
+          className="btn btn-ghost btn-sm !px-2"
+          onClick={() => {
+            void navigator.clipboard.writeText(url).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1200);
+            });
+          }}
+          title="Copy URL"
+        >
+          {copied ? <Check size={13} className="text-[color:var(--mint-500)]" /> : <Copy size={13} />}
+        </button>
+      </div>
+      <p className="caption mt-1.5">{note}</p>
+    </div>
+  );
+}

@@ -8,7 +8,6 @@ import {
   Users,
   CalendarDays,
   ChartColumn,
-  Compass,
   Settings,
   LogOut,
   RadioTower,
@@ -16,6 +15,7 @@ import {
   ExternalLink,
   ShoppingBag,
   MessageSquareHeart,
+  AudioLines,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { ROLE_LABELS } from "@/lib/format";
@@ -92,10 +92,12 @@ export function TopNav() {
     ...(user?.role !== "front_desk"
       ? [{ href: "/reviews", label: "Reviews", icon: MessageSquareHeart }]
       : []),
+    // The voice-agent console: every role can test Noor from here
+    // (takes the slot Discovery held; /discovery stays reachable by URL)
+    { href: "/vybero", label: "VYBERO", icon: AudioLines },
     ...(can.manageUsers(user?.role)
       ? [
           { href: "/analytics", label: "Analytics", icon: ChartColumn },
-          { href: "/discovery", label: "Discovery", icon: Compass },
           { href: "/settings", label: "Settings", icon: Settings },
         ]
       : []),

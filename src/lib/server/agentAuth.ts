@@ -18,7 +18,11 @@ import {
 
 export function agentKeyValid(req: Request): boolean {
   const key = process.env.VYBERO_API_KEY;
-  const sent = req.headers.get("x-vybero-key") ?? "";
+  // Two accepted forms: the classic x-vybero-key header, or the
+  // "Authorization: Bearer <key>" header ElevenLabs webhook tools send
+  // when the secret is attached as an Authorization header.
+  const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const sent = req.headers.get("x-vybero-key") ?? bearer ?? "";
   if (key) {
     const a = Buffer.from(sent);
     const b = Buffer.from(key);
@@ -26,6 +30,11 @@ export function agentKeyValid(req: Request): boolean {
   }
   // No key configured: accept only outside production (dev/testing).
   return process.env.NODE_ENV !== "production" || !process.env.VERCEL;
+}
+
+/** True when the request even ATTEMPTS agent auth (has a key header). */
+export function agentKeyPresented(req: Request): boolean {
+  return !!(req.headers.get("x-vybero-key") || req.headers.get("authorization"));
 }
 
 /** Resolve the clinic a voice-agent request targets, or null. */

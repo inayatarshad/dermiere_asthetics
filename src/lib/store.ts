@@ -243,6 +243,8 @@ interface StoreState {
   setTaxRate: (v: number) => void;
   /** Admin sets a treatment's session price (POS + VYBERO quote from it). */
   setTreatmentPrice: (treatmentId: string, price: number) => void;
+  /** Admin links the ElevenLabs agent id that powers the voice widget. */
+  setVyberoAgentId: (id: string) => void;
 
   // admin
   addUser: (data: {
@@ -634,6 +636,12 @@ export const useStore = create<StoreState>()(
         const prices = { ...get().prices, [treatmentId]: price };
         set({ prices });
         void pushClinicConfig({ prices });
+      },
+
+      setVyberoAgentId: (id) => {
+        const clean = id.trim();
+        set({ vyberoAgentId: clean || undefined });
+        void pushClinicConfig({ vyberoAgentId: clean });
       },
 
       logout: () => {
