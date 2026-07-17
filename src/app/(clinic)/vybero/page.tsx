@@ -190,6 +190,21 @@ export default function VyberoAgentPage() {
             both authenticated tools. Full copy-paste guide:{" "}
             <b>VYBERO_VOICE_SETUP.md</b> in the project root.
           </p>
+
+          <div className="pt-4 border-t border-[rgba(28,26,22,0.08)]">
+            <SectionTitle
+              title="Post-call webhook → Analytics"
+              sub="ElevenLabs → Agents → Settings → Post-call webhook. Sends every finished call here; it lands on the Analytics dashboard."
+            />
+            <div className="mt-3">
+              <ToolRow
+                name="post_call_transcription"
+                method="POST"
+                url={`${origin}/api/vybero/elevenlabs-webhook?key=VYBERO_API_KEY`}
+                note="Replace VYBERO_API_KEY with the real key value. Transcript, summary, duration and outcome are mapped into the call log automatically — booked calls are detected from the actual book_appointment tool call, not from what the agent says."
+              />
+            </div>
+          </div>
         </GlassCard>
       )}
 
