@@ -16,13 +16,25 @@ import {
   pgListClinics,
 } from "./db";
 
+/** The key the caller presented, by any accepted route. */
+function presentedKey(req: Request): string {
+  const header = req.headers.get("x-vybero-key");
+  if (header) return header;
+  const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (bearer) return bearer;
+  // Query param: the agent platform's tool builder makes headers awkward to
+  // configure, and a URL is one field. Same secret, weaker channel (URLs can
+  // land in logs) — so it stays a convenience, not the documented default.
+  try {
+    return new URL(req.url).searchParams.get("key") ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export function agentKeyValid(req: Request): boolean {
   const key = process.env.VYBERO_API_KEY;
-  // Two accepted forms: the classic x-vybero-key header, or the
-  // "Authorization: Bearer <key>" header ElevenLabs webhook tools send
-  // when the secret is attached as an Authorization header.
-  const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const sent = req.headers.get("x-vybero-key") ?? bearer ?? "";
+  const sent = presentedKey(req);
   if (key) {
     const a = Buffer.from(sent);
     const b = Buffer.from(key);
@@ -32,9 +44,9 @@ export function agentKeyValid(req: Request): boolean {
   return process.env.NODE_ENV !== "production" || !process.env.VERCEL;
 }
 
-/** True when the request even ATTEMPTS agent auth (has a key header). */
+/** True when the request even ATTEMPTS agent auth (key header or ?key=). */
 export function agentKeyPresented(req: Request): boolean {
-  return !!(req.headers.get("x-vybero-key") || req.headers.get("authorization"));
+  return !!presentedKey(req);
 }
 
 /** Resolve the clinic a voice-agent request targets, or null. */
