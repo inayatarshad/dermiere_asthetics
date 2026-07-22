@@ -6,9 +6,15 @@
  * diagnosis). The generative model classifies; it never invents layout or
  * numbers — the report's geometry and rendering stay deterministic.
  *
- * Providers: OpenAI vision (OPENAI_API_KEY, model ASSESSMENT_VISION_MODEL
- * default gpt-4o) with Gemini fallback (GEMINI_API_KEY). Without either
- * key the route answers 501 and the report renders geometry-only.
+ * Providers, in priority order: Anthropic Claude vision (ANTHROPIC_API_KEY,
+ * model ANTHROPIC_VISION_MODEL default claude-opus-4-8) as primary, then
+ * OpenAI vision (OPENAI_API_KEY, ASSESSMENT_VISION_MODEL default gpt-4o),
+ * then Gemini (GEMINI_API_KEY) — each a fallback for the one before. With
+ * none configured the route answers 501 and the report renders geometry-only.
+ *
+ * Claude does image UNDERSTANDING here (photo -> findings text); the
+ * before/after image EDIT is a separate pipeline (server/providers.ts) that
+ * no Anthropic model can do — do not wire Claude in there.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -108,6 +114,58 @@ function sanitize(raw: unknown, provider: string): SkinAnalysis {
         .slice(0, 3)
     : [];
   return { findings, strengths, provider };
+}
+
+async function analyzeWithClaude(
+  base64: string,
+  mime: string
+): Promise<SkinAnalysis> {
+  const key = process.env.ANTHROPIC_API_KEY!;
+  const model = process.env.ANTHROPIC_VISION_MODEL || "claude-opus-4-8";
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: mime, data: base64 },
+            },
+            { type: "text", text: INSTRUCTION },
+          ],
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`
+    );
+  }
+  const data = (await res.json()) as {
+    stop_reason?: string;
+    content?: { type: string; text?: string }[];
+  };
+  // A safety refusal (rare for a cosmetic photo) throws so the loop can fall
+  // through to the next configured provider instead of returning garbage.
+  if (data.stop_reason === "refusal") {
+    throw new Error("Anthropic declined the image (refusal).");
+  }
+  const text =
+    data.content
+      ?.filter((b) => b.type === "text")
+      .map((b) => b.text ?? "")
+      .join("") ?? "";
+  return sanitize(extractJson(text), model);
 }
 
 async function analyzeWithOpenAI(
@@ -216,20 +274,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const hasClaude = !!process.env.ANTHROPIC_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   const hasGemini = !!process.env.GEMINI_API_KEY;
-  if (!hasOpenAI && !hasGemini) {
+  if (!hasClaude && !hasOpenAI && !hasGemini) {
     return NextResponse.json(
       {
         error: "no_api_key",
         message:
-          "Skin analysis needs a vision model. Set OPENAI_API_KEY (recommended) or GEMINI_API_KEY on the server; the report's proportion analysis works without it.",
+          "Skin analysis needs a vision model. Set ANTHROPIC_API_KEY (recommended) — or OPENAI_API_KEY / GEMINI_API_KEY — on the server; the report's proportion analysis works without it.",
       },
       { status: 501 }
     );
   }
 
+  // Claude vision is primary (strongest read + most reliable JSON); OpenAI
+  // and Gemini stay as automatic fallbacks if it errors or is unconfigured.
   const attempts: (() => Promise<SkinAnalysis>)[] = [];
+  if (hasClaude) attempts.push(() => analyzeWithClaude(base64, mime));
   if (hasOpenAI) attempts.push(() => analyzeWithOpenAI(base64, mime));
   if (hasGemini) attempts.push(() => analyzeWithGemini(base64, mime));
 

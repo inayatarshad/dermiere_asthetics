@@ -88,9 +88,14 @@ export const MODEL_OPTIONS: Record<Provider, string[]> = {
   gemini: ["gemini-2.5-flash-image", "gemini-3-pro-image"],
   openai: ["gpt-image-1", "gpt-image-2"],
   flux: ["flux-kontext-pro", "flux-kontext-max"],
-  // reve/edit = instruction-driven photo EDIT (closest to Nano Banana
-  // semantics on this router); soul modes are reference-guided renders.
+  // popcorn/auto = Higgsfield's identity-consistent photo model — verified
+  // 2026-07-23 against the live API: returns the SAME person with the
+  // requested edit (default, and the only account-tier edit-grade model;
+  // reve/edit answers 423 model_blocked on standard API accounts).
+  // soul modes are reference-guided RENDERS — they generate a different
+  // person and are kept only for the Settings bake-off comparison.
   higgsfield: [
+    "higgsfield-ai/popcorn/auto",
     "reve/edit",
     "higgsfield-ai/soul/reference",
     "higgsfield-ai/soul/character",
@@ -170,14 +175,19 @@ export async function generateAfter(
   // an env-forced provider likewise. Otherwise try each configured provider
   // in priority order, falling through on non-moderation failures.
   let chain: Provider[];
-  if (requested) {
-    if (!keyFor(requested)) {
+  if (requested && keyFor(requested)) {
+    chain = [requested];
+  } else if (requested) {
+    // A stale browser/Settings pin must never kill generation: if the
+    // requested provider has no key, run whatever IS configured instead.
+    // The response reports the provider that actually ran.
+    chain = configuredProviders();
+    if (chain.length === 0) {
       throw new GenerationError(
         "no_api_key",
-        `${requested} is selected in Settings but has no key on the server. Set the matching env var (see .env.example).`
+        `${requested} is selected in Settings but has no key on the server, and no other provider is configured. Set the matching env var (see .env.example).`
       );
     }
-    chain = [requested];
   } else if (envForced && keyFor(envForced)) {
     chain = [envForced];
   } else {
@@ -186,7 +196,7 @@ export async function generateAfter(
   if (chain.length === 0) {
     throw new GenerationError(
       "no_api_key",
-      "No image model configured. Set GEMINI_API_KEY (or OPENAI_API_KEY / BFL_API_KEY) in the environment."
+      "No image model configured. Set GEMINI_API_KEY (or OPENAI_API_KEY / BFL_API_KEY / HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET) in the environment."
     );
   }
   let lastErr: unknown;
@@ -365,9 +375,31 @@ async function generateWithOpenAI(
 // ---------------------------------------------------------------------
 
 const HF_BASE = "https://platform.higgsfield.ai";
-const HF_IMAGE_FIELDS = ["image_url", "image", "reference_image_url"] as const;
-// discovered per model (reve + soul both take image_url; do not assume)
-const hfPinnedImageField = new Map<string, (typeof HF_IMAGE_FIELDS)[number]>();
+// Candidate names for the reference-image field. Shape matters as much as
+// name: popcorn/auto takes image_urls as an ARRAY — and it also VALIDATES
+// the singular image_url without consuming it (job queues, then fails), so
+// for popcorn the plural form must be tried FIRST or discovery pins the
+// wrong field. Soul (and reve, where unblocked) take the singular image_url.
+interface HfImageField {
+  name: string;
+  array: boolean;
+}
+const HF_IMAGE_FIELDS: HfImageField[] = [
+  { name: "image_urls", array: true },
+  { name: "image_url", array: false },
+  { name: "image", array: false },
+  { name: "reference_image_url", array: false },
+];
+// discovered per model (verified 2026-07-23: popcorn=image_urls[], soul=image_url)
+const hfPinnedImageField = new Map<string, HfImageField>();
+
+function hfFieldCandidates(model: string): HfImageField[] {
+  const pinned = hfPinnedImageField.get(model);
+  if (pinned) return [pinned];
+  return /popcorn/.test(model)
+    ? HF_IMAGE_FIELDS
+    : [...HF_IMAGE_FIELDS.slice(1), HF_IMAGE_FIELDS[0]];
+}
 
 function hfAuthHeaders(): Record<string, string> {
   return {
@@ -388,6 +420,15 @@ function hfError(status: number, body: string): GenerationError {
     return new GenerationError(
       "no_api_key",
       "Higgsfield rejected the API credentials. Check HIGGSFIELD_API_KEY / HIGGSFIELD_API_SECRET."
+    );
+  }
+  // 423 Locked / model_blocked: the model itself is gated for the account,
+  // regardless of the photo or prompt (verified: a plain gray square gets
+  // the same 423 on reve/edit). Point the admin at the model that works.
+  if (status === 423 || /model_blocked/i.test(body)) {
+    return new GenerationError(
+      "provider_error",
+      "Higgsfield has locked the selected model for this account (model_blocked) — reve/edit is not available on standard API accounts. Use 'higgsfield-ai/popcorn/auto' (the default; verified identity-preserving photo edit) under Settings -> AI generation, or set GEMINI_API_KEY as an alternative."
     );
   }
   return new GenerationError(
@@ -436,17 +477,44 @@ async function generateWithHiggsfield(
 ): Promise<GenerateResult> {
   const model = modelChoice ?? defaultModelFor("higgsfield");
   const imageUrl = await hfUploadImage(image);
+  try {
+    return await hfRunModel(imageUrl, prompt, model);
+  } catch (err) {
+    // A gated model (423 model_blocked) is an account-tier fact, not a
+    // transient failure — recover onto the known-good whitelist default
+    // (popcorn) instead of failing the consult with a stale model pin.
+    // Never retries moderation blocks (those are safety_blocked).
+    const fallback = MODEL_OPTIONS.higgsfield[0];
+    if (
+      err instanceof GenerationError &&
+      err.code === "provider_error" &&
+      /model_blocked/.test(err.message) &&
+      model !== fallback
+    ) {
+      return await hfRunModel(imageUrl, prompt, fallback);
+    }
+    throw err;
+  }
+}
 
-  // submit, discovering the reference-image field name if not yet pinned
-  const pinned = hfPinnedImageField.get(model);
-  const fields = pinned ? [pinned] : [...HF_IMAGE_FIELDS];
+async function hfRunModel(
+  imageUrl: string,
+  prompt: string,
+  model: string
+): Promise<GenerateResult> {
+  // submit, discovering the reference-image field (name + shape) if not
+  // yet pinned for this model
+  const fields = hfFieldCandidates(model);
   let submitted: { request_id?: string; status_url?: string } | null = null;
   let lastDetail = "";
   for (const field of fields) {
     const res = await fetch(`${HF_BASE}/${model}`, {
       method: "POST",
       headers: hfAuthHeaders(),
-      body: JSON.stringify({ prompt, [field]: imageUrl }),
+      body: JSON.stringify({
+        prompt,
+        [field.name]: field.array ? [imageUrl] : imageUrl,
+      }),
     });
     if (res.ok) {
       hfPinnedImageField.set(model, field);

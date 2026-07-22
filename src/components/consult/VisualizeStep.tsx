@@ -598,8 +598,8 @@ export function VisualizeStep({
           <GlassCard className="px-5 py-3.5 flex items-center gap-3">
             <Spinner />
             <span className="text-sm text-ink-700">
-              Generating the photoreal healed result on {patient.name.split(" ")[0]}'s
-              photo...
+              Generating the photoreal healed result on{" "}
+              {patient.name.split(" ")[0]}&apos;s photo...
             </span>
           </GlassCard>
         )}
@@ -619,12 +619,10 @@ export function VisualizeStep({
             <div className="text-sm text-ink-700">
               {genError.code === "no_api_key" ? (
                 <>
-                  <b>Simulation mode.</b> No AI key is configured on the
-                  server, so you are seeing the on-device preview. Add{" "}
-                  <code className="text-xs bg-mint-100 px-1.5 py-0.5 rounded">
-                    GEMINI_API_KEY
-                  </code>{" "}
-                  to enable photoreal generation.
+                  {/* relay the server's reason — it knows which provider/key
+                      is missing; a hardcoded env-var name here lies */}
+                  <b>Simulation mode.</b> {genError.message} You are seeing
+                  the on-device preview meanwhile.
                 </>
               ) : (
                 <>
