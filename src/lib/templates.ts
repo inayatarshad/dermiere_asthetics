@@ -3378,9 +3378,9 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
     region: "jaw",
     available: true,
     model: "gemini-2.5-flash-image",
-    prompt_template: `Edit this photograph to visualize the result of a course of non-invasive lifting and firming treatment on the lower face and neck. {assembled_slider_phrases}
+    prompt_template: `Edit this photograph to visualize the fully settled result of a course of non-invasive lifting and contouring treatment on the lower face and neck. {assembled_slider_phrases}
 
-Preserve exactly: the person's identity, facial features, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Changes must be SUBTLE and realistic — firmer-looking skin along the jawline and neck, gently improved definition, smoother texture; never a surgical-looking change, never altered bone structure. The SAME person, lifted and fresh. Photorealistic, no artifacts.`,
+The contour changes are the POINT of this image — they must be clearly visible in a side-by-side comparison: a crisper jaw-to-neck angle, a cleaner shadow line along the mandible, reduced fullness under the jaw. Keep them believable for a non-surgical treatment (soft tissue only, no altered bone), but do NOT wash them out into a mere glow. Preserve exactly: the person's identity, facial features, eyes, nose, lips, hairstyle, lighting, camera angle, framing and background. The SAME person, visibly contoured. Photorealistic, no artifacts.`,
     slider_schema: [
       {
         key: "xfc_jawline",
@@ -3388,7 +3388,8 @@ Preserve exactly: the person's identity, facial features, eyes, nose, lips, hair
         hint: "Firmness and definition along the jaw",
         min: 0,
         max: 100,
-        posPhrase: "make the jawline look subtly firmer and better defined",
+        posPhrase:
+          "sharpen and define the jawline: a visibly crisper jaw-to-neck angle and a clean, continuous shadow line along the mandible from chin to ear",
         negLabel: "As is",
         posLabel: "Defined",
       },
@@ -3398,7 +3399,8 @@ Preserve exactly: the person's identity, facial features, eyes, nose, lips, hair
         hint: "Crepey texture and laxity on the neck",
         min: 0,
         max: 100,
-        posPhrase: "firm and smooth crepey-looking skin on the neck",
+        posPhrase:
+          "firm the neck: smooth crepey texture and visibly tighten the skin under the chin so the submental area looks taut",
         negLabel: "As is",
         posLabel: "Firm",
       },
@@ -3408,7 +3410,8 @@ Preserve exactly: the person's identity, facial features, eyes, nose, lips, hair
         hint: "Mild softness in the lower face",
         min: 0,
         max: 100,
-        posPhrase: "reduce the appearance of mild sagging in the lower face, keeping proportions natural",
+        posPhrase:
+          "lift the lower face: visibly reduce jowl softness so the cheek-to-jaw transition is smoother and higher, keeping proportions natural",
         negLabel: "As is",
         posLabel: "Lifted",
       },

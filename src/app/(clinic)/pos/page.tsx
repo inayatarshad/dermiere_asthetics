@@ -68,6 +68,9 @@ export default function PosPage() {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [clientName, setClientName] = useState("");
+  /** Explicitly picked patient record (beats name matching). */
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [locationId, setLocationId] = useState("experience-centre");
   const [codeInput, setCodeInput] = useState("");
   const [codeBusy, setCodeBusy] = useState(false);
@@ -81,13 +84,46 @@ export default function PosPage() {
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [reviewBusy, setReviewBusy] = useState(false);
 
-  const matchedPatient = useMemo(
+  // Picker suggestions: name or phone contains the typed text
+  const patientMatches = useMemo(() => {
+    const q = clientName.trim().toLowerCase();
+    if (!q) return patients.slice(0, 6);
+    return patients
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, ""))
+      )
+      .slice(0, 6);
+  }, [patients, clientName]);
+
+  // The billed client: explicit pick wins; exact typed name still links
+  // (covers the today's-sessions prefill) — otherwise it's a walk-in.
+  const matchedPatient = useMemo(() => {
+    if (selectedPatientId) {
+      const p = patients.find((x) => x.id === selectedPatientId);
+      if (p) return p;
+    }
+    return patients.find(
+      (p) => p.name.toLowerCase() === clientName.trim().toLowerCase()
+    );
+  }, [patients, selectedPatientId, clientName]);
+
+  const patientBillCount = useMemo(
     () =>
-      patients.find(
-        (p) => p.name.toLowerCase() === clientName.trim().toLowerCase()
-      ),
-    [patients, clientName]
+      matchedPatient
+        ? invoices.filter((i) => i.patient_id === matchedPatient.id).length
+        : 0,
+    [invoices, matchedPatient]
   );
+
+  const pickPatient = (id: string) => {
+    const p = patients.find((x) => x.id === id);
+    if (!p) return;
+    setSelectedPatientId(p.id);
+    setClientName(p.name);
+    setPickerOpen(false);
+  };
 
   // Today's sessions at this location — one tap closes the visit out
   const todaysSessions = useMemo(() => {
@@ -299,6 +335,8 @@ export default function PosPage() {
   const reset = () => {
     setCart([]);
     setClientName("");
+    setSelectedPatientId(null);
+    setPickerOpen(false);
     setApplied(null);
     setCodeInput("");
     setCodeError(null);
@@ -432,6 +470,15 @@ export default function PosPage() {
             >
               <Printer size={16} /> Print A4 invoice
             </a>
+            {done.patient_id && (
+              <a
+                href={`/patients/${done.patient_id}`}
+                className="btn btn-secondary w-full"
+              >
+                View {done.patient_name.split(" ")[0]}&apos;s record
+                (bill saved to their Billing history)
+              </a>
+            )}
             <button
               onClick={() => void sendReviewLink()}
               disabled={reviewBusy}
@@ -480,24 +527,74 @@ export default function PosPage() {
 
             {/* client + location */}
             <div className="grid grid-cols-1 gap-3">
-              <div>
+              <div className="relative">
                 <span className="field-label">Client</span>
                 <input
                   className="input"
-                  list="pos-patients"
-                  placeholder="Client name or walk-in"
+                  placeholder="Search patients, or type a walk-in name"
                   value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
+                  onChange={(e) => {
+                    setClientName(e.target.value);
+                    setSelectedPatientId(null);
+                    setPickerOpen(true);
+                  }}
+                  onFocus={() => setPickerOpen(true)}
+                  onBlur={() => setTimeout(() => setPickerOpen(false), 150)}
                 />
-                <datalist id="pos-patients">
-                  {patients.map((p) => (
-                    <option key={p.id} value={p.name} />
-                  ))}
-                </datalist>
-                {matchedPatient && (
+                {pickerOpen && (patientMatches.length > 0 || clientName.trim()) && (
+                  <div className="absolute z-30 left-0 right-0 mt-1.5 glass-strong rounded-xl p-1.5 shadow-lg max-h-64 overflow-y-auto">
+                    {patientMatches.map((p) => (
+                      <button
+                        key={p.id}
+                        /* onMouseDown so the pick fires before input blur */
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          pickPatient(p.id);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-mint-100 transition-colors"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium text-ink-900 truncate">
+                            {p.name}
+                          </span>
+                          <span className="caption block">{p.phone}</span>
+                        </span>
+                        <span className="chip chip-static text-[10px] shrink-0">
+                          Patient
+                        </span>
+                      </button>
+                    ))}
+                    {clientName.trim() && !matchedPatient && (
+                      <button
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setSelectedPatientId(null);
+                          setPickerOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-mint-100 transition-colors"
+                      >
+                        <span className="text-sm text-ink-700 truncate flex-1">
+                          Bill as walk-in: &ldquo;{clientName.trim()}&rdquo;
+                        </span>
+                        <span className="chip chip-static text-[10px] shrink-0">
+                          Walk-in
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
+                {matchedPatient ? (
                   <p className="caption mt-1">
                     Linked to record · {matchedPatient.phone}
+                    {patientBillCount > 0 &&
+                      ` · ${patientBillCount} previous bill${patientBillCount === 1 ? "" : "s"}`}
                   </p>
+                ) : (
+                  clientName.trim() && (
+                    <p className="caption mt-1">
+                      Walk-in — not linked to a patient record.
+                    </p>
+                  )
                 )}
               </div>
               <div>

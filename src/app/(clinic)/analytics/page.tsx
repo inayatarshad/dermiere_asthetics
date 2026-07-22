@@ -8,7 +8,7 @@
  * Charts are hand-rolled SVG to stay on the glassmorphic system.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PhoneCall,
   PhoneMissed,
@@ -18,6 +18,8 @@ import {
   MessageCircleQuestion,
   ShieldCheck,
   Sparkles,
+  RefreshCw,
+  AudioLines,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
@@ -32,7 +34,20 @@ import {
   topicLabel,
   topQuestions,
 } from "@/lib/vyberoAnalytics";
-import { GlassCard, EmptyState, SectionTitle, StatCard } from "@/components/ui";
+import {
+  GlassCard,
+  EmptyState,
+  SectionTitle,
+  StatCard,
+  Modal,
+  Spinner,
+} from "@/components/ui";
+import type { VyberoCall } from "@/lib/types";
+import type { TranscriptTurn } from "@/app/api/vybero/call-transcript/route";
+
+/** ElevenLabs-derived calls (webhook or daily sync) — the REAL history.
+ *  Anything else in the store is the seeded demo story. */
+const isLiveCall = (c: VyberoCall) => c.id.startsWith("el_");
 
 const OUTCOME_BADGES: Record<string, string> = {
   booked: "bg-mint-500 text-white",
@@ -48,13 +63,63 @@ export default function AnalyticsPage() {
   const calls = useStore((s) => s.vyberoCalls);
   const appointments = useStore((s) => s.appointments);
   const aiUsage = useStore((s) => s.aiUsage);
+  const mergeVyberoCalls = useStore((s) => s.mergeVyberoCalls);
 
-  const kpis = useMemo(() => computeCallKpis(calls), [calls]);
-  const volume = useMemo(() => callVolumeByDay(calls, 14), [calls]);
-  const hours = useMemo(() => busiestHours(calls), [calls]);
-  const topics = useMemo(() => topicBreakdown(calls), [calls]);
-  const questions = useMemo(() => topQuestions(calls, 8), [calls]);
-  const outcomes = useMemo(() => outcomeBreakdown(calls), [calls]);
+  // Truth switch (owner 2026-07-23: "56 calls in 14 days is just not true"):
+  // live = only ElevenLabs-derived calls; the seeded demo story is opt-in
+  // and always labeled. null = auto — live as soon as any real call exists.
+  const liveCalls = useMemo(() => calls.filter(isLiveCall), [calls]);
+  const [dataModeChoice, setDataMode] = useState<"live" | "all" | null>(null);
+  const dataMode =
+    dataModeChoice ?? (liveCalls.length > 0 ? "live" : "all");
+  const view = dataMode === "live" ? liveCalls : calls;
+
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
+  const [detailCall, setDetailCall] = useState<VyberoCall | null>(null);
+
+  /** Pull Noor's call history from ElevenLabs, then refresh the feed. */
+  const syncCalls = async () => {
+    if (syncBusy) return;
+    setSyncBusy(true);
+    setSyncNote(null);
+    try {
+      const res = await fetch("/api/vybero/sync-elevenlabs", { cache: "no-store" });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        new_calls?: number;
+        error?: string;
+      };
+      if (data.ok) {
+        setSyncNote(
+          data.new_calls
+            ? `${data.new_calls} new call${data.new_calls === 1 ? "" : "s"}`
+            : "Up to date"
+        );
+        const log = await fetch("/api/vybero/call-log", { cache: "no-store" });
+        if (log.ok) {
+          const body = (await log.json()) as { calls?: VyberoCall[] };
+          if (body.calls) mergeVyberoCalls(body.calls);
+        }
+        setDataMode("live");
+      } else {
+        setSyncNote(
+          data.error === "not_configured" ? "Needs ELEVENLABS_API_KEY" : "Sync failed"
+        );
+      }
+    } catch {
+      setSyncNote("Sync failed");
+    } finally {
+      setSyncBusy(false);
+    }
+  };
+
+  const kpis = useMemo(() => computeCallKpis(view), [view]);
+  const volume = useMemo(() => callVolumeByDay(view, 14), [view]);
+  const hours = useMemo(() => busiestHours(view), [view]);
+  const topics = useMemo(() => topicBreakdown(view), [view]);
+  const questions = useMemo(() => topQuestions(view, 8), [view]);
+  const outcomes = useMemo(() => outcomeBreakdown(view), [view]);
   const vyberoBookings = useMemo(
     () => appointments.filter((a) => a.source === "vybero").length,
     [appointments]
@@ -78,8 +143,61 @@ export default function AnalyticsPage() {
       <SectionTitle
         title="VYBERO Analytics"
         sub="What the phone agent is doing: call volume, what patients ask about, and how many calls become bookings"
-        className="mb-4"
+        className="mb-3"
       />
+
+      {/* Data-source truth controls */}
+      <div className="flex items-center gap-2 flex-wrap mb-3">
+        <div className="glass-subtle inline-flex rounded-full p-1">
+          <button
+            onClick={() => setDataMode("live")}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              dataMode === "live"
+                ? "bg-mint-500 text-white"
+                : "text-ink-700 hover:text-ink-900"
+            }`}
+          >
+            Live calls · {liveCalls.length}
+          </button>
+          <button
+            onClick={() => setDataMode("all")}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              dataMode !== "live"
+                ? "bg-mint-500 text-white"
+                : "text-ink-700 hover:text-ink-900"
+            }`}
+          >
+            With demo data · {calls.length}
+          </button>
+        </div>
+        <button
+          onClick={() => void syncCalls()}
+          disabled={syncBusy}
+          className="btn btn-secondary btn-sm"
+          title="Pull Noor's latest call history from ElevenLabs (also runs automatically every day)"
+        >
+          {syncBusy ? <Spinner className="w-3.5 h-3.5" /> : <RefreshCw size={14} />}
+          {syncNote ?? "Sync calls"}
+        </button>
+      </div>
+      {dataMode !== "live" && (
+        <GlassCard className="px-4 py-2.5 mb-3 border border-amber-200/70 bg-amber-50/60">
+          <p className="text-xs text-amber-900">
+            <b>Demo data.</b> The numbers below include the seeded demo story
+            — they are not Noor&apos;s real call history. Switch to Live
+            calls (or press Sync calls) for the truth.
+          </p>
+        </GlassCard>
+      )}
+      {dataMode === "live" && view.length === 0 && (
+        <GlassCard className="px-4 py-2.5 mb-3">
+          <p className="text-xs text-ink-700">
+            No synced calls yet. Press <b>Sync calls</b> to pull Noor&apos;s
+            history from ElevenLabs — every real call also lands here
+            automatically via the daily sync and the post-call webhook.
+          </p>
+        </GlassCard>
+      )}
 
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -255,9 +373,12 @@ export default function AnalyticsPage() {
         </div>
       </GlassCard>
 
-      {/* Recent calls */}
+      {/* Recent calls — click a row for the recording + transcript */}
       <GlassCard className="p-5 mt-4">
-        <h3 className="h2 text-ink-900 mb-3">Recent calls</h3>
+        <h3 className="h2 text-ink-900">Recent calls</h3>
+        <p className="caption mt-0.5 mb-3">
+          Click a call to listen to the recording and read the transcript.
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -270,8 +391,13 @@ export default function AnalyticsPage() {
               </tr>
             </thead>
             <tbody>
-              {calls.slice(0, 12).map((c) => (
-                <tr key={c.id} className="border-b border-white/40 last:border-0">
+              {view.slice(0, 16).map((c) => (
+                <tr
+                  key={c.id}
+                  onClick={() => setDetailCall(c)}
+                  className="border-b border-white/40 last:border-0 cursor-pointer hover:bg-white/40 transition-colors"
+                  title="Open call detail"
+                >
                   <td className="py-2.5 pr-3 whitespace-nowrap text-ink-700">
                     {new Date(c.started_at).toLocaleDateString("en-GB", {
                       day: "numeric",
@@ -288,6 +414,11 @@ export default function AnalyticsPage() {
                     {c.caller_name ?? "Unknown"}
                     {c.language && (
                       <span className="caption font-normal"> · {c.language}</span>
+                    )}
+                    {dataMode !== "live" && !isLiveCall(c) && (
+                      <span className="chip chip-static text-[10px] ml-1.5 opacity-70">
+                        Demo
+                      </span>
                     )}
                   </td>
                   <td className="py-2.5 pr-3">
@@ -313,9 +444,177 @@ export default function AnalyticsPage() {
               ))}
             </tbody>
           </table>
+          {view.length === 0 && (
+            <p className="caption py-4">No calls in this view yet.</p>
+          )}
         </div>
       </GlassCard>
+
+      {detailCall && (
+        <CallDetailModal
+          call={detailCall}
+          onClose={() => setDetailCall(null)}
+        />
+      )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Call detail: recording + transcript for synced ElevenLabs calls
+// (fetched on open through the server proxy; the key never reaches the
+// browser). Seeded demo calls say so instead of pretending.
+// ---------------------------------------------------------------------
+
+function CallDetailModal({
+  call,
+  onClose,
+}: {
+  call: VyberoCall;
+  onClose: () => void;
+}) {
+  const live = isLiveCall(call);
+  const [turns, setTurns] = useState<TranscriptTurn[] | null>(null);
+  const [transcriptError, setTranscriptError] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!live) return;
+    let cancelled = false;
+    fetch(`/api/vybero/call-transcript?id=${encodeURIComponent(call.id)}`, {
+      cache: "no-store",
+    })
+      .then(async (r) => {
+        const d = (await r.json().catch(() => ({}))) as {
+          turns?: TranscriptTurn[];
+          message?: string;
+        };
+        if (cancelled) return;
+        if (r.ok && Array.isArray(d.turns)) setTurns(d.turns);
+        else setTranscriptError(d.message ?? "Transcript unavailable.");
+      })
+      .catch(() => {
+        if (!cancelled) setTranscriptError("Could not reach the server.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [call.id, live]);
+
+  const when = new Date(call.started_at);
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={call.caller_name ?? "Unknown caller"}
+      wide
+    >
+      <div className="flex items-center gap-2 flex-wrap text-sm text-ink-700">
+        <span>
+          {when.toLocaleDateString("en-GB", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          })}{" "}
+          {when.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+        {call.duration_secs > 0 && (
+          <span className="chip chip-static text-[11px]">
+            {formatDuration(call.duration_secs)}
+          </span>
+        )}
+        <span
+          className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium ${OUTCOME_BADGES[call.outcome] ?? ""}`}
+        >
+          {call.outcome === "booked" ? "Booked" : call.outcome}
+        </span>
+        {call.language && (
+          <span className="caption">{call.language}</span>
+        )}
+        {call.caller_phone && (
+          <span className="caption">{call.caller_phone}</span>
+        )}
+      </div>
+
+      {call.summary && (
+        <p className="text-sm text-ink-700 mt-3">{call.summary}</p>
+      )}
+      {call.topics.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap mt-3">
+          {call.topics.map((t) => (
+            <span key={t} className="chip chip-static text-[11px]">
+              {topicLabel(t)}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {live ? (
+        <>
+          <h4 className="text-sm font-medium text-ink-900 mt-5 mb-2 flex items-center gap-1.5">
+            <AudioLines size={15} className="text-mint-500" />
+            Recording
+          </h4>
+          {audioError ? (
+            <p className="caption">{audioError}</p>
+          ) : (
+            <audio
+              controls
+              preload="none"
+              className="w-full"
+              src={`/api/vybero/call-audio?id=${encodeURIComponent(call.id)}`}
+              onError={() =>
+                setAudioError("No recording is available for this call.")
+              }
+            />
+          )}
+
+          <h4 className="text-sm font-medium text-ink-900 mt-5 mb-2">
+            Transcript
+          </h4>
+          {turns === null && !transcriptError && (
+            <span className="flex items-center gap-2 text-sm text-ink-700">
+              <Spinner className="w-4 h-4" /> Fetching the transcript…
+            </span>
+          )}
+          {transcriptError && (
+            <p className="caption text-warning">{transcriptError}</p>
+          )}
+          {turns && turns.length === 0 && (
+            <p className="caption">The provider returned an empty transcript.</p>
+          )}
+          {turns && turns.length > 0 && (
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {turns.map((t, i) => (
+                <div
+                  key={i}
+                  className={`rounded-2xl px-3.5 py-2 text-sm max-w-[85%] ${
+                    t.role === "agent"
+                      ? "bg-mint-100 text-ink-900"
+                      : "bg-white/70 text-ink-700 ml-auto"
+                  }`}
+                >
+                  <span className="caption block mb-0.5">
+                    {t.role === "agent" ? "Noor" : "Caller"}
+                    {t.t > 0 ? ` · ${formatDuration(Math.round(t.t))}` : ""}
+                  </span>
+                  {t.text}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-sm text-amber-900 bg-amber-50/70 border border-amber-200/70 rounded-xl px-3.5 py-2.5 mt-5">
+          This is a seeded demo call — part of the sample story, so no
+          recording or transcript exists. Synced ElevenLabs calls open with
+          the real audio and conversation here.
+        </p>
+      )}
+    </Modal>
   );
 }
 

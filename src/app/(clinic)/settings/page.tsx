@@ -39,19 +39,13 @@ interface ProviderStatus {
   options?: Record<ProviderId, string[]>;
 }
 
-/** Friendly names for the model picker chips. */
-const MODEL_LABELS: Record<string, string> = {
-  "gemini-2.5-flash-image": "Nano Banana",
-  "gemini-3-pro-image": "Nano Banana Pro",
-  "gpt-image-1": "GPT Image 1",
-  "gpt-image-2": "GPT Image 2",
-  "flux-kontext-pro": "Kontext Pro",
-  "flux-kontext-max": "Kontext Max",
-  "reve/edit": "Reve Edit (photo editing)",
-  "higgsfield-ai/soul/reference": "Soul Reference",
-  "higgsfield-ai/soul/character": "Soul Character",
-};
-
+/**
+ * White-label (owner 2026-07-23): the clinic sees ONE engine — "Stryder AI
+ * Image" — never the underlying provider or model names. "auto" is the
+ * store value behind the engine card, so selecting it also clears any stale
+ * per-provider pin from older builds; the server routes to the best
+ * configured provider (Higgsfield popcorn today) behind the curtain.
+ */
 const AI_CHOICES: {
   id: AiProviderSetting;
   label: string;
@@ -59,32 +53,12 @@ const AI_CHOICES: {
 }[] = [
   {
     id: "auto",
-    label: "Auto",
-    desc: "Server picks the best configured provider, with automatic fallback",
-  },
-  {
-    id: "gemini",
-    label: "Gemini (Nano Banana)",
-    desc: "Best identity preservation. Recommended for facial edits",
-  },
-  {
-    id: "openai",
-    label: "OpenAI GPT Image",
-    desc: "Strong spatial reasoning; sent with high input fidelity",
-  },
-  {
-    id: "flux",
-    label: "FLUX.1 Kontext",
-    desc: "Controllable instructed editing",
-  },
-  {
-    id: "higgsfield",
-    label: "Higgsfield (Soul)",
-    desc: "Reference-guided Soul renders via Higgsfield Cloud API credits",
+    label: "Stryder AI Image",
+    desc: "TechGIS photoreal engine — identity-preserving before/after edits on the patient's own photo",
   },
   {
     id: "none",
-    label: "None",
+    label: "Off",
     desc: "Photoreal AI off. On-device simulation preview only",
   },
 ];
@@ -102,8 +76,6 @@ export default function SettingsPage() {
   const resetDemo = useStore((s) => s.resetDemo);
   const aiProvider = useStore((s) => s.aiProvider);
   const setAiProvider = useStore((s) => s.setAiProvider);
-  const aiModels = useStore((s) => s.aiModels);
-  const setAiModel = useStore((s) => s.setAiModel);
   const clinicHours = useStore((s) => s.clinicHours);
   const setClinicHours = useStore((s) => s.setClinicHours);
   const toxinPricePerUnit = useStore((s) => s.toxinPricePerUnit);
@@ -331,28 +303,21 @@ export default function SettingsPage() {
       <section className="fade-up-2">
         <SectionTitle
           title="AI generation"
-          sub="Which model powers the photoreal before/after. Keys live in the server environment, never in the browser"
+          sub="Stryder AI Image powers the photoreal before/after. Keys live in the server environment, never in the browser"
           className="mb-4"
         />
         <GlassCard className="p-6">
           <div className="space-y-2.5">
             {AI_CHOICES.map((choice) => {
-              const selected = aiProvider === choice.id;
-              const isProvider =
-                choice.id !== "auto" && choice.id !== "none";
-              const configured = isProvider
-                ? providerStatus?.configured[choice.id as ProviderId]
+              const isEngine = choice.id !== "none";
+              // any non-"none" store value counts as the engine (covers
+              // stale per-provider pins persisted by older builds)
+              const selected = isEngine
+                ? aiProvider !== "none"
+                : aiProvider === "none";
+              const ready = providerStatus
+                ? providerStatus.active !== null
                 : undefined;
-              const serverDefault = isProvider
-                ? providerStatus?.models[choice.id as ProviderId]
-                : undefined;
-              const chosen = isProvider
-                ? aiModels[choice.id as ProviderId]
-                : undefined;
-              const model = chosen ?? serverDefault;
-              const modelOptions = isProvider
-                ? (providerStatus?.options?.[choice.id as ProviderId] ?? [])
-                : [];
               return (
                 <button
                   key={choice.id}
@@ -368,73 +333,31 @@ export default function SettingsPage() {
                         : "bg-mint-100 text-ink-700"
                     }`}
                   >
-                    {choice.id === "none" ? (
-                      <CloudOff size={16} />
-                    ) : (
+                    {isEngine ? (
                       <Sparkles size={16} />
+                    ) : (
+                      <CloudOff size={16} />
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium text-ink-900">
                       {choice.label}
-                      {model && (
-                        <span className="caption font-normal"> · {model}</span>
-                      )}
                     </span>
                     <span className="caption block">{choice.desc}</span>
-                    {modelOptions.length > 1 && (
-                      <span className="flex flex-wrap gap-1.5 mt-2">
-                        {modelOptions.map((opt) => {
-                          const optActive = model === opt;
-                          return (
-                            /* span, not button: cards are buttons and
-                               interactive nesting is invalid HTML */
-                            <span
-                              key={opt}
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setAiModel(
-                                  choice.id as ProviderId,
-                                  opt === serverDefault ? null : opt
-                                );
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setAiModel(
-                                    choice.id as ProviderId,
-                                    opt === serverDefault ? null : opt
-                                  );
-                                }
-                              }}
-                              className={`chip text-[11px] ${
-                                optActive ? "chip-active" : ""
-                              }`}
-                              title={opt}
-                            >
-                              {MODEL_LABELS[opt] ?? opt}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    )}
                   </span>
-                  {isProvider &&
+                  {isEngine &&
                     providerStatus &&
-                    (configured ? (
+                    (ready ? (
                       <span className="chip chip-static text-xs">
                         <Check size={12} className="text-mint-500" />
-                        Key configured
+                        Ready
                       </span>
                     ) : (
                       <span className="chip chip-static text-xs opacity-70">
-                        No key on server
+                        Not configured on server
                       </span>
                     ))}
-                  {isProvider && !providerStatus && !statusError && (
+                  {isEngine && !providerStatus && !statusError && (
                     <Spinner className="w-4 h-4" />
                   )}
                   {selected && (
@@ -447,22 +370,18 @@ export default function SettingsPage() {
             })}
           </div>
           {aiProvider !== "none" &&
-            aiProvider !== "auto" &&
             providerStatus &&
-            !providerStatus.configured[aiProvider as ProviderId] && (
+            providerStatus.active === null && (
               <p className="text-sm text-warning mt-4">
-                The selected provider has no key on the server, so generation
-                will fail until its env var is set (see .env.example). The
-                on-device preview keeps working regardless.
+                Stryder AI Image is not configured on this server yet — ask
+                TechGIS to enable it. The on-device preview keeps working
+                regardless.
               </p>
             )}
           <p className="caption mt-4">
             Doctors see this choice reflected instantly in the consultation
-            workspace. "None" disables photoreal generation clinic-wide and
-            keeps the visualization fully on-device.
-            {providerStatus?.envForced
-              ? ` Server env currently forces ${providerStatus.envForced} when Auto is selected.`
-              : ""}
+            workspace. &quot;Off&quot; disables photoreal generation
+            clinic-wide and keeps the visualization fully on-device.
           </p>
         </GlassCard>
       </section>

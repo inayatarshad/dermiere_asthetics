@@ -29,11 +29,14 @@ import {
   RefreshCcw,
   ScanSearch,
   Sparkles,
+  ReceiptText,
+  Printer,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useStore, useSessionUser, can, usePatientConsents } from "@/lib/store";
 import { pushPatientToBooth, deleteBoothServerCopy } from "@/lib/booth";
 import { formatDate, formatDateTime, relativeDay, SOURCE_LABELS } from "@/lib/format";
+import { formatPkr } from "@/lib/capture/kb";
 import { getTemplate } from "@/lib/templates";
 import { CONSENT_COPY, type Asset, type ConsentType } from "@/lib/types";
 import { useAssetUrl } from "@/lib/hooks";
@@ -76,6 +79,13 @@ export default function PatientProfilePage() {
   const setConsent = useStore((s) => s.setConsent);
   const addAsset = useStore((s) => s.addAsset);
   const boothSync = useStore((s) => s.boothSync[id]);
+  const invoices = useStore(
+    useShallow((s) =>
+      s.invoices
+        .filter((i) => i.patient_id === id)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    )
+  );
   const clearNewArrival = useStore((s) => s.clearNewArrival);
   const deletePatientAction = useStore((s) => s.deletePatient);
 
@@ -348,6 +358,72 @@ export default function PatientProfilePage() {
             </dl>
           </GlassCard>
 
+          {/* Billing history — the POS writes invoices onto the patient
+              record (owner 2026-07-23: the sale summary must live in the
+              database and be visible on the client). */}
+          <GlassCard className="p-6 lg:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="h2 text-ink-900 flex items-center gap-2">
+                <ReceiptText size={17} className="text-mint-500" />
+                Billing
+              </h3>
+              {invoices.length > 0 && (
+                <span className="chip chip-static text-xs">
+                  {invoices.length} bill{invoices.length === 1 ? "" : "s"} ·
+                  lifetime {formatPkr(invoices.reduce((s, i) => s + i.total, 0))}
+                </span>
+              )}
+            </div>
+            {invoices.length === 0 ? (
+              <p className="caption">
+                No purchases yet — sales recorded at the POS with this client
+                selected appear here automatically.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {invoices.slice(0, 6).map((inv) => {
+                  const names = inv.items.map((it) => it.name);
+                  const summary =
+                    names.slice(0, 2).join(", ") +
+                    (names.length > 2 ? ` +${names.length - 2} more` : "");
+                  return (
+                    <div
+                      key={inv.id}
+                      className="flex items-center gap-3 text-sm px-3 py-2 rounded-lg bg-white/45"
+                    >
+                      <span className="font-mono text-[12px] text-ink-700 shrink-0">
+                        {inv.number}
+                      </span>
+                      <span className="caption shrink-0">
+                        {formatDate(inv.created_at)}
+                      </span>
+                      <span className="text-ink-900 truncate flex-1">
+                        {summary}
+                      </span>
+                      <span className="tabular-nums font-medium shrink-0">
+                        {formatPkr(inv.total)}
+                      </span>
+                      <a
+                        href={`/invoice/${inv.id}?print=1`}
+                        target="_blank"
+                        className="p-1.5 rounded-md hover:bg-mint-100 text-ink-700 shrink-0"
+                        title="Print invoice"
+                      >
+                        <Printer size={14} />
+                      </a>
+                    </div>
+                  );
+                })}
+                {invoices.length > 6 && (
+                  <p className="caption pt-1">
+                    {invoices.length - 6} older bill
+                    {invoices.length - 6 === 1 ? "" : "s"} on record.
+                  </p>
+                )}
+              </div>
+            )}
+          </GlassCard>
+
           {/* MARK-VU intake scanner integration (§5.6) */}
           <MarkVuPanel patientId={patient.id} />
 
@@ -359,7 +435,7 @@ export default function PatientProfilePage() {
               </div>
               {latestConsult.brief.goal_text && (
                 <blockquote className="text-ink-700 border-l-2 border-mint-400 pl-4 italic">
-                  "{latestConsult.brief.goal_text}"
+                  &ldquo;{latestConsult.brief.goal_text}&rdquo;
                 </blockquote>
               )}
               <div className="caption mt-3">

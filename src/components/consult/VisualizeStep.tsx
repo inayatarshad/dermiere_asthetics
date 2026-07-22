@@ -568,9 +568,10 @@ export function VisualizeStep({
             {after && (
               <span className="flex items-center gap-1.5 flex-wrap">
                 <span className="chip chip-static text-xs">
+                  {/* white-label: never surface the underlying model id */}
                   {after.source === "simulation"
                     ? "On-device simulation"
-                    : `Model: ${after.source}`}
+                    : "Stryder AI Image"}
                 </span>
                 <button
                   className="btn btn-ghost btn-sm"
@@ -837,11 +838,6 @@ export function VisualizeStep({
             >
               {generating ? <Spinner className="w-4 h-4" /> : <Sparkles size={16} />}
               Generate with AI
-              {aiProvider !== "auto" && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
-                  {aiProvider}
-                </span>
-              )}
             </button>
           )}
           <button
