@@ -357,7 +357,14 @@ export async function conciergeRespond(
   }
 
   // ---- treatments list -------------------------------------------------
-  if (/\b(treatments?|services|menu|what do you (do|offer)|offerings)\b/.test(t)) {
+  // Only when no SPECIFIC treatment was named: "how much is the skin
+  // implant treatment?" contains the word "treatment" but must fall
+  // through to the specific-treatment/price branches below, not the menu.
+  if (
+    /\b(treatments?|services|menu|what do you (do|offer)|offerings)\b/.test(t) &&
+    !matchTreatment(message) &&
+    !/\bprice|cost|charge|how much|rates?|fee\b/.test(t)
+  ) {
     touch("treatments");
     return { reply: treatmentsList(ctx.prices), chips: CAPTURE_TREATMENTS.map((tr) => tr.short), state: next };
   }

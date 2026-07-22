@@ -282,11 +282,15 @@ function demoSeedDisabled(): boolean {
  * but only when the database has no clinics yet. Idempotent and safe to
  * call on every login attempt / bootstrap. Disabled by SEED_DEMO=false.
  */
-let seedOnce: Promise<void> | null = null;
+let seedInFlight: Promise<void> | null = null;
 export function ensureSeedClinic(): Promise<void> {
   if (demoSeedDisabled()) return Promise.resolve();
-  if (!seedOnce) {
-    seedOnce = (async () => {
+  // In-flight guard only (no once-per-instance memo): the count query is
+  // one cheap SELECT per login, and always re-checking means truncating
+  // the database reseeds on the very next login — the demo-refresh path —
+  // instead of depending on which warm serverless instance answers.
+  if (!seedInFlight) {
+    seedInFlight = (async () => {
       const count = await pgCountClinics();
       if (count > 0) return;
 
@@ -357,12 +361,12 @@ export function ensureSeedClinic(): Promise<void> {
         frontDeskId: ids.frontdesk,
       });
     })();
-    seedOnce = seedOnce.catch((err) => {
-      seedOnce = null;
-      throw err;
+    // whatever the outcome, the NEXT call re-checks the database
+    seedInFlight = seedInFlight.finally(() => {
+      seedInFlight = null;
     });
   }
-  return seedOnce;
+  return seedInFlight;
 }
 
 /** Writes the full CAPTURE demo story (built by capture/cast.ts). */
