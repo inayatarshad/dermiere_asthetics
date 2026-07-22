@@ -57,14 +57,17 @@ interface FlatBooking {
 
 /** Map a spoken treatment name to the catalogue (or consultation). */
 function matchTreatmentByName(name: string | undefined): {
-  id?: string;
+  /** Always set — "consultation" when nothing matched, so the calendar
+   *  never shows a blank treatment (the bug behind label-less bookings). */
+  id: string;
   durationMin: number;
   type: Appointment["type"];
   label: string;
+  matched: boolean;
 } {
   const t = (name ?? "").toLowerCase().trim();
   if (!t || /consult/.test(t)) {
-    return { durationMin: 30, type: "consultation", label: "Consultation" };
+    return { id: "consultation", durationMin: 30, type: "consultation", label: "Consultation", matched: true };
   }
   const hit =
     CAPTURE_TREATMENTS.find((x) => x.name.toLowerCase() === t) ??
@@ -75,10 +78,10 @@ function matchTreatmentByName(name: string | undefined): {
         t.includes(x.name.toLowerCase())
     );
   if (hit) {
-    return { id: hit.id, durationMin: hit.durationMin, type: "treatment", label: hit.name };
+    return { id: hit.id, durationMin: hit.durationMin, type: "treatment", label: hit.name, matched: true };
   }
   // Unknown wording still books a consultation slot rather than failing the call
-  return { durationMin: 30, type: "consultation", label: name ?? "Consultation" };
+  return { id: "consultation", durationMin: 30, type: "consultation", label: name ?? "Consultation", matched: false };
 }
 
 /** Map a spoken location to a location id (defaults to the Experience Centre). */
@@ -153,7 +156,12 @@ export async function POST(req: NextRequest) {
     procedure = tr.id;
     phone = flat.phone?.toString();
     locationId = matchLocationByName(flat.location?.toString());
-    const extra = [flat.notes?.toString().trim(), flat.email ? `Email: ${flat.email}` : ""]
+    const extra = [
+      flat.notes?.toString().trim(),
+      flat.email ? `Email: ${flat.email}` : "",
+      // spoken wording the matcher couldn't place — front desk sees the ask
+      !tr.matched && flat.treatment ? `Asked for: ${flat.treatment.toString().slice(0, 80)}` : "",
+    ]
       .filter(Boolean)
       .join(" · ");
     notes = extra || undefined;

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useStore, useSessionUser } from "@/lib/store";
 import { useMounted, useFaceData } from "@/lib/hooks";
+import { SKIN_METRIC_LABELS } from "@/lib/types";
 import {
   computeGeometry,
   quantitativeSuggestions,
@@ -164,6 +165,17 @@ function AssessmentInner() {
   const assets = useStore((s) => s.assets);
   const addAsset = useStore((s) => s.addAsset);
   const bumpAiUsage = useStore((s) => s.bumpAiUsage);
+  // MARK-VU scans (stable selector; derive with useMemo — no fresh refs)
+  const allScans = useStore((s) => s.skinAnalyses);
+  const patientScans = useMemo(
+    () =>
+      allScans
+        .filter((a) => a.patient_id === patientId)
+        .sort((a, b) => b.taken_at.localeCompare(a.taken_at)),
+    [allScans, patientId]
+  );
+  const latestScan = patientScans[0];
+  const previousScan = patientScans[1];
 
   useEffect(() => {
     seedIfNeeded();
@@ -612,6 +624,63 @@ function AssessmentInner() {
                     ))}
                   </tbody>
                 </table>
+              </section>
+            )}
+
+            {/* ---- MARK-VU intake metrics (device-measured, when on record) ---- */}
+            {latestScan && (
+              <section className="ar-section">
+                <div className="ar-section-head">
+                  <h2>MARK-VU skin analysis</h2>
+                  <span className="ar-section-note">
+                    measured {new Date(latestScan.taken_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    {previousScan ? " · change since intake shown" : ""}
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px 22px" }}>
+                  {SKIN_METRIC_LABELS.map(({ key, label, positive }) => {
+                    const v = latestScan.metrics[key];
+                    const prev = previousScan?.metrics[key];
+                    const delta = prev !== undefined ? v - prev : undefined;
+                    const improved =
+                      delta !== undefined && delta !== 0 && (positive ? delta > 0 : delta < 0);
+                    return (
+                      <div key={key}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                          <span style={{ fontSize: 9.5, fontWeight: 600 }}>{label}</span>
+                          <span style={{ fontSize: 9.5 }} className="ar-num-cell">
+                            {v}
+                            {delta !== undefined && delta !== 0 && (
+                              <em
+                                style={{
+                                  fontStyle: "normal",
+                                  marginLeft: 4,
+                                  color: improved ? "#5B8A5E" : "#B05A5A",
+                                }}
+                              >
+                                {delta > 0 ? `+${delta}` : delta}
+                              </em>
+                            )}
+                          </span>
+                        </div>
+                        <span
+                          className="ar-keydev-bar"
+                          style={{ maxWidth: "none", marginTop: 3 }}
+                        >
+                          <span
+                            style={{
+                              display: "block",
+                              height: "100%",
+                              width: `${v}%`,
+                              borderRadius: 2,
+                              background: positive ? "#6E9F70" : v > 60 ? "#C08585" : "var(--mint-500)",
+                            }}
+                          />
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </section>
             )}
 

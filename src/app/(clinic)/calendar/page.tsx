@@ -164,7 +164,13 @@ export default function CalendarPage() {
               <span className="block text-[10px] opacity-80 leading-tight truncate">
                 {timeLabel(a.start)}
                 {a.procedure_interest
-                  ? ` · ${getTemplate(a.procedure_interest)?.name ?? findTreatment(a.procedure_interest)?.short ?? a.procedure_interest}`
+                  ? ` · ${
+                      a.procedure_interest === "consultation"
+                        ? "Consultation"
+                        : (getTemplate(a.procedure_interest)?.name ??
+                          findTreatment(a.procedure_interest)?.short ??
+                          a.procedure_interest)
+                    }`
                   : ""}
               </span>
             </button>
@@ -526,10 +532,12 @@ function DetailModal({
   onStatus: (s: AppointmentStatus) => void;
 }) {
   const procedureName =
-    getTemplate(appt.procedure_interest)?.name ??
-    (appt.procedure_interest
-      ? findTreatment(appt.procedure_interest)?.name
-      : undefined);
+    appt.procedure_interest === "consultation"
+      ? "Consultation"
+      : (getTemplate(appt.procedure_interest)?.name ??
+        (appt.procedure_interest
+          ? findTreatment(appt.procedure_interest)?.name
+          : undefined));
   const when = new Date(appt.start);
   return (
     <Modal open onClose={onClose} title={appt.patient_name}>

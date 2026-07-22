@@ -3101,6 +3101,498 @@ Preserve exactly, with no changes: the person's identity, face and all facial fe
       },
     ],
   },
+
+  // =====================================================================
+  // CAPTURE signature treatments — ids match lib/capture/kb.ts, so the
+  // clinic menu, POS catalogue, VYBERO bookings and the consultation flow
+  // all speak the same six ids. Texture-first: canvas_handles stay empty
+  // (nothing geometric moves) and the AI pass is the reveal.
+  // =====================================================================
+  {
+    id: "mito-regenerative-glow",
+    name: "MitoRedLight Regenerative Glow",
+    category: "skin",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin in this photograph to visualize the cumulative result of a course of professional red light and near-infrared therapy facials. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep natural, realistic skin with visible pores; the change is a healthy, lit-from-within radiance and calmer, more even skin — never plastic smoothing, never reshaping. The result must look like the SAME person after excellent treatment. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "rgl_radiance",
+        label: "Radiance",
+        hint: "The lit-from-within glow red light is known for",
+        min: 0,
+        max: 100,
+        posPhrase: "add a healthy, luminous, lit-from-within radiance to the skin",
+        negLabel: "As is",
+        posLabel: "Radiant",
+      },
+      {
+        key: "rgl_tone",
+        label: "Tone evenness",
+        hint: "Dullness, patchiness and mild redness",
+        min: 0,
+        max: 100,
+        posPhrase: "even out dullness, patchiness and mild redness across the face",
+        negLabel: "As is",
+        posLabel: "Even",
+      },
+      {
+        key: "rgl_texture",
+        label: "Texture refinement",
+        hint: "Fine surface texture, kept natural",
+        min: 0,
+        max: 100,
+        posPhrase: "gently refine fine surface texture while keeping pores and natural skin detail",
+        negLabel: "As is",
+        posLabel: "Refined",
+      },
+      {
+        key: "rgl_rested",
+        label: "Rested look",
+        hint: "The fresher, recovered look of consistent sessions",
+        min: 0,
+        max: 100,
+        posPhrase: "make the skin look rested and recovered, reducing tired dullness around the eyes and cheeks",
+        negLabel: "As is",
+        posLabel: "Rested",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "MARK-VU intake scan",
+        detail:
+          "Baseline pigmentation, moisture and texture scores — the numbers this programme will move.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Session 1 of 6 · Regenerative Glow",
+        detail:
+          "Exomere facial of choice with full-body red light and near-infrared therapy (about 75 minutes).",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Mid-course MARK-VU rescan",
+        detail: "After session 3: compare pigmentation and moisture against intake.",
+        offset_days: 21,
+      },
+      {
+        kind: "followup",
+        label: "Course complete · results review",
+        detail:
+          "Session 6 review with before/after photographs under the same light. Agree the maintenance rhythm.",
+        offset_days: 42,
+      },
+      {
+        kind: "medicine",
+        label: "Home care between sessions",
+        detail:
+          "Recovery Balm Plus SPF 35 daily; no exfoliants or actives for 48 hours after each session; hydrate well.",
+      },
+    ],
+  },
+  {
+    id: "exomere-face-implant",
+    name: "Exomere Face Implant Regimen",
+    category: "skin",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin in this photograph to visualize the result of a course of needle-free SPICUS micro-channel skin renewal with exosome actives. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep realistic skin with natural pores; improvements are clarity, brightness and firmness — never plastic smoothing, never feature reshaping. The result must look like the SAME person with visibly renewed skin. Photorealistic, consistent lighting, no artifacts.`,
+    slider_schema: [
+      {
+        key: "xfi_clarity",
+        label: "Blemish clarity",
+        hint: "Active blemishes and post-acne marks",
+        min: 0,
+        max: 100,
+        posPhrase: "clear active blemishes and fade post-acne marks",
+        negLabel: "As is",
+        posLabel: "Clear",
+      },
+      {
+        key: "xfi_brightness",
+        label: "Brightness",
+        hint: "Pigmentation and uneven tone",
+        min: 0,
+        max: 100,
+        posPhrase: "brighten the complexion and soften pigmentation for a more uniform tone",
+        negLabel: "As is",
+        posLabel: "Bright",
+      },
+      {
+        key: "xfi_pores",
+        label: "Pore refinement",
+        hint: "Visible pores and rough texture",
+        min: 0,
+        max: 100,
+        posPhrase: "refine visible pores and smooth rough texture while keeping natural skin detail",
+        negLabel: "As is",
+        posLabel: "Refined",
+      },
+      {
+        key: "xfi_firmness",
+        label: "Firmness",
+        hint: "Collagen-supported bounce and density",
+        min: 0,
+        max: 100,
+        posPhrase: "make the skin look subtly firmer and denser, as after collagen-stimulating treatment",
+        negLabel: "As is",
+        posLabel: "Firm",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "MARK-VU intake scan",
+        detail: "Baseline pores, pigmentation and texture scores on record.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Session 1 of 6 · Skin Implant",
+        detail:
+          "SPICUS micro-channel delivery of Exomere Halla exosomes with plant collagen (about 50 minutes). Mild tingling for 24–48h is normal.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Sessions every 2–3 weeks",
+        detail: "Six sessions total; texture and brightness compound across the course.",
+        offset_days: 14,
+      },
+      {
+        kind: "followup",
+        label: "Course review + rescan",
+        detail: "MARK-VU rescan against intake; before/after photographs under the same light.",
+        offset_days: 84,
+      },
+      {
+        kind: "medicine",
+        label: "Post care",
+        detail:
+          "No retinol, AHA/BHA or vitamin C for 72 hours after each session. Post Care Regimen (Ceramide Recell + Recovery Balm SPF) daily.",
+      },
+    ],
+  },
+  {
+    id: "exomere-regeneration",
+    name: "Exomere Regeneration Regimen",
+    category: "skin",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin in this photograph to visualize the result of a deeply restorative barrier-repair facial course. {assembled_slider_phrases}
+
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep realistic skin; the change is calm, hydrated, healthy-looking skin — reduced redness and dryness, a soft natural glow. Never plastic smoothing, never reshaping. The SAME person, restored. Photorealistic, no artifacts.`,
+    slider_schema: [
+      {
+        key: "xrg_hydration",
+        label: "Hydration",
+        hint: "Dry, tight-looking skin",
+        min: 0,
+        max: 100,
+        posPhrase: "deeply hydrate dry, tight-looking skin for a supple, comfortable finish",
+        negLabel: "As is",
+        posLabel: "Hydrated",
+      },
+      {
+        key: "xrg_calm",
+        label: "Calming",
+        hint: "Redness, irritation and sensitivity",
+        min: 0,
+        max: 100,
+        posPhrase: "calm visible redness and irritation for settled, comfortable skin",
+        negLabel: "As is",
+        posLabel: "Calm",
+      },
+      {
+        key: "xrg_lines",
+        label: "Fine lines",
+        hint: "Dehydration lines soften as the barrier recovers",
+        min: 0,
+        max: 100,
+        posPhrase: "soften fine dehydration lines as the skin plumps with moisture",
+        negLabel: "As is",
+        posLabel: "Softened",
+      },
+      {
+        key: "xrg_glow",
+        label: "Healthy glow",
+        hint: "The quiet glow of a repaired barrier",
+        min: 0,
+        max: 100,
+        posPhrase: "add the quiet, healthy glow of fully recovered skin",
+        negLabel: "As is",
+        posLabel: "Glowing",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Skin barrier assessment",
+        detail: "Sensitivity history + MARK-VU moisture score. Programme tuned to the barrier's state.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Session 1 of 6 · Regeneration",
+        detail:
+          "PDRN and ceramide infusion with Edelweiss massage and Aroma Healing finish (about 50 minutes).",
+        offset_days: 0,
+      },
+      {
+        kind: "followup",
+        label: "Glow check at 72 hours",
+        detail: "The glow peaks at 48–72 hours as the barrier rebuilds — quick WhatsApp check-in.",
+        offset_days: 3,
+      },
+      {
+        kind: "followup",
+        label: "Next session inside 2–3 weeks",
+        detail: "Repair compounds when sessions stay consistent.",
+        offset_days: 18,
+      },
+      {
+        kind: "medicine",
+        label: "Home care",
+        detail:
+          "Hydration only on treatment nights; Aroma Healing Mist through the day; SPF 35+ every morning.",
+      },
+    ],
+  },
+  {
+    id: "exomere-face-contour",
+    name: "Exomere Face Contour",
+    category: "skin",
+    region: "jaw",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit this photograph to visualize the result of a course of non-invasive lifting and firming treatment on the lower face and neck. {assembled_slider_phrases}
+
+Preserve exactly: the person's identity, facial features, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Changes must be SUBTLE and realistic — firmer-looking skin along the jawline and neck, gently improved definition, smoother texture; never a surgical-looking change, never altered bone structure. The SAME person, lifted and fresh. Photorealistic, no artifacts.`,
+    slider_schema: [
+      {
+        key: "xfc_jawline",
+        label: "Jawline definition",
+        hint: "Firmness and definition along the jaw",
+        min: 0,
+        max: 100,
+        posPhrase: "make the jawline look subtly firmer and better defined",
+        negLabel: "As is",
+        posLabel: "Defined",
+      },
+      {
+        key: "xfc_neck",
+        label: "Neck firmness",
+        hint: "Crepey texture and laxity on the neck",
+        min: 0,
+        max: 100,
+        posPhrase: "firm and smooth crepey-looking skin on the neck",
+        negLabel: "As is",
+        posLabel: "Firm",
+      },
+      {
+        key: "xfc_sag",
+        label: "Sagging appearance",
+        hint: "Mild softness in the lower face",
+        min: 0,
+        max: 100,
+        posPhrase: "reduce the appearance of mild sagging in the lower face, keeping proportions natural",
+        negLabel: "As is",
+        posLabel: "Lifted",
+      },
+      {
+        key: "xfc_texture",
+        label: "Décolletage texture",
+        hint: "Chest-area skin quality",
+        min: 0,
+        max: 100,
+        posPhrase: "smooth and even the texture of the décolletage and chest-area skin where visible",
+        negLabel: "As is",
+        posLabel: "Smooth",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Contour assessment + photos",
+        detail: "Jawline and neck photographed at fixed angles — the comparison set for the course.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Session 1 of 6 · Face Contour",
+        detail: "Face, jawline and neck contouring with Exomere actives (about 60 minutes).",
+        offset_days: 0,
+      },
+      {
+        kind: "followup",
+        label: "Day-14 photo comparison",
+        detail: "Cumulative lift shows by the second week — same angles, same light.",
+        offset_days: 14,
+      },
+      {
+        kind: "medicine",
+        label: "Between sessions",
+        detail:
+          "No makeup for 12 hours after each session; sleep slightly elevated the first night; Lifting Shot Botani V Serum daily.",
+      },
+    ],
+  },
+  {
+    id: "exomere-body-contour",
+    name: "Exomere Body Contour",
+    category: "other",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit this photograph to visualize the result of a course of professional non-invasive body contouring on the treated area. {assembled_slider_phrases}
+
+Preserve exactly: the person's identity, pose, clothing, lighting, camera angle, and background. Changes must be SUBTLE, gradual-looking and anatomically plausible — firmer, smoother skin and modestly refined contours in the treated region only; never dramatic reshaping, never a different body. The SAME person after a successful course. Photorealistic, no artifacts.`,
+    slider_schema: [
+      {
+        key: "xbc_firmness",
+        label: "Skin firmness",
+        hint: "Loose-looking skin in the treated area",
+        min: 0,
+        max: 100,
+        posPhrase: "make the skin in the treated area look firmer and more toned",
+        negLabel: "As is",
+        posLabel: "Firm",
+      },
+      {
+        key: "xbc_smooth",
+        label: "Smoothness",
+        hint: "Uneven texture and cellulite appearance",
+        min: 0,
+        max: 100,
+        posPhrase: "smooth uneven texture and reduce the appearance of cellulite in the treated area",
+        negLabel: "As is",
+        posLabel: "Smooth",
+      },
+      {
+        key: "xbc_contour",
+        label: "Contour refinement",
+        hint: "Modest slimming of the chosen region",
+        min: 0,
+        max: 100,
+        posPhrase: "modestly refine the contour of the treated region, keeping the change realistic and gradual",
+        negLabel: "As is",
+        posLabel: "Refined",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Region selection + baseline photos",
+        detail:
+          "Choose any two body regions per session (stomach, arms, hips, thighs, back). Fixed-angle photos weekly.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Session 1 of 6 · Body Contour",
+        detail: "Two regions treated per session (about 60 minutes). Results build across the course.",
+        offset_days: 0,
+      },
+      {
+        kind: "followup",
+        label: "Weekly photo tracking",
+        detail: "Photograph weekly under the same light — the course tells its story in the series.",
+        offset_days: 7,
+      },
+      {
+        kind: "medicine",
+        label: "Between sessions",
+        detail:
+          "Extra water for 48 hours after each session; Lifting Shot S Body Concentrator daily; avoid sauna/hot yoga for 24 hours.",
+      },
+    ],
+  },
+  {
+    id: "mito-full-body-reset",
+    name: "MitoRedLight Full Body Reset",
+    category: "other",
+    region: "skin",
+    available: true,
+    model: "gemini-2.5-flash-image",
+    prompt_template: `Edit ONLY the skin in this photograph to visualize the result of a course of full-body red light and near-infrared therapy. {assembled_slider_phrases}
+
+Preserve exactly: the person's identity, features, pose, clothing, hairstyle, lighting, camera angle, and background. The change is healthier, more rested, subtly firmer-looking skin with an even, vital tone — never plastic smoothing, never reshaping. The SAME person, visibly recovered and well. Photorealistic, no artifacts.`,
+    slider_schema: [
+      {
+        key: "fbr_vitality",
+        label: "Skin vitality",
+        hint: "Overall skin energy and evenness",
+        min: 0,
+        max: 100,
+        posPhrase: "give the skin an even, vital, well-circulated tone",
+        negLabel: "As is",
+        posLabel: "Vital",
+      },
+      {
+        key: "fbr_recovery",
+        label: "Recovered look",
+        hint: "The rested look of good sleep and recovery",
+        min: 0,
+        max: 100,
+        posPhrase: "make the person look rested and recovered, easing tired, drawn features",
+        negLabel: "As is",
+        posLabel: "Rested",
+      },
+      {
+        key: "fbr_firm",
+        label: "Skin firmness",
+        hint: "Subtle full-body skin quality",
+        min: 0,
+        max: 100,
+        posPhrase: "make visible skin look subtly firmer and healthier overall",
+        negLabel: "As is",
+        posLabel: "Firm",
+      },
+    ],
+    canvas_handles: [],
+    plan_template: [
+      {
+        kind: "milestone",
+        label: "Wellness intake",
+        detail:
+          "Goals across recovery, sleep, skin and training load. MitoPOD programme set accordingly.",
+        offset_days: 0,
+      },
+      {
+        kind: "milestone",
+        label: "Session 1 of 6 · Full Body Reset",
+        detail:
+          "Full-body MitoRedLight therapy with Exomere Body Contour (about 90 minutes). Most clients sleep noticeably deeper the first two nights.",
+        offset_days: 0,
+      },
+      {
+        kind: "followup",
+        label: "Weekly rhythm",
+        detail: "Weekly sessions compound — keep a consistent slot.",
+        offset_days: 7,
+      },
+      {
+        kind: "medicine",
+        label: "Between sessions",
+        detail: "Hydrate well; avoid intense heat exposure for 24 hours after each session.",
+      },
+    ],
+  },
 ];
 
 export const PROCEDURE_CATEGORIES: {
@@ -3109,6 +3601,19 @@ export const PROCEDURE_CATEGORIES: {
   blurb: string;
   templateIds: string[];
 }[] = [
+  {
+    id: "capture",
+    label: "CAPTURE Signature",
+    blurb: "EXOMERE & MitoRedLight — the six needle-free house treatments",
+    templateIds: [
+      "mito-regenerative-glow",
+      "exomere-face-implant",
+      "exomere-regeneration",
+      "exomere-face-contour",
+      "exomere-body-contour",
+      "mito-full-body-reset",
+    ],
+  },
   {
     id: "injectable",
     label: "Injectables / Non-invasive",

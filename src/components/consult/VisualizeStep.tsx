@@ -20,6 +20,7 @@ import {
   Check,
   CloudOff,
   Download,
+  Syringe,
 } from "lucide-react";
 import { useStore, useSessionUser, usePatientConsents, consentGranted } from "@/lib/store";
 import { useAssetUrl, useFaceData } from "@/lib/hooks";
@@ -32,6 +33,7 @@ import { canvasToBlob, loadImage } from "@/lib/img";
 import { saveImage } from "@/lib/db";
 import { AI_DISCLAIMER, type Consultation, type Patient } from "@/lib/types";
 import { BOTOX_ZONES, buildToxinPlan } from "@/lib/botoxUnits";
+import { estimateDose } from "@/lib/doseEstimate";
 import { GlassCard, Chip, EmptyState, Spinner } from "@/components/ui";
 import { MintSlider } from "@/components/MintSlider";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
@@ -761,6 +763,24 @@ export function VisualizeStep({
                       ))}
                     </div>
                   )}
+                  {/* live dose readout: "move this much" → ml / course */}
+                  {(() => {
+                    const dose = estimateDose(t.id, params);
+                    return dose ? (
+                      <div className="mt-4 flex items-start gap-2 rounded-xl bg-[rgba(196,161,90,0.1)] border border-[rgba(196,161,90,0.35)] px-3.5 py-2.5">
+                        <Syringe size={14} className="text-[color:var(--mint-500)] mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-[12.5px] font-semibold text-ink-900">
+                            {dose.kind === "filler" ? "Product estimate" : "Course recommendation"}
+                            <span className="text-[color:#8A6F35]"> · {dose.line}</span>
+                          </div>
+                          <div className="text-[11.5px] text-ink-700 leading-snug mt-0.5">
+                            {dose.detail}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
                 </>
               )}
             </GlassCard>

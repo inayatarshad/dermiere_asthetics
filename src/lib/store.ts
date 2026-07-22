@@ -36,6 +36,7 @@ import type {
 import { CONSENT_TEXT_VERSION, DEFAULT_CLINIC_HOURS } from "./types";
 import { buildSeed, buildVyberoSeed, fetchSeedManifest } from "./seed";
 import { getTemplate } from "./templates";
+import { estimateDose } from "./doseEstimate";
 import { deleteImage } from "./db";
 import type { BootstrapPayload } from "@/lib/server/bootstrap";
 import {
@@ -805,6 +806,31 @@ export const useStore = create<StoreState>()(
             order: i,
           })
         );
+        // Quantify the visualized adjustment (filler ml / course length)
+        // from the latest saved visualization of this consultation.
+        if (templateId) {
+          const latestViz = get()
+            .visualizations.filter((v) => v.consultation_id === consultationId)
+            .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+          const dose = latestViz
+            ? estimateDose(templateId, latestViz.params)
+            : null;
+          if (dose) {
+            items.push({
+              id: uid(),
+              plan_id: plan.id,
+              kind: "medicine",
+              label:
+                dose.kind === "filler"
+                  ? `Product estimate · ${dose.line}`
+                  : `Course recommendation · ${dose.line}`,
+              detail: dose.detail,
+              due: undefined,
+              done: false,
+              order: items.length,
+            });
+          }
+        }
         set((s) => ({
           plans: [...s.plans, plan],
           planItems: [...s.planItems, ...items],

@@ -20,6 +20,7 @@ import {
   Copy,
   Check,
   RadioTower,
+  RefreshCw,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
@@ -54,9 +55,46 @@ export default function VyberoAgentPage() {
   const [editing, setEditing] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [widgetReady, setWidgetReady] = useState(false);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
   const widgetHost = useRef<HTMLDivElement>(null);
+  const mergeVyberoCalls = useStore((s) => s.mergeVyberoCalls);
 
   const agentId = cleanAgentId(vyberoAgentId ?? "");
+
+  /** Pull Noor's call history from ElevenLabs into the analytics log. */
+  const syncCalls = async () => {
+    if (syncBusy) return;
+    setSyncBusy(true);
+    setSyncNote(null);
+    try {
+      const res = await fetch("/api/vybero/sync-elevenlabs", { cache: "no-store" });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        new_calls?: number;
+        error?: string;
+        message?: string;
+      };
+      if (data.ok) {
+        setSyncNote(
+          data.new_calls ? `${data.new_calls} new call${data.new_calls === 1 ? "" : "s"}` : "Up to date"
+        );
+        // refresh the on-screen call feed from the server copy
+        const log = await fetch("/api/vybero/call-log", { cache: "no-store" });
+        if (log.ok) {
+          const body = (await log.json()) as { calls?: [] };
+          if (body.calls) mergeVyberoCalls(body.calls);
+        }
+      } else {
+        setSyncNote(data.error === "not_configured" ? "Needs ELEVENLABS_API_KEY" : "Sync failed");
+      }
+    } catch {
+      setSyncNote("Sync failed");
+    } finally {
+      setSyncBusy(false);
+      setTimeout(() => setSyncNote(null), 6000);
+    }
+  };
 
   // Load the ElevenLabs widget script once, then mount the element.
   useEffect(() => {
@@ -148,12 +186,23 @@ export default function VyberoAgentPage() {
           </p>
         </div>
         {isAdmin && (
-          <button
-            onClick={() => setSetupOpen(!setupOpen)}
-            className={`btn btn-sm ml-auto ${setupOpen ? "btn-primary" : "btn-secondary"}`}
-          >
-            <Settings2 size={14} /> Webhook setup
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => void syncCalls()}
+              disabled={syncBusy}
+              className="btn btn-secondary btn-sm"
+              title="Pull Noor's latest call history from ElevenLabs into Analytics (also runs automatically every day)"
+            >
+              {syncBusy ? <Spinner className="w-3.5 h-3.5" /> : <RefreshCw size={14} />}
+              {syncNote ?? "Sync calls"}
+            </button>
+            <button
+              onClick={() => setSetupOpen(!setupOpen)}
+              className={`btn btn-sm ${setupOpen ? "btn-primary" : "btn-secondary"}`}
+            >
+              <Settings2 size={14} /> Webhook setup
+            </button>
+          </div>
         )}
       </div>
 
