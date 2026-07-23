@@ -76,6 +76,8 @@ export default function PosPage() {
   const [codeBusy, setCodeBusy] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [applied, setApplied] = useState<AppliedReward | null>(null);
+  /** Cashier-entered flat discount in PKR (no code needed). */
+  const [flatDiscount, setFlatDiscount] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [received, setReceived] = useState("");
@@ -210,7 +212,15 @@ export default function PosPage() {
     );
 
   const subtotal = cart.reduce((s, l) => s + l.qty * l.unitPrice, 0);
-  const discount = applied ? Math.round((subtotal * applied.value) / 100) : 0;
+  const codeDiscount = applied
+    ? Math.round((subtotal * applied.value) / 100)
+    : 0;
+  // flat discount clamped so the bill can never go negative
+  const manualDiscount = Math.min(
+    Math.max(0, parseInt(flatDiscount.replace(/\D/g, "") || "0", 10)),
+    Math.max(0, subtotal - codeDiscount)
+  );
+  const discount = codeDiscount + manualDiscount;
   const taxable = Math.max(0, subtotal - discount);
   const tax = Math.round((taxable * taxRate) / 100);
   const total = taxable + tax;
@@ -278,6 +288,7 @@ export default function PosPage() {
         tax_amount: tax,
         discount_amount: discount,
         reward_code: applied?.code,
+        manual_discount: manualDiscount > 0 ? manualDiscount : undefined,
         total,
         payment_method: method,
         amount_received:
@@ -340,6 +351,7 @@ export default function PosPage() {
     setApplied(null);
     setCodeInput("");
     setCodeError(null);
+    setFlatDiscount("");
     setReceived("");
     setDone(null);
     setReviewUrl(null);
@@ -459,7 +471,13 @@ export default function PosPage() {
               </p>
               {done.reward_code && (
                 <p className="caption mt-0.5">
-                  Capture Circle {done.reward_code} redeemed (−{formatPkr(done.discount_amount)})
+                  Capture Circle {done.reward_code} redeemed (−
+                  {formatPkr(done.discount_amount - (done.manual_discount ?? 0))})
+                </p>
+              )}
+              {(done.manual_discount ?? 0) > 0 && (
+                <p className="caption mt-0.5">
+                  Flat discount applied (−{formatPkr(done.manual_discount!)})
                 </p>
               )}
             </div>
@@ -694,11 +712,46 @@ export default function PosPage() {
               {codeError && <p className="text-xs text-danger mt-1">{codeError}</p>}
             </div>
 
+            {/* flat discount — no code needed (owner 2026-07-23) */}
+            <div>
+              <span className="field-label flex items-center gap-1.5">
+                <Banknote size={13} className="text-[color:var(--mint-500)]" />
+                Flat discount (PKR)
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  className="input flex-1 !py-2 tabular-nums text-sm"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={flatDiscount}
+                  onChange={(e) => setFlatDiscount(e.target.value)}
+                />
+                {manualDiscount > 0 && (
+                  <button
+                    onClick={() => setFlatDiscount("")}
+                    className="text-ink-400 hover:text-danger"
+                    title="Remove flat discount"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {manualDiscount > 0 && (
+                <p className="caption mt-1">
+                  −{formatPkr(manualDiscount)} off, before tax
+                  {applied ? " (on top of the Circle code)" : ""}.
+                </p>
+              )}
+            </div>
+
             {/* totals */}
             <div className="pt-3 border-t border-[rgba(28,26,22,0.08)] space-y-1 text-sm">
               <Row label="Subtotal" value={formatPkr(subtotal)} />
-              {discount > 0 && (
-                <Row label={`Capture Circle (−${applied?.value}%)`} value={`−${formatPkr(discount)}`} accent />
+              {codeDiscount > 0 && (
+                <Row label={`Capture Circle (−${applied?.value}%)`} value={`−${formatPkr(codeDiscount)}`} accent />
+              )}
+              {manualDiscount > 0 && (
+                <Row label="Flat discount" value={`−${formatPkr(manualDiscount)}`} accent />
               )}
               <Row label={`Sales tax (${taxRate}%)`} value={formatPkr(tax)} />
               <div className="flex items-baseline justify-between pt-1.5">

@@ -8,7 +8,7 @@
  * ?print=1 and the dialog fires.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Printer, ArrowLeft } from "lucide-react";
@@ -24,20 +24,20 @@ function InvoiceInner() {
   const seedIfNeeded = useStore((s) => s.seedIfNeeded);
   const invoice = useStore((st) => st.invoices.find((i) => i.id === params.id));
   const locations = useStore((st) => st.locations);
-  const clinic = useStore((st) => st.clinic);
   const patients = useStore((st) => st.patients);
-  const [printed, setPrinted] = useState(false);
+  // one-shot auto-print guard — a ref, not state: nothing re-renders on it
+  const printedRef = useRef(false);
 
   useEffect(() => {
     void seedIfNeeded();
   }, [seedIfNeeded]);
 
   useEffect(() => {
-    if (mounted && invoice && search.get("print") === "1" && !printed) {
-      setPrinted(true);
+    if (mounted && invoice && search.get("print") === "1" && !printedRef.current) {
+      printedRef.current = true;
       setTimeout(() => window.print(), 120);
     }
-  }, [mounted, invoice, search, printed]);
+  }, [mounted, invoice, search]);
 
   const location = useMemo(
     () =>
@@ -184,13 +184,34 @@ function InvoiceInner() {
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 18 }}>
           <div style={{ width: 260 }}>
             <TotalRow label="Subtotal" value={formatPkr(invoice.subtotal)} />
-            {invoice.discount_amount > 0 && (
+            {/* discount lines: Circle code and cashier flat discount are
+                separate rows; discount_amount stores their combined total */}
+            {invoice.reward_code &&
+              invoice.discount_amount - (invoice.manual_discount ?? 0) > 0 && (
+                <TotalRow
+                  label={`Capture Circle ${invoice.reward_code}`}
+                  value={`−${formatPkr(
+                    invoice.discount_amount - (invoice.manual_discount ?? 0)
+                  )}`}
+                  gold
+                />
+              )}
+            {(invoice.manual_discount ?? 0) > 0 && (
               <TotalRow
-                label={`Capture Circle ${invoice.reward_code ?? ""}`}
-                value={`−${formatPkr(invoice.discount_amount)}`}
+                label="Discount"
+                value={`−${formatPkr(invoice.manual_discount!)}`}
                 gold
               />
             )}
+            {!invoice.reward_code &&
+              !(invoice.manual_discount ?? 0) &&
+              invoice.discount_amount > 0 && (
+                <TotalRow
+                  label="Discount"
+                  value={`−${formatPkr(invoice.discount_amount)}`}
+                  gold
+                />
+              )}
             <TotalRow
               label={`Sales tax (${invoice.tax_rate}%)`}
               value={formatPkr(invoice.tax_amount)}

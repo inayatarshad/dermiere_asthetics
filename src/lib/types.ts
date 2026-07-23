@@ -418,10 +418,12 @@ export interface Invoice {
   /** percentage applied, e.g. 16 */
   tax_rate: number;
   tax_amount: number;
-  /** flat discount from a redeemed reward code */
+  /** TOTAL discount applied (Capture Circle + flat), in PKR */
   discount_amount: number;
   /** redeemed Capture Circle code, if any */
   reward_code?: string;
+  /** cashier-entered flat discount (no code), in PKR — part of discount_amount */
+  manual_discount?: number;
   total: number;
   payment_method: PaymentMethod;
   amount_received?: number;

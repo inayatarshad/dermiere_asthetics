@@ -7,6 +7,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export function GlassCard({
   children,
@@ -216,7 +217,13 @@ export function Modal({
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
+  // Portal to <body>: position:fixed resolves against the nearest transformed
+  // ancestor, and page sections animate with fade-up transforms — rendered
+  // in place, the overlay covers the section instead of the viewport (the
+  // broken top-glued modal the owner screenshotted on Analytics). The body
+  // has no transform, so the overlay always spans the real viewport and
+  // paints above the sticky nav (z-40).
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(14, 42, 38, 0.35)", backdropFilter: "blur(6px)" }}
@@ -242,7 +249,8 @@ export function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
