@@ -177,8 +177,12 @@ export function TopNav() {
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => {
-                logout();
-                router.replace("/");
+                void (async () => {
+                  await logout();
+                  // ?out=1 tells the login page to skip its auto-bootstrap
+                  // check — the sign-in screen must always appear
+                  router.replace("/?out=1");
+                })();
               }}
               aria-label="Sign out"
               title="Sign out"

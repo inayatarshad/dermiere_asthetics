@@ -21,9 +21,10 @@ import {
   ScanFace,
   ChevronDown,
 } from "lucide-react";
+import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { useFaceData } from "@/lib/hooks";
-import { activeTemplatesFor } from "@/lib/templates";
+import { activeTemplatesFor, isBodyTemplate } from "@/lib/templates";
 import type { AnnotationStroke, Consultation, Patient } from "@/lib/types";
 import type { FeatureId } from "@/lib/face/geometry";
 import { GlassCard, Chip, EmptyState, Spinner } from "@/components/ui";
@@ -155,6 +156,34 @@ export function CanvasStep({
   };
 
   const scaleKey = highlight ? `scale_${highlight}` : null;
+
+  // Body-first treatments don't use the 3D face canvas — send the doctor
+  // straight to the photo-based Body Studio (owner 2026-07-23). Checked
+  // BEFORE the photos guard: a body consult never needs the face trio.
+  if (isBodyTemplate(template?.id)) {
+    return (
+      <GlassCard className="p-8 fade-up max-w-2xl mx-auto text-center">
+        <span className="w-14 h-14 mx-auto rounded-2xl bg-mint-100 text-[color:var(--mint-500)] flex items-center justify-center">
+          <ScanFace size={26} />
+        </span>
+        <h2 className="h1 text-ink-900 mt-4">
+          No 3D canvas for {template?.name}
+        </h2>
+        <p className="text-ink-700 mt-3 max-w-md mx-auto leading-relaxed">
+          Body treatments work from a body photo, not the face mesh. Open
+          the Body Studio to add the photo and tone the treated area — or
+          continue to AI Visualize for the same handoff.
+        </p>
+        <Link
+          href={`/visualize/${patient.id}?mode=body`}
+          className="btn btn-primary btn-lg mt-6 inline-flex"
+        >
+          <Sparkles size={17} />
+          Open Body Contour Studio
+        </Link>
+      </GlassCard>
+    );
+  }
 
   if (!frontPhoto) {
     return (
@@ -511,8 +540,8 @@ export function CanvasStep({
         <GlassCard strong className="p-5">
           <p className="text-sm text-ink-700 leading-relaxed">
             The canvas is the sketch. Generate the photoreal preview on{" "}
-            {patient.name.split(" ")[0]}'s actual photo; your morphs pre-set
-            the AI sliders.
+            {patient.name.split(" ")[0]}&apos;s actual photo; your morphs
+            pre-set the AI sliders.
           </p>
           <button className="btn btn-primary w-full mt-4" onClick={onGeneratePreview}>
             <Sparkles size={16} />

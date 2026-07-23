@@ -2201,3 +2201,142 @@ input[type="range"].mint-slider::-moz-range-track {
   width: 118px;
   height: auto;
 }
+
+/* ============================================================
+   Brand splash — CAPTURE reveal on cold load + post-login sweep
+   (BrandSplash.tsx). Ivory stage, champagne light, ink wordmark.
+   ============================================================ */
+.brand-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(640px 480px at 16% 8%, #f5eedd 0%, rgba(245, 238, 221, 0) 60%),
+    radial-gradient(580px 500px at 86% 94%, #f7f1e3 0%, rgba(247, 241, 227, 0) 55%),
+    #f9f3e4;
+  opacity: 1;
+  transition: opacity 0.48s ease;
+  pointer-events: none;
+}
+.brand-splash-leave {
+  opacity: 0;
+}
+.brand-splash-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+}
+.brand-splash-mark {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+.brand-splash-mark img {
+  height: 54px;
+  width: auto;
+  display: block;
+}
+.brand-splash-tag {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.42em;
+  /* optical centering against the trailing tracking space */
+  margin-left: 0.42em;
+  color: #8a6f35;
+  opacity: 0;
+}
+/* champagne light that crosses the wordmark */
+.brand-splash-shine {
+  position: absolute;
+  inset: -20% -35%;
+  background: linear-gradient(
+    105deg,
+    transparent 34%,
+    rgba(196, 161, 90, 0.42) 50%,
+    rgba(255, 244, 214, 0.65) 54%,
+    transparent 68%
+  );
+  transform: translateX(-130%);
+}
+
+/* --- reveal: the mark opens from a closed center curtain --- */
+.brand-splash-reveal .brand-splash-mark img {
+  clip-path: inset(0 50% 0 50%);
+  transform: scale(0.94);
+  animation: brand-curtain 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.12s forwards;
+}
+.brand-splash-reveal .brand-splash-shine {
+  animation: brand-shine 0.85s ease 0.72s forwards;
+}
+.brand-splash-reveal .brand-splash-tag {
+  transform: translateY(7px);
+  animation: brand-tag 0.55s ease 0.85s forwards;
+}
+
+/* --- sweep: the lockup glides in after login --- */
+.brand-splash-sweep .brand-splash-inner {
+  animation: brand-sweep-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.brand-splash-sweep .brand-splash-shine {
+  animation: brand-shine 0.8s ease 0.5s forwards;
+}
+.brand-splash-sweep .brand-splash-tag {
+  animation: brand-tag 0.5s ease 0.62s forwards;
+}
+
+@keyframes brand-curtain {
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+  }
+}
+@keyframes brand-shine {
+  to {
+    transform: translateX(130%);
+  }
+}
+@keyframes brand-tag {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes brand-sweep-in {
+  from {
+    opacity: 0;
+    transform: translateX(-38vw);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-splash-reveal .brand-splash-mark img,
+  .brand-splash-sweep .brand-splash-inner {
+    animation: none;
+    clip-path: none;
+    transform: none;
+    opacity: 1;
+  }
+  .brand-splash-shine {
+    display: none;
+  }
+  .brand-splash-reveal .brand-splash-tag,
+  .brand-splash-sweep .brand-splash-tag {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+@media print {
+  .brand-splash {
+    display: none !important;
+  }
+}

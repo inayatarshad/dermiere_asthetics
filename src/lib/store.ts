@@ -162,7 +162,7 @@ interface StoreState {
   deletePatient: (patientId: string) => void;
 
   // auth (login is server-side; the store is hydrated from the bootstrap)
-  logout: () => void;
+  logout: () => Promise<void>;
 
   // patients & consent
   registerPatient: (
@@ -645,8 +645,18 @@ export const useStore = create<StoreState>()(
         void pushClinicConfig({ vyberoAgentId: clean });
       },
 
-      logout: () => {
-        void logoutRequest();
+      logout: async () => {
+        // Await the cookie clearing BEFORE navigation: fire-and-forget left
+        // a race where the login page auto-bootstrapped on the still-valid
+        // cookie and bounced back in while the cookie died mid-flight —
+        // the endless-spinner loop the owner reported.
+        pauseSync();
+        try {
+          await logoutRequest();
+        } catch {
+          // offline: the cookie survives, but the login page's ?out=1
+          // guard still shows the sign-in screen instead of looping
+        }
         set({ sessionUserId: null });
       },
 

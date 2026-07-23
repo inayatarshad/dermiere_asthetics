@@ -269,8 +269,10 @@ export function useIdleLock() {
   const reset = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      logout();
-      router.replace("/?locked=1");
+      void (async () => {
+        await logout();
+        router.replace("/?locked=1");
+      })();
     }, IDLE_LOCK_MS);
   }, [logout, router]);
 

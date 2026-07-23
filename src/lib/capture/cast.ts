@@ -81,7 +81,8 @@ export const CAPTURE_STAFF: CastStaff[] = [
   { key: "doctor", name: "Dr. Sadia Khan", email: "dr.sadia@capture.cc", role: "doctor", title: "Medical Director" },
   { key: "ops", name: "Shah Rukh Ahmed", email: "shahrukh@capture.cc", role: "admin", title: "Head of Operations" },
   { key: "marketing", name: "Rameez Hasan", email: "rameez@capture.cc", role: "admin", title: "Marketing Lead" },
-  { key: "creative", name: "Ryan Hikmat", email: "ryan@capture.cc", role: "front_desk", title: "Creative Director" },
+  // Ryan leads the CAPTURE project — full workspace access (owner 2026-07-23)
+  { key: "creative", name: "Ryan Hikmat", email: "ryan@capture.cc", role: "admin", title: "Creative Director" },
   { key: "frontdesk", name: "Amal Fatima", email: "frontdesk@capture.cc", role: "front_desk", title: "Front Desk · Experience Centre" },
 ];
 

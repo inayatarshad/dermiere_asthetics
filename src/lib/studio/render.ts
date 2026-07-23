@@ -137,58 +137,85 @@ export function renderContour(
   img: HTMLImageElement,
   p: ContourParams
 ): HTMLCanvasElement {
+  return renderContourRegions(img, {
+    strength: p.strength,
+    firmness: p.firmness,
+    regions: [p.region],
+  });
+}
+
+export interface MultiContourParams {
+  strength: number;
+  firmness: number;
+  /** One pinch ellipse per treated area (e.g. both arms at once). */
+  regions: ContourRegion[];
+}
+
+/**
+ * Multi-region variant: each ellipse pinches horizontally toward its own
+ * vertical axis (same inverse-mapped warp as before), so pose-detected
+ * areas — both upper arms, both thighs, the waistline — slim together
+ * in one pass.
+ */
+export function renderContourRegions(
+  img: HTMLImageElement,
+  p: MultiContourParams
+): HTMLCanvasElement {
   const { canvas, ctx } = baseCanvas(img);
   const w = canvas.width;
   const h = canvas.height;
 
   const s = (p.strength / 100) * 0.42; // max horizontal compression factor
-  const { cx, cy, rx, ry } = p.region;
-  const CX = cx * w;
-  const CY = cy * h;
-  const RX = Math.max(8, rx * w);
-  const RY = Math.max(8, ry * h);
+  const px = p.regions.map((r) => ({
+    CX: r.cx * w,
+    CY: r.cy * h,
+    RX: Math.max(8, r.rx * w),
+    RY: Math.max(8, r.ry * h),
+  }));
 
-  if (s > 0.004) {
+  if (s > 0.004 && px.length > 0) {
     const src = ctx.getImageData(0, 0, w, h);
     const out = ctx.createImageData(w, h);
     const sd = src.data;
     const od = out.data;
 
-    const x0 = Math.max(0, Math.floor(CX - RX));
-    const x1 = Math.min(w - 1, Math.ceil(CX + RX));
-    const y0 = Math.max(0, Math.floor(CY - RY));
-    const y1 = Math.min(h - 1, Math.ceil(CY + RY));
-
-    // start as a copy, warp only inside the ellipse bounds
+    // start as a copy, warp only inside each ellipse's bounds
     od.set(sd);
 
-    for (let y = y0; y <= y1; y++) {
-      const v = (y - CY) / RY;
-      for (let x = x0; x <= x1; x++) {
-        const u = (x - CX) / RX;
-        const r2 = u * u + v * v;
-        if (r2 >= 1) continue;
-        // smooth falloff: 0 at boundary/center-axis, peak mid-region
-        const fall = (1 - r2) * (1 - r2);
-        // inverse map: sample further from the vertical axis -> compression
-        const sx = CX + (x - CX) * (1 + s * fall);
-        // horizontal-only warp: sample along this row with linear blend
-        const fx = Math.max(0, Math.min(w - 2, sx));
-        const ix = Math.floor(fx);
-        const dx = fx - ix;
-        const base = (y * w + ix) * 4;
-        const di = (y * w + x) * 4;
-        for (let c = 0; c < 4; c++) {
-          od[di + c] = sd[base + c] * (1 - dx) + sd[base + 4 + c] * dx;
+    for (const { CX, CY, RX, RY } of px) {
+      const x0 = Math.max(0, Math.floor(CX - RX));
+      const x1 = Math.min(w - 1, Math.ceil(CX + RX));
+      const y0 = Math.max(0, Math.floor(CY - RY));
+      const y1 = Math.min(h - 1, Math.ceil(CY + RY));
+
+      for (let y = y0; y <= y1; y++) {
+        const v = (y - CY) / RY;
+        for (let x = x0; x <= x1; x++) {
+          const u = (x - CX) / RX;
+          const r2 = u * u + v * v;
+          if (r2 >= 1) continue;
+          // smooth falloff: 0 at boundary/center-axis, peak mid-region
+          const fall = (1 - r2) * (1 - r2);
+          // inverse map: sample further from the vertical axis -> compression
+          const sx = CX + (x - CX) * (1 + s * fall);
+          // horizontal-only warp: sample along this row with linear blend
+          const fx = Math.max(0, Math.min(w - 2, sx));
+          const ix = Math.floor(fx);
+          const dx = fx - ix;
+          const base = (y * w + ix) * 4;
+          const di = (y * w + x) * 4;
+          for (let c = 0; c < 4; c++) {
+            od[di + c] = sd[base + c] * (1 - dx) + sd[base + 4 + c] * dx;
+          }
         }
       }
     }
     ctx.putImageData(out, 0, 0);
   }
 
-  // firmness — localized smoothing inside the region (clip to ellipse)
+  // firmness — localized smoothing clipped to the union of regions
   const f = p.firmness / 100;
-  if (f > 0.03) {
+  if (f > 0.03 && px.length > 0) {
     const smooth = document.createElement("canvas");
     smooth.width = w;
     smooth.height = h;
@@ -198,7 +225,10 @@ export function renderContour(
 
     ctx.save();
     ctx.beginPath();
-    ctx.ellipse(CX, CY, RX, RY, 0, 0, Math.PI * 2);
+    for (const { CX, CY, RX, RY } of px) {
+      ctx.moveTo(CX + RX, CY);
+      ctx.ellipse(CX, CY, RX, RY, 0, 0, Math.PI * 2);
+    }
     ctx.clip();
     ctx.globalAlpha = 0.3 + f * 0.4;
     ctx.drawImage(smooth, 0, 0);
@@ -206,6 +236,89 @@ export function renderContour(
   }
 
   return canvas;
+}
+
+// ---------------------------------------------------------------------
+// Pose -> contour regions ("identifies where the arm is in the picture")
+// ---------------------------------------------------------------------
+
+const clamp01 = (n: number, lo = 0.02, hi = 0.98) =>
+  Math.max(lo, Math.min(hi, n));
+
+/**
+ * Derive the pinch ellipses for a preset from MediaPipe Pose landmarks
+ * ([x, y, z, visibility], normalized). Returns null when the needed
+ * joints aren't confidently visible — callers fall back to the manual
+ * treatment window.
+ */
+export function regionsFromPose(
+  landmarks: number[][],
+  presetId: string
+): ContourRegion[] | null {
+  const pt = (i: number) => landmarks[i];
+  const visible = (...idx: number[]) =>
+    idx.every((i) => (pt(i)?.[3] ?? 0) > 0.5);
+  const mid = (a: number[], b: number[]) => ({
+    x: (a[0] + b[0]) / 2,
+    y: (a[1] + b[1]) / 2,
+  });
+
+  // torso anchors (MediaPipe Pose: 11/12 shoulders, 23/24 hips)
+  if (!visible(11, 12, 23, 24)) return null;
+  const shL = pt(11), shR = pt(12), hipL = pt(23), hipR = pt(24);
+  const midSh = mid(shL, shR);
+  const midHip = mid(hipL, hipR);
+  const hipSpan = Math.max(0.06, Math.abs(hipL[0] - hipR[0]));
+  const torsoH = Math.max(0.08, midHip.y - midSh.y);
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+  const ell = (cx: number, cy: number, rx: number, ry: number): ContourRegion => ({
+    cx: clamp01(cx),
+    cy: clamp01(cy),
+    rx: clamp01(rx, 0.03, 0.48),
+    ry: clamp01(ry, 0.03, 0.45),
+  });
+
+  switch (presetId) {
+    case "abdomen":
+      return [
+        ell(midHip.x, lerp(midSh.y, midHip.y, 0.72), hipSpan * 0.85, torsoH * 0.32),
+      ];
+    case "waist":
+      return [
+        ell(midHip.x, lerp(midSh.y, midHip.y, 0.55), hipSpan * 0.95, torsoH * 0.24),
+      ];
+    case "hips":
+      return [
+        ell(midHip.x, midHip.y + torsoH * 0.08, hipSpan * 1.02, torsoH * 0.24),
+      ];
+    case "thighs": {
+      if (!visible(25, 26)) return null;
+      const kneeL = pt(25), kneeR = pt(26);
+      const legL = mid(hipL, kneeL);
+      const legR = mid(hipR, kneeR);
+      const legRy = (y1: number, y2: number) =>
+        Math.max(0.05, Math.abs(y2 - y1) * 0.42);
+      return [
+        ell(legL.x, legL.y, hipSpan * 0.42, legRy(hipL[1], kneeL[1])),
+        ell(legR.x, legR.y, hipSpan * 0.42, legRy(hipR[1], kneeR[1])),
+      ];
+    }
+    case "arms": {
+      if (!visible(13, 14)) return null;
+      const elL = pt(13), elR = pt(14);
+      const armL = mid(shL, elL);
+      const armR = mid(shR, elR);
+      const armRy = (y1: number, y2: number) =>
+        Math.max(0.05, Math.abs(y2 - y1) * 0.6);
+      return [
+        ell(armL.x, armL.y, hipSpan * 0.3, armRy(shL[1], elL[1])),
+        ell(armR.x, armR.y, hipSpan * 0.3, armRy(shR[1], elR[1])),
+      ];
+    }
+    default:
+      return null;
+  }
 }
 
 // ---------------------------------------------------------------------

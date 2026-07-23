@@ -22,9 +22,10 @@ import {
   Download,
   Syringe,
 } from "lucide-react";
+import Link from "next/link";
 import { useStore, useSessionUser, usePatientConsents, consentGranted } from "@/lib/store";
 import { useAssetUrl, useFaceData } from "@/lib/hooks";
-import { activeTemplatesFor, getTemplate, TEMPLATES } from "@/lib/templates";
+import { activeTemplatesFor, getTemplate, isBodyTemplate, TEMPLATES } from "@/lib/templates";
 import { assembleMultiPrompt, assembleSliderPhrases, hasActiveParams, paramsHash } from "@/lib/prompt";
 import { canvasMorphsToAiParams, toPx } from "@/lib/face/geometry";
 import { warpPhoto, burnDisclaimer } from "@/lib/face/warp2d";
@@ -512,8 +513,43 @@ export function VisualizeStep({
       <EmptyState
         icon={<ShieldAlert size={30} />}
         title="Photography consent required"
-        body="AI visualization processes the patient's facial photo. Capture photography consent on the patient profile before generating."
+        body="AI visualization processes the patient's photo. Capture photography consent on the patient profile before generating."
       />
+    );
+  }
+
+  // Body-first treatments skip the 3D-face pipeline entirely (owner
+  // 2026-07-23): their visualization lives in the photo-based Body Studio
+  // — pose-detected toning + Stryder AI Image on a body photo. Checked
+  // BEFORE the front-photo guard: a body consult never needs a face photo.
+  if (isBodyTemplate(primary?.id)) {
+    return (
+      <GlassCard className="p-8 fade-up max-w-2xl mx-auto text-center">
+        <span className="w-14 h-14 mx-auto rounded-2xl bg-mint-100 text-[color:var(--mint-500)] flex items-center justify-center">
+          <Sparkles size={26} />
+        </span>
+        <h2 className="h1 text-ink-900 mt-4">
+          {primary?.name} is a body treatment
+        </h2>
+        <p className="text-ink-700 mt-3 max-w-md mx-auto leading-relaxed">
+          The 3D face canvas isn&apos;t used here. The Body Studio takes a
+          body photo, finds the treated area on it automatically — abdomen,
+          waist, arms, thighs — tones it live like a photo editor, and
+          renders the photoreal course result with Stryder AI Image. Saved
+          previews land on {patient.name.split(" ")[0]}&apos;s timeline.
+        </p>
+        <Link
+          href={`/visualize/${patient.id}?mode=body`}
+          className="btn btn-primary btn-lg mt-6 inline-flex"
+        >
+          <Sparkles size={17} />
+          Open Body Contour Studio
+        </Link>
+        <p className="caption mt-3">
+          Continue to Plan afterwards — the course template and pricing are
+          already armed for {primary?.name}.
+        </p>
+      </GlassCard>
     );
   }
 

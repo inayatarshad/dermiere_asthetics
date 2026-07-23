@@ -572,3 +572,14 @@ export const FACE_REGIONS = [
   { id: "forehead", label: "Brow / Forehead" },
   { id: "skin", label: "Skin" },
 ] as const;
+
+/** Body areas CAPTURE's Exomere contouring + MitoRedLight programmes treat
+ *  (owner 2026-07-23: the brief's areas of concern must cover the body). */
+export const BODY_REGIONS = [
+  { id: "abdomen", label: "Abdomen" },
+  { id: "waist_flanks", label: "Waist & flanks" },
+  { id: "arms", label: "Arms" },
+  { id: "thighs", label: "Thighs" },
+  { id: "hips", label: "Hips" },
+  { id: "full_body", label: "Full body" },
+] as const;

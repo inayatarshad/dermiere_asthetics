@@ -3458,7 +3458,7 @@ The contour changes are the POINT of this image — they must be clearly visible
     id: "exomere-body-contour",
     name: "Exomere Body Contour",
     category: "other",
-    region: "skin",
+    region: "abdomen",
     available: true,
     model: "gemini-2.5-flash-image",
     prompt_template: `Edit this photograph to visualize the result of a course of professional non-invasive body contouring on the treated area. {assembled_slider_phrases}
@@ -3529,7 +3529,7 @@ Preserve exactly: the person's identity, pose, clothing, lighting, camera angle,
     id: "mito-full-body-reset",
     name: "MitoRedLight Full Body Reset",
     category: "other",
-    region: "skin",
+    region: "full_body",
     available: true,
     model: "gemini-2.5-flash-image",
     prompt_template: `Edit ONLY the skin in this photograph to visualize the result of a course of full-body red light and near-infrared therapy. {assembled_slider_phrases}
@@ -3677,6 +3677,20 @@ export const PROCEDURE_CATEGORIES: {
 export function getTemplate(id: string | null | undefined) {
   if (!id) return undefined;
   return TEMPLATES.find((t) => t.id === id);
+}
+
+/**
+ * Body-first treatments skip the 3D face pipeline entirely: their
+ * visualization is the photo-based Body Studio (pose-detected toning +
+ * AI), not the landmark canvas (owner 2026-07-23).
+ */
+export const BODY_TEMPLATE_IDS = [
+  "exomere-body-contour",
+  "mito-full-body-reset",
+] as const;
+
+export function isBodyTemplate(id: string | null | undefined): boolean {
+  return !!id && (BODY_TEMPLATE_IDS as readonly string[]).includes(id);
 }
 
 /**

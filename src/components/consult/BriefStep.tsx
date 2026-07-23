@@ -11,7 +11,12 @@ import { useState } from "react";
 import { ArrowRight, HelpCircle, Sparkles } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PROCEDURE_CATEGORIES, TEMPLATES, getTemplate } from "@/lib/templates";
-import { FACE_REGIONS, type Brief, type Consultation } from "@/lib/types";
+import {
+  FACE_REGIONS,
+  BODY_REGIONS,
+  type Brief,
+  type Consultation,
+} from "@/lib/types";
 import { GlassCard, Chip, Toggle } from "@/components/ui";
 import { FaceDiagram } from "@/components/FaceDiagram";
 
@@ -140,10 +145,10 @@ export function BriefStep({
 
         {/* Goal in the patient's words */}
         <GlassCard className="p-6">
-          <h2 className="h2 text-ink-900">In the patient's words</h2>
+          <h2 className="h2 text-ink-900">In the patient&apos;s words</h2>
           <p className="caption mt-0.5 mb-3">
-            "What would you change if you could?" Captured verbatim for the
-            doctor and the report.
+            &ldquo;What would you change if you could?&rdquo; Captured
+            verbatim for the doctor and the report.
           </p>
           <textarea
             className="input min-h-[84px] resize-y"
@@ -209,8 +214,22 @@ export function BriefStep({
           <h2 className="h2 text-ink-900">Areas of concern</h2>
           <p className="caption mt-0.5 mb-3">Tap the diagram or the chips.</p>
           <FaceDiagram selected={brief.concerns} onToggle={toggleConcern} />
-          <div className="flex gap-1.5 flex-wrap mt-4">
+          <div className="field-label mt-4">Face</div>
+          <div className="flex gap-1.5 flex-wrap">
             {FACE_REGIONS.map((r) => (
+              <Chip
+                key={r.id}
+                active={brief.concerns.includes(r.id)}
+                onClick={() => toggleConcern(r.id)}
+              >
+                {r.label}
+              </Chip>
+            ))}
+          </div>
+          {/* body areas — Exomere contouring + full-body MitoRedLight */}
+          <div className="field-label mt-4">Body</div>
+          <div className="flex gap-1.5 flex-wrap">
+            {BODY_REGIONS.map((r) => (
               <Chip
                 key={r.id}
                 active={brief.concerns.includes(r.id)}

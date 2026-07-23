@@ -3,19 +3,18 @@
 /**
  * VYBERO Voice Agent console — the in-app home of the ElevenLabs phone
  * agent (Noor). Hosts the call widget so the CAPTURE team can talk to
- * the agent right here, shows voice bookings landing on the calendar
- * live (the background VyberoAgent poller refreshes every 45s), and
- * gives admins the exact webhook configuration to paste into ElevenLabs.
+ * the agent right here, plus the admin webhook configuration and the
+ * on-demand call-history sync. Bookings live on the Calendar; call
+ * history and recordings live on Analytics — no duplicate feeds here.
  *
  * Replaces the Discovery slot in the nav for the CAPTURE deployment —
  * open to every staff role so the whole team can test the agent.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   AudioLines,
   Phone,
-  CalendarCheck2,
   Settings2,
   Copy,
   Check,
@@ -24,7 +23,6 @@ import {
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
-import { findTreatment, CAPTURE_LOCATIONS } from "@/lib/capture/kb";
 import { GlassCard, SectionTitle, EmptyState, Spinner } from "@/components/ui";
 
 const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
@@ -32,12 +30,15 @@ const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
 /** ElevenLabs agent ids are url-safe tokens; refuse anything else. */
 const cleanAgentId = (id: string) => id.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
 
+// hydration-safe origin: server snapshot is the placeholder, client
+// snapshot is the real origin — no setState-in-effect needed
+const noopSubscribe = () => () => {};
 function useOrigin(): string {
-  const [origin, setOrigin] = useState("https://YOUR-DEPLOYMENT");
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-  return origin;
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => window.location.origin,
+    () => "https://YOUR-DEPLOYMENT"
+  );
 }
 
 export default function VyberoAgentPage() {
@@ -45,8 +46,6 @@ export default function VyberoAgentPage() {
   const user = useSessionUser();
   const vyberoAgentId = useStore((s) => s.vyberoAgentId);
   const setVyberoAgentId = useStore((s) => s.setVyberoAgentId);
-  const appointments = useStore((s) => s.appointments);
-  const vyberoCalls = useStore((s) => s.vyberoCalls);
 
   const isAdmin = can.manageUsers(user?.role);
   const origin = useOrigin();
@@ -152,23 +151,6 @@ export default function VyberoAgentPage() {
       cancelled = true;
     };
   }, [agentId]);
-
-  const voiceBookings = useMemo(
-    () =>
-      appointments
-        .filter((a) => a.source === "vybero")
-        .sort((a, b) => b.created_at.localeCompare(a.created_at))
-        .slice(0, 8),
-    [appointments]
-  );
-
-  const recentCalls = useMemo(
-    () =>
-      [...vyberoCalls]
-        .sort((a, b) => b.started_at.localeCompare(a.started_at))
-        .slice(0, 5),
-    [vyberoCalls]
-  );
 
   if (!mounted) return null;
 
@@ -372,88 +354,9 @@ export default function VyberoAgentPage() {
         )}
       </GlassCard>
 
-      <div className="grid lg:grid-cols-2 gap-5 items-start">
-        {/* Live proof: voice bookings + calls */}
-        <div className="space-y-4 lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-          <GlassCard className="p-5 fade-up-2">
-            <SectionTitle
-              title="Voice bookings"
-              sub="Appointments created by the agent — refreshes automatically"
-            />
-            {voiceBookings.length === 0 ? (
-              <p className="caption py-4">
-                None yet. Call Noor and say &ldquo;book me a face contour
-                tomorrow at 4&rdquo; — it appears here and on the Calendar.
-              </p>
-            ) : (
-              <div className="space-y-2 mt-2">
-                {voiceBookings.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-3 rounded-xl bg-white/50 border border-[rgba(28,26,22,0.06)] px-3.5 py-2.5"
-                  >
-                    <span className="w-8 h-8 rounded-lg bg-mint-100 text-[color:var(--mint-500)] flex items-center justify-center shrink-0">
-                      <CalendarCheck2 size={15} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-ink-900 truncate">
-                        {a.patient_name}
-                        <span className="text-ink-400 font-normal">
-                          {" "}
-                          ·{" "}
-                          {a.procedure_interest
-                            ? findTreatment(a.procedure_interest)?.short ?? "Consultation"
-                            : "Consultation"}
-                        </span>
-                      </div>
-                      <div className="text-[11.5px] text-ink-400">
-                        {new Date(a.start).toLocaleString("en-GB", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        {" · "}
-                        {CAPTURE_LOCATIONS.find((l) => l.id === (a.location_id ?? "experience-centre"))?.short}
-                      </div>
-                    </div>
-                    <span className="chip chip-static text-[10.5px]">{a.status}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </GlassCard>
-
-          <GlassCard className="p-5 fade-up-3">
-            <SectionTitle title="Recent calls" sub="From the agent's call log" />
-            {recentCalls.length === 0 ? (
-              <p className="caption py-3">No calls logged yet.</p>
-            ) : (
-              <div className="space-y-1.5 mt-2">
-                {recentCalls.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2.5 text-sm px-1 py-1">
-                    <Phone size={13} className="text-ink-400 shrink-0" />
-                    <span className="text-ink-900 truncate">
-                      {c.caller_name ?? "Unknown caller"}
-                    </span>
-                    <span className="caption truncate hidden sm:inline">
-                      {c.summary?.slice(0, 46)}
-                    </span>
-                    <span
-                      className={`ml-auto chip chip-static text-[10.5px] ${
-                        c.outcome === "booked" ? "!bg-mint-100" : ""
-                      }`}
-                    >
-                      {c.outcome}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </GlassCard>
-        </div>
-      </div>
+      {/* Voice-booking + call feeds removed (owner 2026-07-23): redundant
+          with the Calendar and the Analytics call log, and mixing seeded
+          rows with live ones read as inaccurate. Analytics is the truth. */}
     </div>
   );
 }

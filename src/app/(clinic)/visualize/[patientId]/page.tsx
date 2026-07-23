@@ -35,12 +35,14 @@ import { burnDisclaimer } from "@/lib/face/warp2d";
 import {
   loadImage,
   renderGlow,
-  renderContour,
+  renderContourRegions,
+  regionsFromPose,
   composeSideBySide,
   CONTOUR_PRESETS,
   type GlowParams,
   type ContourRegion,
 } from "@/lib/studio/render";
+import { detectPose } from "@/lib/body/pose";
 import { generateAfterImage, modelsKey } from "@/lib/generateClient";
 
 type Mode = "glow" | "body";
@@ -67,7 +69,15 @@ export default function VisualizeStudioPage() {
   const aiModels = useStore((s) => s.aiModels);
   const bumpAiUsage = useStore((s) => s.bumpAiUsage);
 
-  const [mode, setMode] = useState<Mode>("glow");
+  // deep-link: /visualize/<id>?mode=body preselects the body studio (the
+  // consult flow routes body-primary treatments here). Lazy initializer —
+  // the page renders null until mounted, so no hydration mismatch.
+  const [mode, setMode] = useState<Mode>(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("mode") === "body"
+      ? "body"
+      : "glow"
+  );
   const [beforeSrc, setBeforeSrc] = useState<string | null>(null);
   const [beforeIsUpload, setBeforeIsUpload] = useState(false);
   const [img, setImg] = useState<HTMLImageElement | null>(null);
@@ -84,8 +94,48 @@ export default function VisualizeStudioPage() {
   const [strength, setStrength] = useState(45);
   const [firmness, setFirmness] = useState(35);
 
+  // pose detection: finds the arms/waist/thighs on the photo so the toning
+  // lands automatically; the manual window remains the fallback/fine-tune.
+  // State is KEYED by the image it was computed for — switching photos
+  // derives back to null with no reset effects (react-compiler friendly).
+  const [poseState, setPoseState] = useState<{
+    for: HTMLImageElement | null;
+    lm: number[][] | null;
+    busy: boolean;
+  }>({ for: null, lm: null, busy: false });
+  const [manualOverrideFor, setManualOverrideFor] =
+    useState<HTMLImageElement | null>(null);
+  const poseLm = img && poseState.for === img ? poseState.lm : null;
+  const poseBusy = !!img && poseState.for === img && poseState.busy;
+  const manualOverride = !!img && manualOverrideFor === img;
+
   const fileRef = useRef<HTMLInputElement>(null);
   const renderTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!img || mode !== "body") return;
+    let cancelled = false;
+    // microtask defer keeps every setState inside a callback
+    void Promise.resolve().then(() => {
+      if (!cancelled) setPoseState({ for: img, lm: null, busy: true });
+    });
+    detectPose(img)
+      .then((lm) => {
+        if (!cancelled) setPoseState({ for: img, lm, busy: false });
+      })
+      .catch(() => {
+        if (!cancelled) setPoseState({ for: img, lm: null, busy: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [img, mode]);
+
+  const autoRegions = useMemo(
+    () => (poseLm ? regionsFromPose(poseLm, preset.id) : null),
+    [poseLm, preset.id]
+  );
+  const usingAuto = mode === "body" && !manualOverride && autoRegions !== null;
 
   // patient photos usable as the "before"
   const photoAssets = useMemo(
@@ -114,18 +164,23 @@ export default function VisualizeStudioPage() {
     })();
   }, [photoAssets, beforeSrc, mode]);
 
-  // load HTMLImageElement whenever the before changes
+  // load HTMLImageElement whenever the before changes (all setState in
+  // callbacks — react-compiler rule)
   useEffect(() => {
-    if (!beforeSrc) {
-      setImg(null);
-      return;
-    }
     let cancelled = false;
-    loadImage(beforeSrc)
-      .then((i) => {
-        if (!cancelled) setImg(i);
-      })
-      .catch(() => setImg(null));
+    if (!beforeSrc) {
+      void Promise.resolve().then(() => {
+        if (!cancelled) setImg(null);
+      });
+    } else {
+      loadImage(beforeSrc)
+        .then((i) => {
+          if (!cancelled) setImg(i);
+        })
+        .catch(() => {
+          if (!cancelled) setImg(null);
+        });
+    }
     return () => {
       cancelled = true;
     };
@@ -137,11 +192,17 @@ export default function VisualizeStudioPage() {
     const canvas =
       mode === "glow"
         ? renderGlow(img, glow)
-        : renderContour(img, { strength, firmness, region });
+        : renderContourRegions(img, {
+            strength,
+            firmness,
+            // pose-detected areas (e.g. BOTH upper arms) when available,
+            // else the manually positioned treatment window
+            regions: usingAuto && autoRegions ? autoRegions : [region],
+          });
     const burned = burnDisclaimer(canvas, AI_DISCLAIMER);
     setAfterSrc(burned.toDataURL("image/jpeg", 0.92));
     setSaved(false);
-  }, [img, mode, glow, strength, firmness, region]);
+  }, [img, mode, glow, strength, firmness, region, usingAuto, autoRegions]);
 
   useEffect(() => {
     if (!img) return;
@@ -409,15 +470,68 @@ export default function VisualizeStudioPage() {
                   </button>
                 ))}
               </div>
+
+              {/* pose detection status — the toning finds the body part */}
+              {poseBusy && (
+                <p className="caption flex items-center gap-2">
+                  <Spinner className="w-3.5 h-3.5" /> Finding the body on the
+                  photo…
+                </p>
+              )}
+              {!poseBusy && usingAuto && (
+                <div className="flex items-center gap-2 flex-wrap rounded-lg bg-mint-100 px-3 py-2">
+                  <p className="text-xs text-ink-700 flex-1 min-w-[16ch]">
+                    <b className="text-ink-900">
+                      {preset.label} detected on the photo
+                    </b>
+                    {autoRegions && autoRegions.length > 1
+                      ? " — both sides tone together."
+                      : " — toning follows it automatically."}
+                  </p>
+                  <button
+                    onClick={() => setManualOverrideFor(img)}
+                    className="btn btn-ghost btn-sm shrink-0"
+                  >
+                    Adjust manually
+                  </button>
+                </div>
+              )}
+              {!poseBusy && !usingAuto && poseLm !== null && autoRegions === null && (
+                <p className="caption">
+                  Couldn&apos;t place {preset.label.toLowerCase()} on this
+                  photo — position the treatment window below.
+                </p>
+              )}
+              {!poseBusy && poseLm === null && img && (
+                <p className="caption">
+                  No full-body pose detected — position the treatment window
+                  below.
+                </p>
+              )}
+
               <MintSlider label="Contour strength" hint="Projected slimming of the region" value={strength} min={0} max={100} onChange={setStrength} />
               <MintSlider label="Skin firmness" hint="Smoother, firmer-looking skin" value={firmness} min={0} max={100} onChange={setFirmness} />
-              <div className="pt-1 border-t border-[rgba(28,26,22,0.07)] space-y-4">
-                <div className="caption">Position the treatment window on the photo:</div>
-                <MintSlider label="Horizontal" value={Math.round(region.cx * 100)} min={10} max={90} onChange={(v) => setRegion((r) => ({ ...r, cx: v / 100 }))} />
-                <MintSlider label="Vertical" value={Math.round(region.cy * 100)} min={10} max={92} onChange={(v) => setRegion((r) => ({ ...r, cy: v / 100 }))} />
-                <MintSlider label="Width" value={Math.round(region.rx * 100)} min={6} max={45} onChange={(v) => setRegion((r) => ({ ...r, rx: v / 100 }))} />
-                <MintSlider label="Height" value={Math.round(region.ry * 100)} min={6} max={40} onChange={(v) => setRegion((r) => ({ ...r, ry: v / 100 }))} />
-              </div>
+              {!usingAuto && (
+                <div className="pt-1 border-t border-[rgba(28,26,22,0.07)] space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="caption">
+                      Position the treatment window on the photo:
+                    </div>
+                    {manualOverride && autoRegions && (
+                      <button
+                        onClick={() => setManualOverrideFor(null)}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        Use auto detection
+                      </button>
+                    )}
+                  </div>
+                  <MintSlider label="Horizontal" value={Math.round(region.cx * 100)} min={10} max={90} onChange={(v) => setRegion((r) => ({ ...r, cx: v / 100 }))} />
+                  <MintSlider label="Vertical" value={Math.round(region.cy * 100)} min={10} max={92} onChange={(v) => setRegion((r) => ({ ...r, cy: v / 100 }))} />
+                  <MintSlider label="Width" value={Math.round(region.rx * 100)} min={6} max={45} onChange={(v) => setRegion((r) => ({ ...r, rx: v / 100 }))} />
+                  <MintSlider label="Height" value={Math.round(region.ry * 100)} min={6} max={40} onChange={(v) => setRegion((r) => ({ ...r, ry: v / 100 }))} />
+                </div>
+              )}
             </div>
           )}
 

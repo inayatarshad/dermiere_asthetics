@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Jost, Fraunces } from "next/font/google";
+import { BrandSplash } from "@/components/BrandSplash";
 import "./globals.css";
 
 // CAPTURE brand face — geometric sans, matches capture.cc
@@ -64,7 +65,13 @@ export default function RootLayout({
       lang="en"
       className={`${jost.variable} ${fraunces.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-stage">{children}</body>
+      <body className="min-h-full bg-stage">
+        {/* in the ROOT layout so the post-login sweep survives the route
+            change into the dashboard; SSR-rendered so the reveal masks the
+            very first paint on a cold load */}
+        <BrandSplash />
+        {children}
+      </body>
     </html>
   );
 }

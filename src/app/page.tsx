@@ -14,6 +14,7 @@ import {
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { loginRequest, fetchBootstrap } from "@/lib/serverSync";
+import { triggerBrandSplash } from "@/components/BrandSplash";
 import { Logo, Spinner } from "@/components/ui";
 import { DEMO_PASSWORD } from "@/lib/seed";
 import VyberoConcierge from "@/components/VyberoConcierge";
@@ -28,11 +29,11 @@ const ROLE_CARDS = [
     icon: Stethoscope,
   },
   {
-    role: "front_desk",
+    role: "admin",
     email: "ryan@capture.cc",
     label: "Creative",
     name: "Ryan Hikmat",
-    desc: "Client stories, before/after gallery, content-day scheduling",
+    desc: "Project lead — full workspace: studio, patients, analytics, settings",
     icon: Palette,
   },
   {
@@ -65,6 +66,7 @@ function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locked = searchParams.get("locked") === "1";
+  const signedOut = searchParams.get("out") === "1";
   const next = searchParams.get("next") || "/dashboard";
   const mounted = useMounted();
   const hydrate = useStore((s) => s.hydrate);
@@ -73,10 +75,14 @@ function LoginInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [checking, setChecking] = useState(true);
+  // After an explicit sign-out or idle lock, the sign-in screen must show
+  // unconditionally — auto-bootstrap here is what looped the spinner when
+  // the cookie was mid-clear.
+  const [checking, setChecking] = useState(!locked && !signedOut);
 
   // If already signed in (valid cookie), hydrate and go straight in.
   useEffect(() => {
+    if (locked || signedOut) return;
     let cancelled = false;
     (async () => {
       const b = await fetchBootstrap();
@@ -91,7 +97,7 @@ function LoginInner() {
     return () => {
       cancelled = true;
     };
-  }, [hydrate, router, next]);
+  }, [hydrate, router, next, locked, signedOut]);
 
   const doLogin = async (e: string, p: string) => {
     setBusy(true);
@@ -102,6 +108,9 @@ function LoginInner() {
       setBusy(false);
       return;
     }
+    // branded loading moment: the Capture lockup sweeps across while the
+    // workspace hydrates and the route changes underneath it
+    triggerBrandSplash();
     hydrate(r.bootstrap);
     router.replace(next);
   };
