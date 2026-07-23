@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CAPTURE · Clinic OS · Investment &amp; Configuration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#c4a15a; --gold-soft:#d4b878; --gold-300:#e3cd9c; --gold-200:#f0e3c4;
+    --cream-100:#f9f3e4; --off-white:#fbf8f1; --white:#fff;
+    --ink:#1c1a16; --ink-700:#4a443a; --ink-400:#9a927f;
+    --success:#6e9f70;
+    --card-shadow:0 18px 40px -26px rgba(70,60,40,.40);
+    --radius:22px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; color:var(--ink);
+    font-family:"Jost", ui-sans-serif, system-ui, sans-serif;
+    background:#f5f0e3;
+    background-image:radial-gradient(1200px 820px at 18% 4%, #f9f3e4 0%, #fbf8f1 46%, #f5f0e3 100%);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+  }
+  .serif{font-family:"Fraunces", Georgia, serif;}
+  .eyebrow{font-size:12px; letter-spacing:.24em; text-transform:uppercase; color:var(--gold); font-weight:500;}
+
+  .nav{
+    position:sticky; top:0; z-index:60;
+    background:rgba(251,248,241,.74);
+    -webkit-backdrop-filter:blur(16px) saturate(1.3); backdrop-filter:blur(16px) saturate(1.3);
+    border-bottom:1px solid rgba(196,161,90,.34);
+    box-shadow:0 14px 34px -28px rgba(70,60,40,.5);
+  }
+  .nav::before{content:""; display:block; height:3px; background:linear-gradient(90deg,var(--gold-200),var(--gold),var(--gold-soft),var(--gold-200));}
+  .nav-inner{max-width:1120px; margin:0 auto; padding:12px 22px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; justify-content:space-between;}
+  .brand{display:flex; flex-direction:column; line-height:1;}
+  .brand .b1{font-family:"Fraunces",serif; font-size:20px; letter-spacing:.34em; font-weight:500; padding-left:.34em; color:var(--ink);}
+  .brand .b2{font-size:10px; letter-spacing:.26em; color:var(--gold); margin-top:6px; padding-left:.26em; text-transform:uppercase;}
+  .totals{display:flex; gap:10px; flex-wrap:wrap; align-items:stretch;}
+  .tbox{background:rgba(255,255,255,.78); border:1px solid rgba(196,161,90,.34); border-radius:14px; padding:8px 15px; min-width:138px; box-shadow:0 10px 22px -18px rgba(70,60,40,.4);}
+  .tbox .tlbl{font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-400);}
+  .tbox .tpkr{font-family:"Fraunces",serif; font-size:20px; font-weight:600; color:var(--ink); margin-top:3px; line-height:1.05;}
+  .tbox .tusd{font-size:12px; color:var(--gold); margin-top:2px; font-weight:500;}
+  .tbox.accent{border-color:rgba(196,161,90,.6); background:linear-gradient(180deg, rgba(212,184,120,.26), rgba(255,255,255,.85));}
+
+  .wrap{max-width:1120px; margin:0 auto; padding:34px 22px 70px;}
+  .hero{margin:8px 0 26px; max-width:800px;}
+  .hero h1{font-family:"Fraunces",serif; font-weight:500; font-size:clamp(30px,5vw,48px); line-height:1.05; margin:12px 0 14px; color:var(--ink);}
+  .hero h1 .accent{color:var(--gold); font-style:italic;}
+  .hero p{color:var(--ink-700); font-size:15.5px; line-height:1.65; margin:0 0 6px; max-width:680px;}
+  .hero p b{color:var(--ink); font-weight:600;}
+  .meta-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;}
+  .pill{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-700); background:var(--white); border:1px solid rgba(196,161,90,.4); border-radius:999px; padding:7px 15px; box-shadow:0 8px 18px -16px rgba(70,60,40,.5);}
+  .pill b{color:var(--ink); font-weight:600;}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--gold);}
+
+  .actions{display:flex; gap:11px; flex-wrap:wrap; margin:24px 0 4px;}
+  .btn{font-family:"Jost",sans-serif; font-size:13px; font-weight:500; letter-spacing:.02em; padding:11px 20px; border-radius:12px; cursor:pointer; border:1px solid transparent; transition:.16s;}
+  .btn.primary{background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:var(--ink); box-shadow:0 12px 26px -14px rgba(196,161,90,.85);}
+  .btn.primary:hover{filter:brightness(1.04); transform:translateY(-1px);}
+  .btn.ghost{background:var(--white); color:var(--ink); border-color:rgba(28,26,22,.16);}
+  .btn.ghost:hover{border-color:var(--gold); color:var(--gold);}
+
+  /* VYBERO featured calculator */
+  .vybero{margin-top:30px; border-radius:26px; padding:26px 26px 22px; position:relative; overflow:hidden;
+    background:linear-gradient(160deg, rgba(249,243,228,.95), rgba(255,255,255,.9)); border:1px solid rgba(196,161,90,.5);
+    box-shadow:0 26px 52px -30px rgba(150,120,50,.5);}
+  .vybero.on{border-color:var(--gold); box-shadow:0 26px 56px -26px rgba(196,161,90,.75);}
+  .vybero::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:linear-gradient(180deg,var(--gold-soft),var(--gold));}
+  .vy-top{display:flex; justify-content:space-between; align-items:flex-start; gap:18px; flex-wrap:wrap;}
+  .vy-top h2{font-family:"Fraunces",serif; font-weight:600; font-size:26px; margin:8px 0 8px; color:var(--ink);}
+  .vy-top h2 .accent{color:var(--gold); font-style:italic;}
+  .vy-top p{color:var(--ink-700); font-size:14px; line-height:1.6; max-width:620px; margin:0;}
+  .vy-inc{display:inline-flex; align-items:center; gap:10px; cursor:pointer; background:var(--white); border:1px solid rgba(196,161,90,.45); border-radius:999px; padding:9px 16px; font-size:13px; font-weight:500; color:var(--ink); white-space:nowrap;}
+  .vy-inc .chk{width:22px; height:22px; border-radius:6px; border:1.6px solid var(--ink-400); background:var(--off-white); position:relative; transition:.16s;}
+  .vybero.on .vy-inc .chk{background:var(--gold); border-color:var(--gold);}
+  .vy-inc .chk::after{content:"\2713"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; opacity:0; transform:scale(.6); transition:.16s;}
+  .vybero.on .vy-inc .chk::after{opacity:1; transform:scale(1);}
+
+  .vy-calc{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:20px;}
+  @media(max-width:720px){ .vy-calc{grid-template-columns:1fr;} }
+  .vy-inputs{background:var(--white); border:1px solid rgba(196,161,90,.3); border-radius:16px; padding:18px 18px 16px;}
+  .vy-field{margin-bottom:14px;}
+  .vy-field label{display:block; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-400); margin-bottom:6px;}
+  .vy-field input{width:100%; font-family:"Fraunces",serif; font-size:22px; font-weight:600; color:var(--ink); padding:10px 14px; border:1px solid rgba(196,161,90,.45); border-radius:12px; background:var(--off-white); outline:none;}
+  .vy-field input:focus{border-color:var(--gold); box-shadow:0 0 0 3px rgba(196,161,90,.16);}
+  .vy-presets{display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;}
+  .vy-chip{font-size:12px; padding:6px 12px; border-radius:999px; border:1px solid rgba(28,26,22,.16); background:var(--off-white); color:var(--ink-700); cursor:pointer; transition:.15s;}
+  .vy-chip:hover{border-color:var(--gold); color:var(--gold);}
+  .vy-out{background:linear-gradient(180deg, rgba(212,184,120,.2), rgba(255,255,255,.85)); border:1px solid rgba(196,161,90,.45); border-radius:16px; padding:18px 20px; display:flex; flex-direction:column; justify-content:center;}
+  .vy-line{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; font-size:13.5px; color:var(--ink-700); border-bottom:1px dashed rgba(196,161,90,.35);}
+  .vy-line span.v{font-family:"Fraunces",serif; font-weight:600; color:var(--ink); font-size:15px;}
+  .vy-big{margin-top:12px;}
+  .vy-big .l{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-400);}
+  .vy-big .pk{font-family:"Fraunces",serif; font-weight:600; font-size:30px; color:var(--ink); line-height:1.1; margin-top:3px;}
+  .vy-big .us{font-size:13px; color:var(--gold); font-weight:500; margin-top:1px;}
+  .vy-note{font-size:11.5px; color:var(--ink-400); line-height:1.6; margin-top:14px;}
+  .vy-note b{color:var(--ink-700); font-weight:600;}
+
+  .cat{margin-top:40px;}
+  .cat-head{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding:0 4px 14px; border-bottom:1px solid rgba(196,161,90,.34); margin-bottom:18px;}
+  .cat-head .ct{font-family:"Fraunces",serif; font-size:24px; font-weight:600; color:var(--ink);}
+  .cat-sub{font-size:12px; color:var(--ink-400); text-align:right; line-height:1.55;}
+  .cat-sub b{color:var(--gold); font-family:"Fraunces",serif; font-weight:600; font-size:14px;}
+
+  .grid{display:grid; gap:14px;}
+  .card{background:var(--white); border:1px solid rgba(224,205,156,.5); border-radius:var(--radius); box-shadow:var(--card-shadow); overflow:hidden; transition:.18s border-color, .18s box-shadow, .18s transform;}
+  .card:hover{transform:translateY(-1px);}
+  .card.sel{border-color:var(--gold); box-shadow:0 22px 46px -26px rgba(196,161,90,.7);}
+  .card-head{display:flex; align-items:flex-start; gap:15px; padding:18px 20px; cursor:pointer; position:relative;}
+  .chk{flex:0 0 auto; width:26px; height:26px; border-radius:8px; border:1.6px solid var(--ink-400); background:var(--off-white); position:relative; cursor:pointer; transition:.16s; margin-top:2px;}
+  .chk:hover{border-color:var(--gold);}
+  .card.sel .chk{background:var(--gold); border-color:var(--gold);}
+  .chk::after{content:"\2713"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; opacity:0; transform:scale(.6); transition:.16s;}
+  .card.sel .chk::after{opacity:1; transform:scale(1);}
+  .cmain{flex:1 1 auto; min-width:0;}
+  .ctitle{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+  .cnum{font-family:"Fraunces",serif; color:var(--gold); font-weight:600; font-size:14px;}
+  .cname{font-family:"Fraunces",serif; font-weight:600; font-size:17.5px; letter-spacing:.01em; color:var(--ink);}
+  .ctag{color:var(--ink-700); font-size:13.5px; margin-top:5px; line-height:1.5;}
+  .price{flex:0 0 auto; text-align:right; padding-left:8px; min-width:152px;}
+  .pl{display:flex; align-items:baseline; justify-content:flex-end; gap:7px;}
+  .pl .pk{font-family:"Fraunces",serif; font-weight:600; font-size:16px; color:var(--ink);}
+  .pl .us{font-size:11.5px; color:var(--ink-400);}
+  .pl .lb{font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin-left:2px;}
+  .pl.month .pk{font-size:15px;}
+  .price .sep{height:1px; background:rgba(196,161,90,.3); margin:6px 0;}
+  .chev{flex:0 0 auto; width:24px; text-align:center; color:var(--ink-400); font-size:13px; margin-top:4px; transition:.2s transform;}
+  .card.open .chev{transform:rotate(180deg); color:var(--gold);}
+  .desc{max-height:0; overflow:hidden; transition:max-height .28s ease;}
+  .desc-inner{padding:2px 20px 20px 61px; color:var(--ink-700); font-size:13.7px; line-height:1.66;}
+  .desc-inner .kw{color:var(--ink); font-weight:500;}
+  @media(max-width:620px){
+    .price{min-width:0; text-align:left; padding-left:0; width:100%; margin-top:12px;}
+    .pl{justify-content:flex-start;}
+    .card-head{flex-wrap:wrap;}
+    .chev{position:absolute; right:16px; top:16px;}
+    .desc-inner{padding-left:20px;}
+    .cmain{flex-basis:calc(100% - 41px);}
+  }
+
+  .foot{margin-top:46px; padding:24px 26px; background:rgba(255,255,255,.66); border:1px solid rgba(196,161,90,.34); border-radius:var(--radius); color:var(--ink-700); font-size:13px; line-height:1.7; box-shadow:var(--card-shadow);}
+  .foot b{color:var(--ink);}
+  .foot .fr{display:flex; gap:30px; flex-wrap:wrap; margin-bottom:14px;}
+  .foot .fr .k{font-family:"Fraunces",serif; font-size:22px; font-weight:600; color:var(--ink);}
+  .foot .fr .k .u{font-size:13px; color:var(--gold); font-family:"Jost",sans-serif;}
+  .foot .fr .kl{font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-400); margin-bottom:4px;}
+  .tiny{font-size:11.5px; color:var(--ink-400); margin-top:26px; text-align:center; line-height:1.6;}
+
+  @media print{
+    body{background:#fff;}
+    .nav{position:static; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; background:#fff;}
+    .actions,.chev{display:none;}
+    .desc{max-height:none !important;}
+    .card,.vybero{break-inside:avoid; box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-inner">
+    <div class="brand">
+      <span class="b1">CAPTURE</span>
+      <span class="b2">Clinic OS · Investment</span>
+    </div>
+    <div class="totals">
+      <div class="tbox">
+        <div class="tlbl">One-time setup</div>
+        <div class="tpkr" id="t-impl-pkr">PKR 0</div>
+        <div class="tusd" id="t-impl-usd">$0</div>
+      </div>
+      <div class="tbox accent">
+        <div class="tlbl">Monthly</div>
+        <div class="tpkr" id="t-mon-pkr">PKR 0</div>
+        <div class="tusd" id="t-mon-usd">$0 / mo</div>
+      </div>
+      <div class="tbox">
+        <div class="tlbl">First year total</div>
+        <div class="tpkr" id="t-yr-pkr">PKR 0</div>
+        <div class="tusd" id="t-yr-usd">$0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="hero">
+    <span class="eyebrow">The intimate science of beauty</span>
+    <h1 class="serif">Configure your <span class="accent">Clinic OS</span>.</h1>
+    <p>Tick the modules you want and the total updates live in the bar above. Tap any feature to read what it does. Everything is priced two ways: a <b>one-time implementation</b> fee and a <b>monthly</b> subscription. <b>VYBERO</b>, the voice agent, is billed by usage, so it has its own calculator below.</p>
+    <div class="meta-row">
+      <span class="pill"><span class="dot"></span> Founder pricing for first partner clinics</span>
+      <span class="pill"><b>1&nbsp;USD = PKR&nbsp;278</b></span>
+      <span class="pill">13 modules + VYBERO usage</span>
+    </div>
+    <div class="actions">
+      <button class="btn primary" onclick="preset('all')">Select everything</button>
+      <button class="btn ghost" onclick="preset('essentials')">Essentials bundle</button>
+      <button class="btn ghost" onclick="preset('clear')">Clear all</button>
+    </div>
+  </div>
+
+  <!-- VYBERO calculator -->
+  <div class="vybero" id="vybero">
+    <div class="vy-top">
+      <div>
+        <span class="eyebrow">Usage-based · the flagship</span>
+        <h2 class="serif">VYBERO Voice Agent <span class="accent">(Noor)</span></h2>
+        <p>Noor answers your phone 24/7 in natural English and Urdu, knows every treatment and price, checks the live diary and books real appointments, timezone-correct and clash-aware. Because it runs on premium neural voice, VYBERO is billed by usage: you pay only for the minutes it spends on answered calls. Estimate your volume and see the monthly cost.</p>
+      </div>
+      <div class="vy-inc" id="vy-inc" role="checkbox" aria-checked="false" tabindex="0">
+        <span class="chk"></span> Include in plan
+      </div>
+    </div>
+
+    <div class="vy-calc">
+      <div class="vy-inputs">
+        <div class="vy-field">
+          <label>Expected calls per month</label>
+          <input id="vy-calls" type="number" min="0" step="10" value="500" inputmode="numeric" />
+          <div class="vy-presets">
+            <span class="vy-chip" onclick="setCalls(250)">250</span>
+            <span class="vy-chip" onclick="setCalls(500)">500</span>
+            <span class="vy-chip" onclick="setCalls(1000)">1,000</span>
+            <span class="vy-chip" onclick="setCalls(2000)">2,000</span>
+          </div>
+        </div>
+        <div class="vy-field" style="margin-bottom:4px;">
+          <label>Average minutes per call</label>
+          <input id="vy-min" type="number" min="1" step="0.5" value="3" inputmode="decimal" />
+        </div>
+      </div>
+
+      <div class="vy-out">
+        <div class="vy-line"><span>Rate per minute</span><span class="v" id="vy-rate">PKR 50</span></div>
+        <div class="vy-line"><span>Per call (<span id="vy-mpc">3</span> min)</span><span class="v" id="vy-percall">PKR 150</span></div>
+        <div class="vy-line"><span>Minutes per month</span><span class="v" id="vy-mins">1,500</span></div>
+        <div class="vy-big">
+          <div class="l">VYBERO monthly</div>
+          <div class="pk" id="vy-month-pkr">PKR 75,000</div>
+          <div class="us" id="vy-month-usd">$270 / mo</div>
+        </div>
+        <div class="vy-line" style="border:none; margin-top:10px;"><span>One-time setup</span><span class="v" id="vy-setup">PKR 70,000</span></div>
+      </div>
+    </div>
+    <div class="vy-note">Billed on <b>answered-call minutes</b> at PKR 50 per minute (premium neural voice, English and Urdu). Setup covers number provisioning, knowledge-base training on your treatments and prices, and calendar connection. Estimate only; actual monthly follows real usage.</div>
+  </div>
+
+  <div id="cats"></div>
+
+  <div class="foot">
+    <div class="fr">
+      <div>
+        <div class="kl">One-time setup</div>
+        <div class="k" id="f-impl">PKR 0 <span class="u" id="f-impl-u">· $0</span></div>
+      </div>
+      <div>
+        <div class="kl">Monthly subscription</div>
+        <div class="k" id="f-mon">PKR 0 <span class="u" id="f-mon-u">· $0/mo</span></div>
+      </div>
+      <div>
+        <div class="kl">Year one (setup + 12 mo)</div>
+        <div class="k" id="f-yr">PKR 0 <span class="u" id="f-yr-u">· $0</span></div>
+      </div>
+      <div>
+        <div class="kl">Selected</div>
+        <div class="k"><span id="f-count">0</span> <span class="u">/ 13 + VYBERO</span></div>
+      </div>
+    </div>
+    <div><b>Implementation</b> is billed once at onboarding and covers setup, data migration, branding and training. <b>Monthly</b> covers hosting, AI usage, updates and support. <b>VYBERO</b> is metered by answered-call minutes. Modules can be added or removed later, and pricing scales with what you use. Prices exclude applicable sales tax.</div>
+  </div>
+
+  <div class="tiny">CAPTURE · Clinic OS configuration and pricing sheet. Prepared by TechGIS. Indicative founder pricing for first partner clinics; final quote confirmed at onboarding.</div>
+</div>
+
+<script>
+const RATE = 278;
+const VY_RATE_PKR = 50;   // client rate per minute
+const VY_SETUP = 70000;   // one-time
+const VY = { on:false, calls:500, mpc:3 };
+
+const DATA = [
+  {id:1, cat:'show', name:'Stryder AI Image, the Before/After Studio', tag:'Photoreal before/after on the patient’s own face. The moment that closes the sale.',
+   impl:85000, mon:15000,
+   desc:'The patient sits in a consult and sees their <span class="kw">own face</span>, not a stock photo, with the treatment result rendered photorealistically. Same lighting, same framing, same person: it reads like a genuine clinical after-photo, not an AI fantasy. Every CAPTURE signature treatment (Exomere Face Contour, MitoRedLight Glow, the full six) plus 25+ standard procedures comes with <span class="kw">medical sliders</span> for jawline definition, lip volume and skin texture, and a live 3D preview that moves as the doctor drags. The rendered image downloads with the medico-legal disclaimer baked in. This is the close-the-sale moment: “this is you, after.”'},
+  {id:2, cat:'show', name:'Call intelligence', tag:'Every call recorded, transcribed, and mined for insight.',
+   impl:35000, mon:8000,
+   desc:'The Analytics dashboard shows the truth: real call volume, booking conversion, average call length and busiest hours. It <span class="kw">mines what patients actually ask about</span>, such as “Face Contour 25%, Pricing 42%”, and surfaces their questions verbatim in Urdu and English. Click any call to listen to the recording and read the full transcript. It syncs itself daily. This is market research the clinic generates just by answering the phone.'},
+  {id:3, cat:'show', name:'The Facial Aesthetic Assessment', tag:'A letterhead-grade facial harmony report from one photo.',
+   impl:40000, mon:7000,
+   desc:'One front photo produces a <span class="kw">letterhead-grade report</span>: a facial harmony index, proportional analysis of every region measured against classical aesthetic references, and an AI skin assessment written in a kind, strengths-first clinical tone that is never diagnostic and never unkind. Each finding gets its own numbered evidence tile cropped from the photo. The doctor can edit any line before it prints. Patients leave the consult holding something beautiful with their name on it.'},
+  {id:4, cat:'show', name:'MARK-VU on the record', tag:'Multi-spectral skin scans with change-over-time deltas.',
+   impl:38000, mon:5500,
+   desc:'Every multi-spectral skin scan (pigmentation, pores, wrinkles, sebum, UV) lives on the patient profile and flows onto the assessment report with <span class="kw">change-since-last-visit deltas</span>. The retention pitch writes itself: “your pigmentation score improved 11 points, here is the chart.”'},
+
+  {id:5, cat:'rev', name:'Point of Sale', tag:'Front-desk billing with branded A4 invoices.',
+   impl:40000, mon:5000,
+   desc:'Search a patient by name or phone (or bill a walk-in), tap today’s sessions to close a visit out in one touch, add treatments, home-care products and regimens, apply a Capture Circle code and/or a flat discount, take cash (with change calculation) or card, and <span class="kw">print a branded A4 invoice</span>. Every sale is stored against the patient, whose profile shows full billing history and lifetime spend.'},
+  {id:6, cat:'rev', name:'Reviews &amp; Capture Circle', tag:'Visit, review, reward, return. Fully closed.',
+   impl:25000, mon:4000,
+   desc:'After payment, one tap sends a personalized <span class="kw">review link over WhatsApp</span>. The review earns the patient a Capture Circle reward code, and the code redeems at the POS on their next visit. Reviews feed a monitoring dashboard. Visit, review, reward, return: the loop is fully closed.'},
+  {id:7, cat:'rev', name:'Consultation workflow', tag:'Brief to signed report, guided end to end.',
+   impl:42000, mon:6000,
+   desc:'A guided flow the doctor never has to think about: <span class="kw">Brief, 3D Canvas, AI Visualize, Plan, Report</span>. Plans generate from treatment templates with session schedules, MARK-VU rescan milestones, home-care and aftercare, plus dose quantification: slider positions translate to estimated filler millilitres or a recommended course length with pricing. Consent pack included.'},
+
+  {id:8, cat:'found', name:'Patients, the system of record', tag:'Full clinical profiles, timeline, consents, and billing.',
+   impl:32000, mon:4000,
+   desc:'Patients are the <span class="kw">system of record</span>: full profiles with clinical flags (allergies, Fitzpatrick type, contraindications), photo timeline, consents, consultations, plans and billing, with advanced filtering by source, MARK-VU status, open consults and marketing consent.'},
+  {id:9, cat:'found', name:'Calendar &amp; availability', tag:'One shared diary for VYBERO and the front desk.',
+   impl:16000, mon:2500,
+   desc:'The bookable grid comes from clinic hours in Settings. <span class="kw">VYBERO and the front desk book into the same diary</span>, and voice bookings carry source attribution.'},
+  {id:10, cat:'found', name:'Booth link', tag:'Entrance self-registration onto the front-desk screen.',
+   impl:16000, mon:2000,
+   desc:'A patient registers on the booth phone at the entrance and <span class="kw">appears on the front-desk screen seconds later</span>, flagged NEW.'},
+  {id:11, cat:'found', name:'Roles &amp; access', tag:'Per-role workspaces and admin-only controls.',
+   impl:14000, mon:2000,
+   desc:'Medical Director, Operations, Front Desk, Creative and Marketing each see their own workspace, with <span class="kw">admin-only controls</span> for staff, pricing and analytics. Password resets and staff deactivation are built in.'},
+  {id:12, cat:'found', name:'Owner controls', tag:'Live control of prices, hours, branding, and AI.',
+   impl:14000, mon:2000,
+   desc:'Settings drives everything live: <span class="kw">treatment prices</span> (POS, invoices and quotes update instantly), sales tax, clinic hours, branding, AI on/off, and demo reset. AI usage and estimated spend are tracked on the Analytics page.'},
+  {id:13, cat:'found', name:'The finish: Noir and Champagne, white-labeled', tag:'Signature design across every screen and printed artifact.',
+   impl:24000, mon:2500,
+   desc:'<span class="kw">Noir and Champagne</span> design language across every screen and every printed artifact (invoice, assessment, report), phone-viewport clean and white-labeled: the client sees Capture Clinic OS and Stryder AI Image, never the vendors underneath.'},
+];
+
+const CATS = [
+  {key:'show', name:'The Showstoppers', sub:'What wins the room and closes the sale'},
+  {key:'rev', name:'The Revenue Engine', sub:'Turns the visit into money and repeat visits'},
+  {key:'found', name:'The Foundation', sub:'The platform everything else runs on'},
+];
+
+const selected = new Set();
+const ESSENTIALS = [5,6,8,9,11,12,13];
+
+const money = n => Math.round(n).toLocaleString('en-US');
+const usd = n => '$' + money(n/RATE);
+const usd2 = n => '$' + (n/RATE).toFixed(2);
+
+function render(){
+  const root = document.getElementById('cats');
+  root.innerHTML = '';
+  CATS.forEach(c=>{
+    const items = DATA.filter(d=>d.cat===c.key);
+    const sec = document.createElement('div');
+    sec.className='cat';
+    sec.innerHTML =
+      '<div class="cat-head"><div class="ct">'+c.name+'</div>'+
+      '<div class="cat-sub">'+c.sub+'<br><b id="sub-'+c.key+'">PKR 0 / mo</b></div></div>'+
+      '<div class="grid" id="grid-'+c.key+'"></div>';
+    root.appendChild(sec);
+    const grid = sec.querySelector('#grid-'+c.key);
+    items.forEach(d=>{
+      const card = document.createElement('div');
+      card.className='card'; card.id='card-'+d.id;
+      card.innerHTML =
+        '<div class="card-head">'+
+          '<div class="chk" data-check="'+d.id+'" role="checkbox" aria-checked="false" tabindex="0"></div>'+
+          '<div class="cmain" data-exp="'+d.id+'">'+
+            '<div class="ctitle"><span class="cnum">'+String(d.id).padStart(2,'0')+'</span><span class="cname">'+d.name+'</span></div>'+
+            '<div class="ctag">'+d.tag+'</div></div>'+
+          '<div class="price" data-exp="'+d.id+'">'+
+            '<div class="pl"><span class="pk">PKR '+money(d.impl)+'</span><span class="us">'+usd(d.impl)+'</span><span class="lb">setup</span></div>'+
+            '<div class="sep"></div>'+
+            '<div class="pl month"><span class="pk">PKR '+money(d.mon)+'</span><span class="us">'+usd(d.mon)+'</span><span class="lb">/mo</span></div>'+
+          '</div>'+
+          '<div class="chev" data-exp="'+d.id+'">▾</div>'+
+        '</div>'+
+        '<div class="desc" id="desc-'+d.id+'"><div class="desc-inner">'+d.desc+'</div></div>';
+      grid.appendChild(card);
+    });
+  });
+  document.querySelectorAll('[data-check]').forEach(el=>{
+    el.addEventListener('click', e=>{ e.stopPropagation(); toggle(+el.dataset.check); });
+    el.addEventListener('keydown', e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(+el.dataset.check);} });
+  });
+  document.querySelectorAll('[data-exp]').forEach(el=> el.addEventListener('click', ()=> expand(+el.dataset.exp)));
+  // VYBERO events
+  const inc = document.getElementById('vy-inc');
+  inc.addEventListener('click', toggleVY);
+  inc.addEventListener('keydown', e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggleVY(); }});
+  document.getElementById('vy-calls').addEventListener('input', readVY);
+  document.getElementById('vy-min').addEventListener('input', readVY);
+  recomputeVY();
+  recompute();
+}
+
+function toggle(id){
+  if(selected.has(id)) selected.delete(id); else selected.add(id);
+  const card = document.getElementById('card-'+id);
+  card.classList.toggle('sel', selected.has(id));
+  card.querySelector('.chk').setAttribute('aria-checked', selected.has(id));
+  recompute();
+}
+function expand(id){
+  const card = document.getElementById('card-'+id);
+  const dv = document.getElementById('desc-'+id);
+  const open = card.classList.toggle('open');
+  dv.style.maxHeight = open ? (dv.firstElementChild.offsetHeight + 6) + 'px' : '0';
+}
+function preset(kind){
+  selected.clear();
+  if(kind==='all'){ DATA.forEach(d=>selected.add(d.id)); VY.on=true; }
+  if(kind==='essentials'){ ESSENTIALS.forEach(id=>selected.add(id)); VY.on=false; }
+  if(kind==='clear'){ VY.on=false; }
+  DATA.forEach(d=>{ const card=document.getElementById('card-'+d.id); const on=selected.has(d.id); card.classList.toggle('sel',on); card.querySelector('.chk').setAttribute('aria-checked',on); });
+  syncVY(); recompute();
+}
+function setCalls(n){ document.getElementById('vy-calls').value = n; readVY(); }
+function toggleVY(){ VY.on=!VY.on; syncVY(); recompute(); }
+function syncVY(){
+  const box=document.getElementById('vybero');
+  box.classList.toggle('on', VY.on);
+  document.getElementById('vy-inc').setAttribute('aria-checked', VY.on);
+}
+function readVY(){
+  VY.calls = Math.max(0, parseFloat(document.getElementById('vy-calls').value)||0);
+  VY.mpc = Math.max(0, parseFloat(document.getElementById('vy-min').value)||0);
+  recomputeVY(); recompute();
+}
+function vyMonthly(){ return VY.calls * VY.mpc * VY_RATE_PKR; }
+function recomputeVY(){
+  const perCall = VY.mpc * VY_RATE_PKR;
+  const mins = VY.calls * VY.mpc;
+  const monthly = vyMonthly();
+  set('vy-rate','PKR '+VY_RATE_PKR+'  ('+usd2(VY_RATE_PKR)+')');
+  set('vy-mpc', (Number.isInteger(VY.mpc)?VY.mpc:VY.mpc.toFixed(1)));
+  set('vy-percall','PKR '+money(perCall)+'  ('+usd2(perCall)+')');
+  set('vy-mins', money(mins));
+  set('vy-month-pkr','PKR '+money(monthly));
+  set('vy-month-usd', usd(monthly)+' / mo');
+  set('vy-setup','PKR '+money(VY_SETUP)+'  ('+usd(VY_SETUP)+')');
+}
+function recompute(){
+  let impl=0, mon=0;
+  const cM={show:0,rev:0,found:0};
+  DATA.forEach(d=>{ if(selected.has(d.id)){ impl+=d.impl; mon+=d.mon; cM[d.cat]+=d.mon; }});
+  let count = selected.size;
+  if(VY.on){ impl += VY_SETUP; mon += vyMonthly(); count += 1; }
+  const yr = impl + mon*12;
+  set('t-impl-pkr','PKR '+money(impl)); set('t-impl-usd', usd(impl));
+  set('t-mon-pkr','PKR '+money(mon)); set('t-mon-usd', usd(mon)+' / mo');
+  set('t-yr-pkr','PKR '+money(yr)); set('t-yr-usd', usd(yr));
+  set('f-impl','PKR '+money(impl)); set('f-impl-u','· '+usd(impl));
+  set('f-mon','PKR '+money(mon)); set('f-mon-u','· '+usd(mon)+'/mo');
+  set('f-yr','PKR '+money(yr)); set('f-yr-u','· '+usd(yr));
+  set('f-count', count);
+  CATS.forEach(c=> set('sub-'+c.key, 'PKR '+money(cM[c.key])+' / mo'));
+}
+function set(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
+
+render();
+</script>
+</body>
+</html>
