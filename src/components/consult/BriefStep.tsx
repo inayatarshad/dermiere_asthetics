@@ -7,9 +7,10 @@
  * plan template.
  */
 
-import { useState } from "react";
-import { ArrowRight, HelpCircle, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowRight, HelpCircle, Sparkles, Camera } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useAssetUrl } from "@/lib/hooks";
 import { PROCEDURE_CATEGORIES, TEMPLATES, getTemplate } from "@/lib/templates";
 import {
   FACE_REGIONS,
@@ -29,6 +30,24 @@ export function BriefStep({
 }) {
   const updateBrief = useStore((s) => s.updateBrief);
   const [brief, setBrief] = useState<Brief>(consultation.brief);
+
+  // Front photo reference (owner 2026-07-24): show the patient's face right
+  // in the Areas-of-concern panel so procedures are assigned looking at the
+  // actual face, not blind. Same lookup the Visualize step uses.
+  const patient = useStore((s) =>
+    s.patients.find((p) => p.id === consultation.patient_id)
+  );
+  const assets = useStore((s) => s.assets);
+  const frontPhoto = useMemo(() => {
+    const all = assets
+      .filter(
+        (a) =>
+          a.patient_id === consultation.patient_id && a.kind === "photo_front"
+      )
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    return all.find((a) => a.consultation_id === consultation.id) ?? all[0];
+  }, [assets, consultation.patient_id, consultation.id]);
+  const frontUrl = useAssetUrl(frontPhoto);
 
   const save = (next: Brief) => {
     setBrief(next);
@@ -212,7 +231,36 @@ export function BriefStep({
       <div className="space-y-4">
         <GlassCard className="p-6">
           <h2 className="h2 text-ink-900">Areas of concern</h2>
-          <p className="caption mt-0.5 mb-3">Tap the diagram or the chips.</p>
+          <p className="caption mt-0.5 mb-3">
+            {frontPhoto
+              ? "The patient's front photo, for reference while you assign procedures."
+              : "Tap the diagram or the chips."}
+          </p>
+          {/* the actual face — so procedures are chosen on sight, not blind */}
+          {frontUrl ? (
+            <figure className="mb-4 relative rounded-2xl overflow-hidden border border-[rgba(196,161,90,0.4)] shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={frontUrl}
+                alt={`${patient?.name ?? "Patient"} front photo`}
+                className="w-full h-60 object-cover object-[center_22%]"
+                draggable={false}
+              />
+              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-3 py-2">
+                <span className="text-[11px] font-medium text-white/95">
+                  {patient?.name ?? "Patient"} · front photo
+                </span>
+              </figcaption>
+            </figure>
+          ) : (
+            <div className="mb-4 rounded-2xl border border-dashed border-[rgba(28,26,22,0.16)] h-40 flex flex-col items-center justify-center text-center gap-2 px-4">
+              <Camera size={20} className="text-ink-400" />
+              <p className="caption max-w-[26ch]">
+                No front photo on record yet — capture it in the 3D Canvas
+                step and it appears here.
+              </p>
+            </div>
+          )}
           <FaceDiagram selected={brief.concerns} onToggle={toggleConcern} />
           <div className="field-label mt-4">Face</div>
           <div className="flex gap-1.5 flex-wrap">
