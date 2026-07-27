@@ -243,7 +243,7 @@ export function BriefStep({
               <img
                 src={frontUrl}
                 alt={`${patient?.name ?? "Patient"} front photo`}
-                className="w-full h-60 object-cover object-[center_22%]"
+                className="w-full aspect-[4/5] object-cover object-[center_28%]"
                 draggable={false}
               />
               <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-3 py-2">
