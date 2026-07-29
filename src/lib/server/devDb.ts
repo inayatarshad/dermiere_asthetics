@@ -41,6 +41,14 @@ interface DevData {
   reviews: { id: string; clinic_id: string; created_at: string; payload: unknown }[];
   /** `${clinicId}|${month}` -> counters */
   usage: Record<string, UsageRow>;
+  /** CRM table -> rows. Mirrors crm_* in Postgres, same payload shape. */
+  crm: Record<string, CrmDevRow[]>;
+}
+
+export interface CrmDevRow {
+  id: string;
+  clinic_id: string;
+  payload: unknown;
 }
 
 function empty(): DevData {
@@ -56,6 +64,7 @@ function empty(): DevData {
     reviewInvites: [],
     reviews: [],
     usage: {},
+    crm: {},
   };
 }
 
@@ -254,6 +263,17 @@ export function upsertAppointment(clinicId: string, id: string, startAt: string,
   save();
 }
 
+export function deleteAppointment(clinicId: string, id: string): void {
+  const d = load();
+  const i = d.appointments.findIndex(
+    (a) => a.clinic_id === clinicId && a.id === id
+  );
+  if (i !== -1) {
+    d.appointments.splice(i, 1);
+    save();
+  }
+}
+
 export function listAppointments<T>(clinicId: string): T[] {
   return load()
     .appointments.filter((a) => a.clinic_id === clinicId)
@@ -418,4 +438,52 @@ export function incrUsage(clinicId: string, month: string, kind: "generations" |
   d.usage[key] = row;
   save();
   return { ...row };
+}
+
+// =====================================================================
+// CRM — generic clinic-scoped collections
+//
+// The Postgres side keeps hot columns alongside the jsonb payload for its
+// indexes; here the payload IS the row, and crmStore does the same filtering
+// in TypeScript. One behaviour, two backends.
+// =====================================================================
+
+export function crmList<T>(clinicId: string, table: string): T[] {
+  const d = load();
+  return (d.crm[table] ?? [])
+    .filter((r) => r.clinic_id === clinicId)
+    .map((r) => r.payload as T);
+}
+
+export function crmGet<T>(clinicId: string, table: string, id: string): T | null {
+  const d = load();
+  const row = (d.crm[table] ?? []).find(
+    (r) => r.clinic_id === clinicId && r.id === id
+  );
+  return row ? (row.payload as T) : null;
+}
+
+export function crmUpsert(
+  clinicId: string,
+  table: string,
+  id: string,
+  payload: unknown
+): void {
+  const d = load();
+  const rows = (d.crm[table] ??= []);
+  const existing = rows.find((r) => r.clinic_id === clinicId && r.id === id);
+  if (existing) existing.payload = payload;
+  else rows.push({ id, clinic_id: clinicId, payload });
+  save();
+}
+
+export function crmDelete(clinicId: string, table: string, id: string): void {
+  const d = load();
+  const rows = d.crm[table];
+  if (!rows) return;
+  const i = rows.findIndex((r) => r.clinic_id === clinicId && r.id === id);
+  if (i !== -1) {
+    rows.splice(i, 1);
+    save();
+  }
 }

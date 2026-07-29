@@ -22,6 +22,7 @@ import type {
   User,
   Visualization,
   VyberoCall,
+  Workspace,
 } from "@/lib/types";
 import {
   pgListRecords,
@@ -37,7 +38,16 @@ export function currentMonth(): string {
 }
 
 export interface BootstrapPayload {
-  user: { id: string; name: string; email: string; role: string; title?: string; clinic_id: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    title?: string;
+    clinic_id: string;
+    /** Which product surface this login sees. */
+    workspace: Workspace;
+  };
   clinic: { id: string; name: string; city: string; branding: Record<string, string | undefined> };
   users: User[];
   clinicHours: ClinicHours;
@@ -93,7 +103,9 @@ export async function buildBootstrap(
     vyberoCalls,
     usage,
   ] = await Promise.all([
-    pgListUsers<{ name?: string; title?: string }>(clinicId),
+    pgListUsers<{ name?: string; title?: string; workspace?: Workspace }>(
+      clinicId
+    ),
     pgListRecords<Patient>(clinicId, "patients"),
     pgListRecords<Consent>(clinicId, "consents"),
     pgListRecords<Asset>(clinicId, "assets"),
@@ -119,6 +131,7 @@ export async function buildBootstrap(
     password: "",
     title: r.payload?.title,
     active: r.active,
+    workspace: r.payload?.workspace === "crm" ? "crm" : "clinic",
   }));
 
   const me = users.find((u) => u.id === userId);
@@ -135,6 +148,7 @@ export async function buildBootstrap(
       role: me.role,
       title: me.title,
       clinic_id: clinicId,
+      workspace: me.workspace ?? "clinic",
     },
     clinic: {
       id: config.id,

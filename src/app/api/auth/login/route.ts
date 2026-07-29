@@ -44,6 +44,10 @@ export async function POST(req: NextRequest) {
       uid: result.user.id,
       role: result.user.role,
       email: result.user.email,
+      // Decides which product surface this login lands in; the middleware
+      // and the navigation both read it from the signed token, never from
+      // anything the client can set.
+      ws: result.user.workspace,
     });
     return res;
   } catch (err) {

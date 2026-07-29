@@ -351,6 +351,48 @@ select.input {
   padding-right: 2.5rem;
 }
 
+/**
+ * Compact input for filter rows.
+ *
+ * This sets its own padding instead of being shrunk with height/padding
+ * utilities: `.input`'s `padding` shorthand has the same specificity as a
+ * utility class and wins on source order, so a forced short height clipped
+ * the text inside the box. Sizing the control here keeps the text centred.
+ */
+.input.input-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 10px;
+}
+select.input.input-sm {
+  padding-right: 2.25rem;
+  background-position: right 0.65rem center;
+}
+
+/**
+ * Room for a leading icon inside the field.
+ *
+ * This carries the same two-class weight as the size variants above and is
+ * declared after them, so it reliably wins the left padding. A single
+ * utility class cannot: the variants set `padding` as a shorthand, which
+ * would otherwise pull the text back under the icon.
+ */
+.input.input-icon {
+  padding-left: 2rem;
+}
+
+
+/* Smaller still, for controls that sit inside a card rather than a filter row. */
+.input.input-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 8px;
+}
+select.input.input-xs {
+  padding-right: 1.75rem;
+  background-position: right 0.5rem center;
+}
+
 .field-label {
   display: block;
   font-size: 0.8125rem;

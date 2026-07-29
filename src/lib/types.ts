@@ -76,6 +76,15 @@ export interface ClinicConfig {
   };
 }
 
+/**
+ * Which product surface a user works in.
+ *
+ * Independent of `role`, which still decides every permission. A "crm" user
+ * is an ordinary member of the clinic — same auth, same database — who sees
+ * the CRM workspace instead of the Clinic OS one.
+ */
+export type Workspace = "clinic" | "crm";
+
 export interface User {
   id: string;
   clinic_id: string;
@@ -86,6 +95,8 @@ export interface User {
   password: string;
   title?: string; // e.g. "Consultant Plastic Surgeon"
   active: boolean;
+  /** Defaults to "clinic" when absent. */
+  workspace?: Workspace;
 }
 
 export type PatientSource =

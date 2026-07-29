@@ -289,24 +289,42 @@ export function StatusChip({ status }: { status: string }) {
  * stacked over a champagne-gold "Clinic OS" line — two-line lockup so the
  * operational product reads separately from the retail brand.
  */
-export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const dims =
-    size === "lg" ? "h-8" : size === "sm" ? "h-[18px]" : "h-[22px]";
+/**
+ * The brand lockup: clinic wordmark over the product line.
+ *
+ * `workspace` swaps the product line so a CRM account is told plainly which
+ * workspace it is in, without needing a second navigation bar to say so.
+ */
+export function Logo({
+  size = "md",
+  workspace = "clinic",
+}: {
+  size?: "sm" | "md" | "lg";
+  workspace?: "clinic" | "crm";
+}) {
+  const word =
+    size === "lg"
+      ? "text-[26px]"
+      : size === "sm"
+      ? "text-[15px]"
+      : "text-[19px]";
   const tag =
-    size === "lg" ? "text-[11px] mt-1.5" : size === "sm" ? "text-[7.5px] mt-[3px]" : "text-[9px] mt-1";
+    size === "lg"
+      ? "text-[11px] mt-1.5"
+      : size === "sm"
+      ? "text-[7.5px] mt-[3px]"
+      : "text-[9px] mt-1";
   return (
     <span className="inline-flex flex-col items-start select-none leading-none">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brand/capture-logo-black.png"
-        alt="Capture"
-        className={`${dims} w-auto shrink-0`}
-        draggable={false}
-      />
+      <span
+        className={`${word} font-light uppercase tracking-[0.24em] text-ink-900 whitespace-nowrap`}
+      >
+        Dermiere
+      </span>
       <span
         className={`${tag} font-medium uppercase tracking-[0.3em] text-[color:var(--mint-500)]`}
       >
-        Clinic&nbsp;OS
+        {workspace === "crm" ? "CRM" : <>Clinic&nbsp;OS</>}
       </span>
     </span>
   );

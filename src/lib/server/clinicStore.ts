@@ -7,7 +7,7 @@
  * box. Real clinics are provisioned clean (one admin, no sample data).
  */
 
-import type { ClinicConfig, Role } from "@/lib/types";
+import type { ClinicConfig, Role, Workspace } from "@/lib/types";
 import { DEFAULT_CLINIC_HOURS } from "@/lib/types";
 import { hashPassword, verifyPassword } from "./auth";
 import {
@@ -126,9 +126,13 @@ export interface StaffUser {
   role: Role;
   title?: string;
   active: boolean;
+  workspace: Workspace;
 }
 
-function toStaff(row: UserRow<{ name?: string; title?: string }>): StaffUser {
+/** The stored payload shape for a user row. */
+type StaffPayload = { name?: string; title?: string; workspace?: Workspace };
+
+function toStaff(row: UserRow<StaffPayload>): StaffUser {
   return {
     id: row.id,
     clinic_id: row.clinic_id,
@@ -137,21 +141,31 @@ function toStaff(row: UserRow<{ name?: string; title?: string }>): StaffUser {
     role: row.role as Role,
     title: row.payload?.title,
     active: row.active,
+    // Absent means an ordinary Clinic OS login — the safe default.
+    workspace: row.payload?.workspace === "crm" ? "crm" : "clinic",
   };
 }
 
 export async function listStaff(clinicId: string): Promise<StaffUser[]> {
-  const rows = await pgListUsers<{ name?: string; title?: string }>(clinicId);
+  const rows = await pgListUsers<StaffPayload>(clinicId);
   return rows.map(toStaff);
 }
 
 export async function addStaff(
   clinicId: string,
-  data: { name: string; email: string; role: Role; title?: string; password?: string }
+  data: {
+    name: string;
+    email: string;
+    role: Role;
+    title?: string;
+    password?: string;
+    workspace?: Workspace;
+  }
 ): Promise<StaffUser> {
   const existing = await pgGetUserByEmail(data.email);
   if (existing) throw new Error("A user with that email already exists.");
   const id = uid();
+  const workspace: Workspace = data.workspace === "crm" ? "crm" : "clinic";
   await pgUpsertUser(
     id,
     clinicId,
@@ -159,7 +173,7 @@ export async function addStaff(
     data.role,
     hashPassword(data.password || DEMO_PASSWORD),
     true,
-    { name: data.name, title: data.title }
+    { name: data.name, title: data.title, workspace }
   );
   return {
     id,
@@ -169,6 +183,7 @@ export async function addStaff(
     role: data.role,
     title: data.title,
     active: true,
+    workspace,
   };
 }
 
@@ -186,7 +201,7 @@ export async function setStaffPassword(
   id: string,
   password: string
 ): Promise<void> {
-  const rows = await pgListUsers<{ name?: string; title?: string }>(clinicId);
+  const rows = await pgListUsers<StaffPayload>(clinicId);
   const row = rows.find((r) => r.id === id);
   if (!row) throw new Error("User not found in this clinic.");
   await pgUpsertUser(
@@ -213,7 +228,7 @@ export async function authenticate(
   email: string,
   password: string
 ): Promise<AuthResult | null> {
-  const row = await pgGetUserByEmail<{ name?: string; title?: string }>(email);
+  const row = await pgGetUserByEmail<StaffPayload>(email);
   if (!row || !row.active) return null;
   if (!verifyPassword(password, row.password_hash)) return null;
   const config = await getClinicConfig(row.clinic_id);

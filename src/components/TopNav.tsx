@@ -16,8 +16,11 @@ import {
   ShoppingBag,
   MessageSquareHeart,
   AudioLines,
+  Contact,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
+import { crmCan } from "@/lib/crm/permissions";
+import { CRM_NAV, isCrmNavActive } from "@/lib/crm/nav";
 import { ROLE_LABELS } from "@/lib/format";
 import { Logo, Modal, Spinner } from "./ui";
 
@@ -39,7 +42,6 @@ export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const user = useSessionUser();
-  const clinic = useStore((s) => s.clinic);
   const logout = useStore((s) => s.logout);
   const boothLink = useStore((s) => s.boothLink);
   const setBoothLink = useStore((s) => s.setBoothLink);
@@ -80,39 +82,61 @@ export function TopNav() {
     }
   };
 
-  const links = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/patients", label: "Patients", icon: Users },
-    { href: "/calendar", label: "Calendar", icon: CalendarDays },
-    // POS is front-of-house: front desk + admin ring up the visit
-    ...(user?.role !== "doctor"
-      ? [{ href: "/pos", label: "POS", icon: ShoppingBag }]
-      : []),
-    // Reviews monitoring: doctors + admins watch the client voice
-    ...(user?.role !== "front_desk"
-      ? [{ href: "/reviews", label: "Reviews", icon: MessageSquareHeart }]
-      : []),
-    // The voice-agent console: every role can test Noor from here
-    // (takes the slot Discovery held; /discovery stays reachable by URL)
-    { href: "/vybero", label: "VYBERO", icon: AudioLines },
-    ...(can.manageUsers(user?.role)
-      ? [
-          { href: "/analytics", label: "Analytics", icon: ChartColumn },
-          { href: "/settings", label: "Settings", icon: Settings },
-        ]
-      : []),
-  ];
+  // A CRM account gets the CRM workspace in THIS bar — there is no second
+  // navigation strip anywhere. A Clinic OS account gets the clinic items,
+  // with a single "CRM" entry into the workspace.
+  const isCrmWorkspace = user?.workspace === "crm";
+
+  const links = isCrmWorkspace
+    ? CRM_NAV.filter((item) => crmCan(user?.role, item.capability)).map(
+        ({ href, label, icon }) => ({ href, label, icon })
+      )
+    : [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/patients", label: "Patients", icon: Users },
+        // CRM: leads, follow-ups and the shared inbox. Every role that can
+        // see any part of it gets the entry.
+        ...(crmCan(user?.role, "view_crm")
+          ? [{ href: "/crm", label: "CRM", icon: Contact }]
+          : []),
+        { href: "/calendar", label: "Calendar", icon: CalendarDays },
+        // POS is front-of-house: front desk + admin ring up the visit
+        ...(user?.role !== "doctor"
+          ? [{ href: "/pos", label: "POS", icon: ShoppingBag }]
+          : []),
+        // Reviews monitoring: doctors + admins watch the client voice
+        ...(user?.role !== "front_desk"
+          ? [{ href: "/reviews", label: "Reviews", icon: MessageSquareHeart }]
+          : []),
+        // The voice-agent console: every role can test Noor from here
+        // (takes the slot Discovery held; /discovery stays reachable by URL)
+        { href: "/vybero", label: "VYBERO", icon: AudioLines },
+        ...(can.manageUsers(user?.role)
+          ? [
+              { href: "/analytics", label: "Analytics", icon: ChartColumn },
+              { href: "/settings", label: "Settings", icon: Settings },
+            ]
+          : []),
+      ];
+
+  const homeHref = isCrmWorkspace ? "/crm" : "/dashboard";
 
   return (
     <header className="sticky top-0 z-40 px-4 pt-4 no-print">
       <div className="glass-strong mx-auto max-w-7xl flex items-center gap-2 px-4 py-2.5">
-        <Link href="/dashboard" className="mr-2">
-          <Logo size="sm" />
+        <Link href={homeHref} className="mr-2">
+          <Logo size="sm" workspace={isCrmWorkspace ? "crm" : "clinic"} />
         </Link>
 
-        <nav className="flex items-center gap-1">
+        {/* Wraps onto a second line rather than scrolling: every section
+            stays reachable without a scrollbar cutting across the bar. */}
+        <nav className="flex flex-wrap items-center gap-1">
           {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
+            // In the CRM workspace "/crm" is the root, so it must match
+            // exactly rather than prefix-match every child route.
+            const active = isCrmWorkspace
+              ? isCrmNavActive(href, pathname)
+              : pathname.startsWith(href);
             return (
               <Link
                 key={href}
@@ -132,7 +156,9 @@ export function TopNav() {
 
         <div className="flex-1" />
 
-        {/* Booth link: poll the booth inbox for phone-registered patients */}
+        {/* Booth link: poll the booth inbox for phone-registered patients.
+            Clinic-floor tooling — not part of the CRM workspace. */}
+        {!isCrmWorkspace && (
         <button
           onClick={() => void toggleBooth()}
           disabled={boothChecking}
@@ -157,12 +183,8 @@ export function TopNav() {
             Booth link{boothLink ? ": ON" : ""}
           </span>
         </button>
-
-        {clinic && (
-          <span className="hidden md:inline-flex chip chip-static text-xs">
-            {clinic.name}
-          </span>
         )}
+
 
         {user && (
           <div className="flex items-center gap-2 pl-2 border-l border-white/60">

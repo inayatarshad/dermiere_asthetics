@@ -19,16 +19,16 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.PUBLIC_BASE_URL || "https://capture-clinic.vercel.app"
+    process.env.PUBLIC_BASE_URL || "https://dermiere.vercel.app"
   ),
-  title: "CAPTURE · The Intimate Science of Beauty",
+  title: "Dermiere · Clinic OS",
   description:
-    "CAPTURE Clinic OS — bookings, MARK-VU skin analysis, before/after visualization, point of sale, reviews and the Capture Circle. Advanced Korean skincare & needle-free regenerative treatments, Lahore.",
+    "Dermiere Clinic OS — patients, calendar, point of sale, reviews, and a CRM for leads, follow-ups, shared conversations and feedback. Gulberg and F-11.",
   openGraph: {
-    title: "CAPTURE · Clinic OS",
+    title: "Dermiere · Clinic OS",
     description:
-      "The intimate science of beauty. EXOMERE & MitoRedLight therapy — bookings, visualization, reviews and the Capture Circle.",
-    siteName: "CAPTURE",
+      "Skin, considered. Patients, bookings and point of sale, with a CRM for leads, follow-ups, conversations and feedback.",
+    siteName: "Dermiere",
     type: "website",
     images: [
       {
@@ -37,14 +37,14 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         type: "image/jpeg",
-        alt: "CAPTURE — The intimate science of beauty.",
+        alt: "Dermiere — skin, considered.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CAPTURE · Clinic OS",
-    description: "The intimate science of beauty.",
+    title: "Dermiere · Clinic OS",
+    description: "Skin, considered.",
     images: ["/og-card.jpg"],
   },
 };

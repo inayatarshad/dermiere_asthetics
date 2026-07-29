@@ -19,6 +19,7 @@
 
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import * as devDb from "./devDb";
+import { ensureCrmSchema } from "./crmSchema";
 
 let cachedUrl: string | null | undefined;
 
@@ -272,6 +273,9 @@ export function ensureSchema(): Promise<void> {
           `CREATE INDEX IF NOT EXISTS idx_${t}_clinic ON ${t} (clinic_id)`
         );
       }
+
+      // Same wrapped client, so the CRM tables inherit the retry behaviour.
+      await ensureCrmSchema(q as unknown as Parameters<typeof ensureCrmSchema>[0]);
     })();
     // a failed bootstrap must not poison every later request
     schemaReady = schemaReady.catch((err) => {
@@ -509,6 +513,19 @@ export async function pgUpsertAppointment(
        status = EXCLUDED.status, payload = EXCLUDED.payload
      WHERE appointments.clinic_id = $2`,
     [id, clinicId, startAt, status, S()(payload)]
+  );
+}
+
+/** Remove one appointment. Clinic-scoped, like every other write here. */
+export async function pgDeleteAppointment(
+  clinicId: string,
+  id: string
+): Promise<void> {
+  if (devDbActive()) return devDb.deleteAppointment(clinicId, id);
+  await ensureSchema();
+  await sql().query(
+    `DELETE FROM appointments WHERE clinic_id = $1 AND id = $2`,
+    [clinicId, id]
   );
 }
 

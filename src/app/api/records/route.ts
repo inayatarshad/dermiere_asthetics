@@ -17,6 +17,8 @@ import {
   pgUpsertAppointment,
   pgUpsertCall,
 } from "@/lib/server/db";
+import { ensureContactForPatient } from "@/lib/server/crmRegistry";
+import type { Patient } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -64,6 +66,20 @@ export async function POST(req: NextRequest) {
           await pgDeleteRecord(clinicId, c.table, c.id);
         } else if (c.payload) {
           await pgUpsertRecord(clinicId, c.table, c.id, c.payload);
+          // A patient registered anywhere in Clinic OS must appear in the
+          // CRM too — one list of people, not two. Best-effort: a CRM
+          // bookkeeping failure must never fail the clinical write.
+          if (c.table === "patients") {
+            try {
+              await ensureContactForPatient(
+                clinicId,
+                c.payload as unknown as Patient,
+                { actorId: session.uid }
+              );
+            } catch (err) {
+              console.error("[records] CRM link failed", err);
+            }
+          }
         }
         written++;
         continue;
