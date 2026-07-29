@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * CAPTURE brand splash (owner 2026-07-23: "a proper page when you load the
- * system — the capture logo starts closed and expands; and a small
- * loading-screen animation when you log in. Make it beautiful.")
+ * Dermiere brand splash (owner 2026-07-23: "a proper page when you load the
+ * system — the logo starts closed and expands; and a small loading-screen
+ * animation when you log in. Make it beautiful.")
  *
  * Two modes on one full-screen ivory overlay:
  *   reveal — plays once per full page load (SSR-rendered, so it also masks
@@ -73,8 +73,9 @@ export function BrandSplash() {
     >
       <div className="brand-splash-inner">
         <span className="brand-splash-mark">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/capture-logo-black.png" alt="" draggable={false} />
+          {/* Set as text, not an image: the clinic wordmark matches the Logo
+              lockup exactly and stays sharp at any size. */}
+          <span className="brand-splash-word">Dermiere</span>
           <span className="brand-splash-shine" />
         </span>
         <span className="brand-splash-tag">Clinic&nbsp;OS</span>

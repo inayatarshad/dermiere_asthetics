@@ -2277,10 +2277,22 @@ input[type="range"].mint-slider::-moz-range-track {
   display: inline-block;
   overflow: hidden;
 }
-.brand-splash-mark img {
-  height: 54px;
-  width: auto;
+.brand-splash-word {
   display: block;
+  font-size: 44px;
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink-900);
+  /* optical centering against the trailing tracking space */
+  margin-left: 0.24em;
+}
+@media (max-width: 480px) {
+  .brand-splash-word {
+    font-size: 30px;
+  }
 }
 .brand-splash-tag {
   font-size: 11px;
@@ -2307,7 +2319,7 @@ input[type="range"].mint-slider::-moz-range-track {
 }
 
 /* --- reveal: the mark opens from a closed center curtain --- */
-.brand-splash-reveal .brand-splash-mark img {
+.brand-splash-reveal .brand-splash-word {
   clip-path: inset(0 50% 0 50%);
   transform: scale(0.94);
   animation: brand-curtain 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.12s forwards;
@@ -2360,7 +2372,7 @@ input[type="range"].mint-slider::-moz-range-track {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brand-splash-reveal .brand-splash-mark img,
+  .brand-splash-reveal .brand-splash-word,
   .brand-splash-sweep .brand-splash-inner {
     animation: none;
     clip-path: none;
