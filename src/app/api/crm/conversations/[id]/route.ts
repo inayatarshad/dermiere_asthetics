@@ -5,7 +5,7 @@
  *   POST   send a reply or add an internal note
  *   PATCH  assign it, change its status
  *
- * The route never talks to a messaging provider directly — it calls the
+ * The route never talks to a messaging provider directly - it calls the
  * messaging service, which owns the provider boundary.
  */
 

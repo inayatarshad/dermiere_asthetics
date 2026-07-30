@@ -1,13 +1,13 @@
 /**
- * CAPTURE Clinic OS — data model.
+ * CAPTURE Clinic OS - data model.
  * Everything is clinic-scoped. Extends the Contour engine data model with
- * CAPTURE entities: Location, Invoice, Review, Reward, SkinAnalysis.
+ * Clinic entities: Location, Invoice, Review, Reward.
  */
 
 export type Role = "front_desk" | "doctor" | "admin";
 
 /**
- * One physical CAPTURE location — the Experience Centre or a partner
+ * One physical CAPTURE location - the Experience Centre or a partner
  * clinic. Appointments, invoices and reviews are tagged with a location so
  * calendars, billing and monitoring can be filtered per site.
  */
@@ -41,7 +41,7 @@ export interface Clinic {
 
 /**
  * The per-clinic configuration row (clinics.payload in Postgres). This is
- * the tenant's runtime config — branding, hours, which treatments are on,
+ * the tenant's runtime config - branding, hours, which treatments are on,
  * prices, voice-agent identity, AI spend caps. Provisioning writes it;
  * Settings edits it; reports and the portal read it.
  */
@@ -80,7 +80,7 @@ export interface ClinicConfig {
  * Which product surface a user works in.
  *
  * Independent of `role`, which still decides every permission. A "crm" user
- * is an ordinary member of the clinic — same auth, same database — who sees
+ * is an ordinary member of the clinic - same auth, same database - who sees
  * the CRM workspace instead of the Clinic OS one.
  */
 export type Workspace = "clinic" | "crm";
@@ -133,7 +133,7 @@ export interface Patient {
   language: Language;
   source: PatientSource;
   clinical_flags: ClinicalFlags;
-  /** Booth handoff id — set when this record travelled via the booth inbox. */
+  /** Booth handoff id - set when this record travelled via the booth inbox. */
   booth_id?: string;
   created_at: string;
 }
@@ -158,7 +158,6 @@ export type AssetKind =
   | "photo_body"
   | "ai_after"
   | "assessment"
-  | "markvu_scan"
   | "report_pdf";
 
 export interface Asset {
@@ -172,7 +171,7 @@ export interface Asset {
    * images stored in IndexedDB on the device.
    */
   storage_url: string;
-  visit_date: string; // ISO date — powers the timeline
+  visit_date: string; // ISO date - powers the timeline
   meta?: {
     procedure?: string;
     params?: Record<string, number>;
@@ -196,7 +195,12 @@ export type AppointmentStatus =
   | "cancelled"
   | "no_show";
 /** Who created the booking. "vybero" = the phone voice agent. */
-export type AppointmentSource = "front_desk" | "vybero" | "booth";
+/**
+ * Where a booking came from. Every one of these lands in the SAME
+ * appointments table and therefore on the same calendar - the front desk,
+ * the voice agent, the booth and the CRM all book into one diary.
+ */
+export type AppointmentSource = "front_desk" | "vybero" | "booth" | "crm";
 
 export interface Appointment {
   id: string;
@@ -320,7 +324,7 @@ export interface Visualization {
   created_at: string;
 }
 
-/** One slider in a procedure's AI schema — maps UI value to prompt phrases. */
+/** One slider in a procedure's AI schema - maps UI value to prompt phrases. */
 export interface SliderDef {
   key: string;
   label: string;
@@ -348,7 +352,7 @@ export interface PlanTemplateItem {
   offset_days?: number; // suggested due date offset from plan creation
 }
 
-/** A slider surfaced on the 3D canvas rail — the geometric subset of the schema. */
+/** A slider surfaced on the 3D canvas rail - the geometric subset of the schema. */
 export interface CanvasHandle {
   key: string;
   label: string;
@@ -401,7 +405,7 @@ export interface Report {
 }
 
 // ---------------------------------------------------------------------
-// Point of Sale — invoices
+// Point of Sale - invoices
 // ---------------------------------------------------------------------
 
 export type PaymentMethod = "cash" | "card";
@@ -433,7 +437,7 @@ export interface Invoice {
   discount_amount: number;
   /** redeemed Capture Circle code, if any */
   reward_code?: string;
-  /** cashier-entered flat discount (no code), in PKR — part of discount_amount */
+  /** cashier-entered flat discount (no code), in PKR - part of discount_amount */
   manual_discount?: number;
   total: number;
   payment_method: PaymentMethod;
@@ -509,45 +513,6 @@ export interface Reward {
   redeemed_at?: string;
   redeemed_invoice_id?: string;
 }
-
-// ---------------------------------------------------------------------
-// MARK-VU skin analysis (intake device integration)
-// ---------------------------------------------------------------------
-
-/** Metrics as reported by the clinic's MARK-VU scanner (0-100, higher = more concern). */
-export interface SkinMetrics {
-  pigmentation: number;
-  pores: number;
-  wrinkles: number;
-  sebum: number;
-  uv_damage: number;
-  moisture: number; // higher = better hydrated
-}
-
-export interface SkinAnalysis {
-  id: string;
-  patient_id: string;
-  taken_at: string;
-  metrics: SkinMetrics;
-  /** optional scan sheet photographed/uploaded from the MARK-VU station */
-  scan_asset_id?: string;
-  notes?: string;
-  created_at: string;
-}
-
-export const SKIN_METRIC_LABELS: Array<{
-  key: keyof SkinMetrics;
-  label: string;
-  /** true when a HIGH value is good (moisture); everything else is a concern scale */
-  positive?: boolean;
-}> = [
-  { key: "pigmentation", label: "Pigmentation" },
-  { key: "pores", label: "Pores" },
-  { key: "wrinkles", label: "Wrinkles" },
-  { key: "sebum", label: "Sebum" },
-  { key: "uv_damage", label: "UV damage" },
-  { key: "moisture", label: "Moisture", positive: true },
-];
 
 /** The standing disclaimer burned into every AI output and report. */
 export const AI_DISCLAIMER =

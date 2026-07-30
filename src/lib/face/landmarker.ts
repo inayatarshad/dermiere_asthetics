@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * MediaPipe FaceLandmarker singleton — the "fast path" 3D pipeline
+ * MediaPipe FaceLandmarker singleton - the "fast path" 3D pipeline
  * (knowledge base / 04_consultation-canvas-3d.md §1).
  *
  * Fully self-hosted: WASM runtime + model file are served from /public so
@@ -38,7 +38,7 @@ export function getFaceLandmarker(): Promise<FaceLandmarker> {
 
 /**
  * Detect 3D landmarks on an image. Returns normalized [x, y, z][] (478 points
- * — 468 mesh + 10 iris) or null when no face is found.
+ * - 468 mesh + 10 iris) or null when no face is found.
  */
 export async function detectLandmarks(
   image: HTMLImageElement | HTMLCanvasElement | ImageBitmap

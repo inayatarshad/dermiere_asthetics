@@ -1,10 +1,10 @@
 /**
- * Dose quantification — turns visualization slider settings into the
+ * Dose quantification - turns visualization slider settings into the
  * clinical quantity conversation: "move it this much" → "that is about
  * 0.8–1.0 ml of filler" or "that outcome is a 6-session course".
  *
  * Estimates are planning guidance, not prescriptions: the practitioner
- * confirms the final dose in the room. Botox is intentionally absent —
+ * confirms the final dose in the room. Botox is intentionally absent -
  * it has its own per-zone unit planner (botoxUnits.ts).
  */
 

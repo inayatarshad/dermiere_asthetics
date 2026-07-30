@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * UI primitives — the glassmorphic mint component set
+ * UI primitives - the glassmorphic mint component set
  * (knowledge base / 08_design-system.md §6).
  */
 
@@ -218,7 +218,7 @@ export function Modal({
 
   if (!open) return null;
   // Portal to <body>: position:fixed resolves against the nearest transformed
-  // ancestor, and page sections animate with fade-up transforms — rendered
+  // ancestor, and page sections animate with fade-up transforms - rendered
   // in place, the overlay covers the section instead of the viewport (the
   // broken top-glued modal the owner screenshotted on Analytics). The body
   // has no transform, so the overlay always spans the real viewport and
@@ -286,7 +286,7 @@ export function StatusChip({ status }: { status: string }) {
 
 /**
  * Brand lockup: the CAPTURE wordmark (official black logo from capture.cc)
- * stacked over a champagne-gold "Clinic OS" line — two-line lockup so the
+ * stacked over a champagne-gold "Clinic OS" line - two-line lockup so the
  * operational product reads separately from the retail brand.
  */
 /**

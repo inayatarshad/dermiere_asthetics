@@ -2,7 +2,7 @@
 
 /**
  * Consultation brief (03_consultation-brief.md): fast structured triage.
- * One structured selection wires up the whole consultation — the primary
+ * One structured selection wires up the whole consultation - the primary
  * interest arms the canvas, pre-selects the AI preset, and suggests the
  * plan template.
  */
@@ -236,7 +236,7 @@ export function BriefStep({
               ? "The patient's front photo, for reference while you assign procedures."
               : "Tap the diagram or the chips."}
           </p>
-          {/* the actual face — so procedures are chosen on sight, not blind */}
+          {/* the actual face - so procedures are chosen on sight, not blind */}
           {frontUrl ? (
             <figure className="mb-4 relative rounded-2xl overflow-hidden border border-[rgba(196,161,90,0.4)] shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -256,7 +256,7 @@ export function BriefStep({
             <div className="mb-4 rounded-2xl border border-dashed border-[rgba(28,26,22,0.16)] h-40 flex flex-col items-center justify-center text-center gap-2 px-4">
               <Camera size={20} className="text-ink-400" />
               <p className="caption max-w-[26ch]">
-                No front photo on record yet — capture it in the 3D Canvas
+                No front photo on record yet - capture it in the 3D Canvas
                 step and it appears here.
               </p>
             </div>
@@ -274,7 +274,7 @@ export function BriefStep({
               </Chip>
             ))}
           </div>
-          {/* body areas — Exomere contouring + full-body MitoRedLight */}
+          {/* body areas - Exomere contouring + full-body MitoRedLight */}
           <div className="field-label mt-4">Body</div>
           <div className="flex gap-1.5 flex-wrap">
             {BODY_REGIONS.map((r) => (

@@ -59,7 +59,7 @@ export function Pill({
 /**
  * One dashboard number.
  *
- * `hint` is where a metric explains itself — "no completed visits in this
+ * `hint` is where a metric explains itself - "no completed visits in this
  * range" is far more useful than a bare dash.
  */
 export function Metric({
@@ -99,7 +99,7 @@ export function Metric({
   );
 }
 
-/** A 0-5 rating. Renders "—" and a reason when there is nothing to average. */
+/** A 0-5 rating. Renders "-" and a reason when there is nothing to average. */
 export function Rating({
   value,
   count,
@@ -112,7 +112,7 @@ export function Rating({
   if (value === null) {
     return (
       <span className="text-ink-400 text-sm" title="No feedback in this range">
-        —
+        -
       </span>
     );
   }

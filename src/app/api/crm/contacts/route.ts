@@ -1,5 +1,5 @@
 /**
- * /api/crm/contacts — the leads and contacts collection.
+ * /api/crm/contacts - the leads and contacts collection.
  *
  *   GET   list, with the staff directory and branches the UI needs to render
  *   POST  create a lead (duplicate-checked on the normalized phone)
@@ -27,7 +27,7 @@ import {
   newId,
   saveContact,
 } from "@/lib/server/crmStore";
-import { getClinicConfig, listStaff } from "@/lib/server/clinicStore";
+import { getClinicConfig, listAssignableStaff } from "@/lib/server/clinicStore";
 import { isPlausiblePhone, normalizePhone } from "@/lib/crm/phone";
 import { LEAD_SOURCES, isStage, type ContactStage } from "@/lib/crm/types";
 
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     const ctx = await requireCrm(req, "view_crm");
     const [contacts, staff, config] = await Promise.all([
       listContacts(ctx.clinicId),
-      listStaff(ctx.clinicId),
+      listAssignableStaff(ctx.clinicId),
       getClinicConfig(ctx.clinicId),
     ]);
     return NextResponse.json({

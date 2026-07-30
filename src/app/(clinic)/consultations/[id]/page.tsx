@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The consultation workspace — the spine of the product
+ * The consultation workspace - the spine of the product
  * (00_README.md §3): Brief → Canvas → Visualize → Plan → Report.
  * The brief arms the canvas and AI presets; the canvas hands off to the
  * visualization; the plan flows into the report.
@@ -88,7 +88,7 @@ function ConsultationInner() {
   const template = getTemplate(consultation.brief.primary_interest);
 
   if (!isDoctor) {
-    // Front desk prepares, doctor decides — clinical tools stay doctor-only.
+    // Front desk prepares, doctor decides - clinical tools stay doctor-only.
     return (
       <div className="max-w-2xl mx-auto space-y-4">
         <GlassCard strong className="p-8 text-center fade-up">

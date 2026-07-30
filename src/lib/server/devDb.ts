@@ -1,5 +1,5 @@
 /**
- * Dev database — a file-backed twin of the Postgres layer.
+ * Dev database - a file-backed twin of the Postgres layer.
  *
  * When no DATABASE_URL is configured and we are NOT on Vercel, every pg*
  * function in db.ts routes here instead, so the full system (login,
@@ -441,7 +441,7 @@ export function incrUsage(clinicId: string, month: string, kind: "generations" |
 }
 
 // =====================================================================
-// CRM — generic clinic-scoped collections
+// CRM - generic clinic-scoped collections
 //
 // The Postgres side keeps hot columns alongside the jsonb payload for its
 // indexes; here the payload IS the row, and crmStore does the same filtering

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Multi-view depth refinement — this is what the three-photo capture is FOR
+ * Multi-view depth refinement - this is what the three-photo capture is FOR
  * (04_consultation-canvas-3d.md §2: side photos improve the fit).
  *
  * MediaPipe's single-photo z is a weak relief estimate. The two turned
@@ -29,8 +29,8 @@
  *
  * Known limit: an (x, y)-LINEAR depth field (a planar tilt of the head) is
  * absorbed by the fits and comes from the MediaPipe blend instead; all
- * depth CURVATURE — nose projection, brow, cheeks, the things a profile is
- * made of — is recovered from real parallax.
+ * depth CURVATURE - nose projection, brow, cheeks, the things a profile is
+ * made of - is recovered from real parallax.
  *
  * x,y stay exactly the front photo's, so UVs, the 2D warp and the morph
  * engine are untouched; only the 3D canvas gains true depth.
@@ -53,9 +53,9 @@ export interface ViewReport {
 
 /**
  * How much to trust the recovered profile depth:
- *   high   — both turned photos fused, low reprojection residual
- *   medium — both fused but with a looser residual
- *   low    — only a single profile contributed (asymmetric, less constrained)
+ *   high   - both turned photos fused, low reprojection residual
+ *   medium - both fused but with a looser residual
+ *   low    - only a single profile contributed (asymmetric, less constrained)
  */
 export type Confidence = "high" | "medium" | "low";
 
@@ -168,13 +168,13 @@ const PROTOCOL_YAW_RAD = (35 * Math.PI) / 180;
  * Cheap signed yaw estimate (degrees) from ONE view's normalized landmarks.
  * The capture gate uses it to confirm the turned photos are actually turned:
  * a near-frontal "profile" carries no parallax, so the depth solver would
- * reject it and the mesh would silently fall back to front-only relief — the
+ * reject it and the mesh would silently fall back to front-only relief - the
  * exact failure the three-photo protocol exists to prevent.
  *
  * Model: under yaw θ the nose tip's lateral offset from the eye midpoint grows
  * ~ tan θ relative to the inter-eye span (the tip rides forward of the eye
  * plane, so turning swings it sideways). Positive = turned so the nose points
- * toward image-right. Rough by design — the gate only needs "clearly turned"
+ * toward image-right. Rough by design - the gate only needs "clearly turned"
  * vs "basically straight-on", not a calibrated angle.
  */
 export function estimateYawDeg(landmarks: number[][]): number {
@@ -303,7 +303,7 @@ export function refineDepthMultiView(
     zSfm = zRaw.map((z) => z / best!.gammaD);
 
     // The parallax equations admit a MIRROR solution (depth negated, both
-    // yaws negated) with IDENTICAL residuals — the classic two-view Necker
+    // yaws negated) with IDENTICAL residuals - the classic two-view Necker
     // ambiguity. The candidate loop above cannot break that tie, so which
     // mirror wins depends on arbitrary photo/order conventions; the loser is
     // an inside-out face. Anatomy breaks the tie: MediaPipe's relief is weak
@@ -370,7 +370,7 @@ export function refineDepthMultiView(
   // Never ship an inside-out face: after sign resolution the nose tip must
   // still sit toward the camera relative to the face median (negative z in
   // the landmark convention). A fit that fails this is anatomically wrong no
-  // matter how small its residual — fall back to the single-view mesh.
+  // matter how small its residual - fall back to the single-view mesh.
   if (zCentered[NOSE_TIP] > zMed - 0.02 * faceH) return null;
   const cap = 0.55 * faceH;
   const jump = 0.4 * faceH;

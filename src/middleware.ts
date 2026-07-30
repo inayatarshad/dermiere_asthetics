@@ -8,7 +8,7 @@
  * It also enforces the workspace boundary. A CRM account is scoped to the
  * CRM workspace: asking for /dashboard or /pos redirects it to /crm rather
  * than rendering a Clinic OS screen its navigation does not offer. That
- * decision is made HERE, from the signed token — omitting the links from the
+ * decision is made HERE, from the signed token - omitting the links from the
  * navigation is presentation, not a control.
  *
  * Edge runtime: this imports only session.ts (jose + Web Crypto), never
@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/server/session";
 
-/** Clinic OS surfaces — a CRM-workspace login has no business here. */
+/** Clinic OS surfaces - a CRM-workspace login has no business here. */
 const CLINIC_PREFIXES = [
   "/dashboard",
   "/patients",

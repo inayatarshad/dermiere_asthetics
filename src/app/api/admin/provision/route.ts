@@ -1,9 +1,9 @@
 /**
- * POST /api/admin/provision — platform-level clinic provisioning.
+ * POST /api/admin/provision - platform-level clinic provisioning.
  *
  * Creates a fresh, clean clinic (no demo data) with one admin login.
  * Guarded by the platform key (x-platform-key header === PLATFORM_ADMIN_KEY),
- * NOT by a clinic session — this is a superuser operation. In dev, when no
+ * NOT by a clinic session - this is a superuser operation. In dev, when no
  * key is configured, it is allowed so the flow is testable offline.
  *
  * Body: { name, slug, city?, adminName, adminEmail, adminPassword, demo? }

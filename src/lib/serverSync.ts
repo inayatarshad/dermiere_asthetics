@@ -6,7 +6,7 @@
  *  - talks to the auth + config endpoints,
  *  - and installs a write-through subscription that pushes record diffs to
  *    /api/records (clinic-scoped server-side) whenever the local store
- *    changes — so a clinic's data persists and is shared across its devices.
+ *    changes - so a clinic's data persists and is shared across its devices.
  *
  * It imports the store lazily (inside functions) to avoid an import cycle.
  */
@@ -164,7 +164,6 @@ const COLLECTIONS: Array<[string, string]> = [
   ["reports", "reports"],
   ["invoices", "invoices"],
   ["rewards", "rewards"],
-  ["skinAnalyses", "skin_analyses"],
   ["appointments", "appointments"],
 ];
 

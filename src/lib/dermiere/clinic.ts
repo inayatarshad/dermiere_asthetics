@@ -1,11 +1,11 @@
 /**
- * Dermiere Aesthetics — clinic identity and its branches.
+ * Dermiere Aesthetics - clinic identity and its branches.
  *
  * This module is used ONCE, at provisioning time, to write the clinic row.
  * After that the database is the source of truth: branches live in
  * clinics.payload.locations and are edited in Settings, so opening a third
  * branch never requires a code change. Nothing in the CRM imports the branch
- * constants below — CRM rows carry a `branch_id` and resolve it against
+ * constants below - CRM rows carry a `branch_id` and resolve it against
  * whatever the clinic config currently holds.
  *
  * All data here is fictional.
@@ -24,7 +24,7 @@ export const DERMIERE_SLUG = "dermiere";
  * screen prefills it alongside the email so picking a person and pressing
  * Enter is enough.
  *
- * It is NOT a secret and must never be reused for a real clinic — a live
+ * It is NOT a secret and must never be reused for a real clinic - a live
  * deployment provisions its own accounts with their own passwords.
  */
 export const DERMIERE_DEMO_PASSWORD = "dermiere-dev-2026";
@@ -41,7 +41,7 @@ export const DERMIERE_BRAND = {
 
 /**
  * The two launch branches. Seeded into the clinic config, never referenced
- * by CRM logic — see the module note above.
+ * by CRM logic - see the module note above.
  */
 export const DERMIERE_BRANCHES: ClinicLocation[] = [
   {
@@ -70,7 +70,7 @@ export const DERMIERE_BRANCHES: ClinicLocation[] = [
   },
 ];
 
-/** Treatment menu — ids are the catalogue keys used by CRM interest + POS. */
+/** Treatment menu - ids are the catalogue keys used by CRM interest + POS. */
 export const DERMIERE_TREATMENTS = [
   { id: "hydrafacial", name: "HydraFacial", price: 18000 },
   { id: "chemical_peel", name: "Medical-grade Chemical Peel", price: 15000 },

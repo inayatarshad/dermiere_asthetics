@@ -2,7 +2,7 @@
 
 /**
  * Client-side CRM helpers: fetch wrappers and the formatters the screens
- * share. Everything here is presentation — the authority for what a user may
+ * share. Everything here is presentation - the authority for what a user may
  * do lives on the server (see crmApi.requireCrm).
  */
 
@@ -138,6 +138,24 @@ export interface FollowUpsResponse {
 
 export const fetchFollowUps = () => get<FollowUpsResponse>("/api/crm/followups");
 
+export interface AutomationRunResponse {
+  ok: true;
+  sent: number;
+  needsPerson: number;
+  skipped: number;
+  errors: string[];
+}
+
+/**
+ * Send every automated follow-up that has come due.
+ *
+ * The follow-ups screen calls this before it loads, so what you see is the
+ * board after automation has run rather than a pile of things the system
+ * could have done itself.
+ */
+export const runAutomations = () =>
+  send<AutomationRunResponse>("/api/crm/automation/run", "POST", {});
+
 export const createFollowUp = (body: Record<string, unknown>) =>
   send<{ followUp: CrmFollowUp }>("/api/crm/followups", "POST", body);
 
@@ -221,23 +239,23 @@ export const updateFeedback = (body: Record<string, unknown>) =>
 
 /** A rate that may be null. Null renders as an em dash, never as 0%. */
 export function pct(value: number | null, digits = 0): string {
-  if (value === null || !Number.isFinite(value)) return "—";
+  if (value === null || !Number.isFinite(value)) return "-";
   return `${value.toFixed(digits)}%`;
 }
 
 /** An average that may be null. */
 export function avg(value: number | null, digits = 1): string {
-  if (value === null || !Number.isFinite(value)) return "—";
+  if (value === null || !Number.isFinite(value)) return "-";
   return value.toFixed(digits);
 }
 
 export function money(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   return `Rs. ${Math.round(value).toLocaleString("en-PK")}`;
 }
 
 export function hours(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "—";
+  if (value === null || !Number.isFinite(value)) return "-";
   if (value < 1) return `${Math.round(value * 60)} min`;
   if (value < 48) return `${value.toFixed(1)} h`;
   return `${(value / 24).toFixed(1)} d`;
@@ -245,9 +263,9 @@ export function hours(value: number | null): string {
 
 /** "3 days ago", "in 2 hours", "just now". */
 export function relativeTime(iso: string | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "—";
+  if (Number.isNaN(t)) return "-";
   const diff = t - Date.now();
   const abs = Math.abs(diff);
   const mins = Math.round(abs / 60000);
@@ -264,9 +282,9 @@ export function relativeTime(iso: string | undefined): string {
 }
 
 export function dateTime(iso: string | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleString("en-PK", {
     day: "numeric",
     month: "short",
@@ -277,9 +295,9 @@ export function dateTime(iso: string | undefined): string {
 }
 
 export function dateOnly(iso: string | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleDateString("en-PK", {
     day: "numeric",
     month: "short",
@@ -303,7 +321,7 @@ export function daysAgoISO(n: number): string {
 
 /** Human label for a treatment id, falling back to a tidied id. */
 export function titleize(id: string | undefined): string {
-  if (!id) return "—";
+  if (!id) return "-";
   return id
     .replace(/[_-]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());

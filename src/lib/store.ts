@@ -27,7 +27,6 @@ import type {
   Report,
   Reward,
   Role,
-  SkinAnalysis,
   TreatmentPlan,
   User,
   Visualization,
@@ -106,10 +105,9 @@ interface StoreState {
   vyberoCalls: VyberoCall[];
   clinicHours: ClinicHours;
 
-  // CAPTURE modules: POS, Capture Circle, MARK-VU
+  // Clinic modules: POS, Capture Circle
   invoices: Invoice[];
   rewards: Reward[];
-  skinAnalyses: SkinAnalysis[];
   locations: ClinicLocation[];
   taxRate: number;
   reviewIncentive: { kind: "discount"; value: number; validityDays: number };
@@ -236,11 +234,6 @@ interface StoreState {
   mergeRewards: (items: Reward[]) => void;
   markRewardRedeemed: (code: string, invoiceId: string) => void;
 
-  // MARK-VU
-  addSkinAnalysis: (
-    a: Omit<SkinAnalysis, "id" | "created_at">
-  ) => SkinAnalysis;
-  removeSkinAnalysis: (id: string) => void;
   setTaxRate: (v: number) => void;
   /** Admin sets a treatment's session price (POS + VYBERO quote from it). */
   setTreatmentPrice: (treatmentId: string, price: number) => void;
@@ -286,7 +279,6 @@ export const useStore = create<StoreState>()(
       clinicHours: DEFAULT_CLINIC_HOURS,
       invoices: [],
       rewards: [],
-      skinAnalyses: [],
       locations: [],
       taxRate: 16,
       reviewIncentive: { kind: "discount", value: 10, validityDays: 60 },
@@ -470,7 +462,6 @@ export const useStore = create<StoreState>()(
                 vyberoCalls: [] as VyberoCall[],
                 invoices: [] as Invoice[],
                 rewards: [] as Reward[],
-                skinAnalyses: [] as SkinAnalysis[],
                 boothSync: {},
                 mergedBoothIds: [],
                 newArrivals: [],
@@ -494,7 +485,6 @@ export const useStore = create<StoreState>()(
           reports: b.records.reports,
           invoices: b.records.invoices ?? [],
           rewards: b.records.rewards ?? [],
-          skinAnalyses: b.records.skinAnalyses ?? [],
           locations: b.locations ?? [],
           taxRate: b.taxRate ?? 16,
           reviewIncentive:
@@ -550,7 +540,6 @@ export const useStore = create<StoreState>()(
           planItems: seed.planItems,
           invoices: seed.invoices,
           rewards: seed.rewards,
-          skinAnalyses: seed.skinAnalyses,
           visualizations: [],
           reports: [],
           appointments: demo.appointments,
@@ -612,22 +601,6 @@ export const useStore = create<StoreState>()(
           ),
         })),
 
-      // ---- MARK-VU ------------------------------------------------------
-      addSkinAnalysis: (a) => {
-        const analysis: SkinAnalysis = {
-          ...a,
-          id: uid(),
-          created_at: nowISO(),
-        };
-        set((s) => ({ skinAnalyses: [...s.skinAnalyses, analysis] }));
-        return analysis;
-      },
-
-      removeSkinAnalysis: (id) =>
-        set((s) => ({
-          skinAnalyses: s.skinAnalyses.filter((a) => a.id !== id),
-        })),
-
       setTaxRate: (v) => {
         set({ taxRate: v });
         void pushClinicConfig({ taxRate: v });
@@ -648,7 +621,7 @@ export const useStore = create<StoreState>()(
       logout: async () => {
         // Await the cookie clearing BEFORE navigation: fire-and-forget left
         // a race where the login page auto-bootstrapped on the still-valid
-        // cookie and bounced back in while the cookie died mid-flight —
+        // cookie and bounced back in while the cookie died mid-flight -
         // the endless-spinner loop the owner reported.
         pauseSync();
         try {

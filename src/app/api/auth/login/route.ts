@@ -1,5 +1,5 @@
 /**
- * POST /api/auth/login — verify credentials server-side, set the signed
+ * POST /api/auth/login - verify credentials server-side, set the signed
  * session cookie, and return the clinic-scoped bootstrap payload so the
  * client can render immediately. On an empty database this first seeds the
  * demo clinic, so the deployment is usable with no manual setup.

@@ -1,5 +1,5 @@
 /**
- * VYBERO web concierge — CAPTURE's inbound support + booking agent.
+ * VYBERO web concierge - CAPTURE's inbound support + booking agent.
  *
  * Deterministic by design: every answer is composed from the CAPTURE
  * knowledge base (lib/capture/kb.ts) and the booking flow is a typed
@@ -7,7 +7,7 @@
  * fail on demo day; an LLM can later rewrite replies in place without
  * touching the logic.
  *
- * The server stays stateless — the client echoes ConciergeState back on
+ * The server stays stateless - the client echoes ConciergeState back on
  * every turn (the token pattern, conversation edition).
  */
 
@@ -74,7 +74,7 @@ export interface ConciergeContext {
   hours: ClinicHours;
   /** free slot start times (ISO) for a date */
   availability: (date: string) => Promise<{ start: string; end: string }[]>;
-  /** admin price overrides (clinic config) — quotes must match POS */
+  /** admin price overrides (clinic config) - quotes must match POS */
   prices?: Record<string, number>;
 }
 
@@ -225,7 +225,7 @@ const DEFAULT_CHIPS = ["Book a session", "Treatments", "Prices", "Where are you?
 
 function treatmentCard(t: CaptureTreatment, prices?: Record<string, number>): string {
   return (
-    `${t.name} — ${t.pitch}\n\n` +
+    `${t.name} - ${t.pitch}\n\n` +
     `Best for: ${t.bestFor.slice(0, 5).join(", ")}.\n` +
     `Session: about ${t.durationMin} minutes · ${formatPkr(priceOf(t, prices))}.${courseLine(t, prices)}\n\n` +
     `Shall I book you a session, or would you like the aftercare and preparation details first?`
@@ -235,8 +235,8 @@ function treatmentCard(t: CaptureTreatment, prices?: Record<string, number>): st
 function treatmentsList(prices?: Record<string, number>): string {
   return (
     `Our six signature treatments at the Experience Centre:\n\n` +
-    CAPTURE_TREATMENTS.map((t) => `· ${t.name} — from ${formatPkr(priceOf(t, prices))}`).join("\n") +
-    `\n\nEvery programme opens with a complimentary MARK-VU skin analysis so your specialist can personalise the plan. Which one shall I tell you more about?`
+    CAPTURE_TREATMENTS.map((t) => `· ${t.name} - from ${formatPkr(priceOf(t, prices))}`).join("\n") +
+    `\n\nEvery programme opens with a complimentary consultation so your specialist can personalise the plan. Which one shall I tell you more about?`
   );
 }
 
@@ -279,7 +279,7 @@ export async function conciergeRespond(
     delete next.booking;
     return {
       reply:
-        "Of course, no booking has been made. Whenever you are ready I am here — is there anything else I can help you with?",
+        "Of course, no booking has been made. Whenever you are ready I am here - is there anything else I can help you with?",
       chips: DEFAULT_CHIPS,
       state: next,
     };
@@ -290,7 +290,7 @@ export async function conciergeRespond(
     touch("handoff");
     return {
       reply:
-        `Certainly. Our client care team is available Monday to Saturday, 9 AM to 6 PM on WhatsApp at ${CAPTURE_BRAND.whatsapp} — or share your number here and the team will call you back within the hour.`,
+        `Certainly. Our client care team is available Monday to Saturday, 9 AM to 6 PM on WhatsApp at ${CAPTURE_BRAND.whatsapp} - or share your number here and the team will call you back within the hour.`,
       chips: ["Book a session", "Treatments"],
       state: next,
     };
@@ -309,7 +309,7 @@ export async function conciergeRespond(
     if (pre) touch(pre.id);
     return pre
       ? {
-          reply: `Wonderful choice — ${pre.name}. Which location suits you best?`,
+          reply: `Wonderful choice - ${pre.name}. Which location suits you best?`,
           chips: CAPTURE_LOCATIONS.map((l) => l.short),
           state: next,
         }
@@ -325,7 +325,7 @@ export async function conciergeRespond(
     touch("reschedule");
     return {
       reply:
-        `Of course. Share the name and time your booking is under and our team will adjust it right away — or message us on WhatsApp at ${CAPTURE_BRAND.whatsapp}. We appreciate 24 hours' notice where possible.`,
+        `Of course. Share the name and time your booking is under and our team will adjust it right away - or message us on WhatsApp at ${CAPTURE_BRAND.whatsapp}. We appreciate 24 hours' notice where possible.`,
       chips: ["Book a new session", "Treatments"],
       state: next,
     };
@@ -335,7 +335,7 @@ export async function conciergeRespond(
   if (next.turns === 1 && /\b(hi|hello|salam|salaam|assalam|hey|good (morning|afternoon|evening))\b/.test(t)) {
     return {
       reply:
-        "Welcome to CAPTURE — the intimate science of beauty. I am VYBERO, your concierge. I can tell you about our EXOMERE and MitoRedLight treatments, share prices and aftercare, or book your visit at any of our four Lahore locations. How may I help?",
+        "Welcome to CAPTURE - the intimate science of beauty. I am VYBERO, your concierge. I can tell you about our EXOMERE and MitoRedLight treatments, share prices and aftercare, or book your visit at any of our four Lahore locations. How may I help?",
       chips: DEFAULT_CHIPS,
       state: next,
     };
@@ -395,7 +395,7 @@ export async function conciergeRespond(
       touch(tr.id);
       const course = courseLine(tr, ctx.prices).replace(
         /\.$/,
-        " — the way most clients experience the full transformation."
+        " - the way most clients experience the full transformation."
       );
       return {
         reply: `${tr.name} is ${formatPkr(priceOf(tr, ctx.prices))} per session (about ${tr.durationMin} minutes).${course} Shall I reserve one for you?`,
@@ -412,11 +412,7 @@ export async function conciergeRespond(
   }
   if (/\bmito|red light|redlight|infrared|led|wavelength\b/.test(t)) {
     touch("mito-regenerative-glow");
-    return { reply: CAPTURE_TECH.mitoRedLight + " The Regenerative Glow and Full Body Reset are built on it — shall I share either?", chips: ["Regenerative Glow", "Full Body Reset", "Book a session"], state: next };
-  }
-  if (/\bmark-?vu|scan|analysis|analyz|skin test\b/.test(t)) {
-    touch("markvu");
-    return { reply: CAPTURE_TECH.markVu + " It is complimentary with every first visit.", chips: ["Book a session", "Treatments"], state: next };
+    return { reply: CAPTURE_TECH.mitoRedLight + " The Regenerative Glow and Full Body Reset are built on it - shall I share either?", chips: ["Regenerative Glow", "Full Body Reset", "Book a session"], state: next };
   }
 
   // ---- FAQ fallback ------------------------------------------------------
@@ -469,7 +465,7 @@ async function bookingStep(
     b.step = "time";
     const opts = free.slice(0, 6).map((s) => fmtTime(new Date(s.start).toTimeString().slice(0, 5)));
     return {
-      reply: `Lovely — ${fmtDate(b.date!)}. These times are free: ${opts.join(", ")}. Which suits you?`,
+      reply: `Lovely - ${fmtDate(b.date!)}. These times are free: ${opts.join(", ")}. Which suits you?`,
       chips: opts.slice(0, 4),
       state: next,
     };
@@ -489,7 +485,7 @@ async function bookingStep(
       if (!next.topics!.includes(tr.id)) next.topics!.push(tr.id);
       b.step = "location";
       return {
-        reply: `${tr.name} — excellent. Which location would you prefer?`,
+        reply: `${tr.name} - excellent. Which location would you prefer?`,
         chips: CAPTURE_LOCATIONS.map((l) => l.short),
         state: next,
       };
@@ -518,7 +514,7 @@ async function bookingStep(
       const { date, note } = parseDate(message, ctx.hours);
       if (note === "closed_day") {
         return {
-          reply: "We are closed on Sundays. Any other day of the week works — which would you like?",
+          reply: "We are closed on Sundays. Any other day of the week works - which would you like?",
           chips: ["Monday", "Tomorrow", "Saturday"],
           state: next,
         };
@@ -638,8 +634,8 @@ export function bookingConfirmedReply(booked: {
   const tr = findTreatment(booked.treatment);
   return (
     `Confirmed. ${tr?.name ?? booked.treatment} on ${fmtDate(booked.date)} at ${fmtTime(booked.time)}, ` +
-    `${locName(booked.location)} — under ${booked.name}, reference ${booked.reference.slice(0, 8).toUpperCase()}.\n\n` +
-    `A complimentary MARK-VU skin analysis opens your visit. We will confirm on WhatsApp shortly. ` +
+    `${locName(booked.location)} - under ${booked.name}, reference ${booked.reference.slice(0, 8).toUpperCase()}.\n\n` +
+    `A complimentary consultation opens your visit. We will confirm on WhatsApp shortly. ` +
     `Anything else I can arrange for you?`
   );
 }

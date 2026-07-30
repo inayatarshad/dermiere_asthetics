@@ -2,7 +2,7 @@
  * CRM automation hooks.
  *
  * These are the seams where email / SMS / WhatsApp notifications will attach.
- * Nothing here sends anything today — deliberately. The requirement is a
+ * Nothing here sends anything today - deliberately. The requirement is a
  * reusable event surface, not a live notification channel, and a half-wired
  * sender is worse than none: it would message real people from a development
  * database full of fictional contacts.
@@ -71,7 +71,7 @@ export async function emitCrmEvent<K extends CrmEventName>(
 }
 
 // ---------------------------------------------------------------------
-// Named emitters — call sites use these so the event names stay in one file
+// Named emitters - call sites use these so the event names stay in one file
 // ---------------------------------------------------------------------
 
 export const onFollowUpCreated = (followUp: CrmFollowUp) =>

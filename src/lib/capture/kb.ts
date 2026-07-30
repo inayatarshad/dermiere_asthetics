@@ -1,5 +1,5 @@
 /**
- * CAPTURE knowledge base — single source of truth for everything the
+ * CAPTURE knowledge base - single source of truth for everything the
  * client sees about the brand: locations, treatments, retail catalogue,
  * technology, FAQs and aftercare. Sourced from capture.cc (July 2026)
  * and the CAPTURE meeting notes (System_docs/11).
@@ -123,7 +123,7 @@ export interface CaptureTreatment {
   focus: string;
   includes: string;
   durationMin: number;
-  /** demo price per session, PKR — configurable in Settings */
+  /** demo price per session, PKR - configurable in Settings */
   pricePkr: number;
   /** sessions in a typical course */
   courseSessions?: number;
@@ -327,7 +327,7 @@ export const CAPTURE_TREATMENTS: CaptureTreatment[] = [
   },
 ];
 
-/** Retail catalogue — real capture.cc prices (July 2026). */
+/** Retail catalogue - real capture.cc prices (July 2026). */
 export interface CaptureProduct {
   id: string;
   name: string;
@@ -376,8 +376,6 @@ export const CAPTURE_TECH = {
     "MitoRedLight is medical-grade red and near-infrared light therapy. Our MitoPRO Commercial X flagship delivers six precision wavelengths; the MitoPOD offers full-body coverage with 6,960 LED chips and TriChip technology. Clinically proven benefits across collagen support, inflammation recovery, muscle wellness, cellular energy (ATP), brain health, mood and stress, sleep rhythm, and hair and scalp wellness.",
   captureProtocol:
     "The CAPTURE Protocol is our signature body-contour pairing: EXOMERE Lifting Shot S Body Concentrator combined with professional MitoRedLight therapy to enhance skin firmness, support collagen production and maximise body contouring results.",
-  markVu:
-    "Every new client begins with a MARK-VU professional skin analysis: a multi-spectral scan of pigmentation, pores, wrinkles, sebum and UV damage that lets our specialists personalise the treatment plan to your skin, not a template.",
   renewalProgram:
     "The 12-week EXOMERE Intensive Skin Renewal Program combines 6 Skin Implant treatments and 6 Regeneration treatments with personalised home care products.",
 } as const;
@@ -401,7 +399,7 @@ export const CAPTURE_CONCERNS: { concern: string; treatments: string[] }[] = [
 export const CAPTURE_FAQS: { q: string[]; a: string }[] = [
   {
     q: ["needle", "needles", "pain", "painful", "hurt", "downtime"],
-    a: "All CAPTURE treatments are needle-free. SPICUS uses natural marine sponge spicules that open micro-channels painlessly, and MitoRedLight is completely non-invasive light therapy. Most clients describe a mild tingling at most, and there is no downtime — you can return to your day immediately.",
+    a: "All CAPTURE treatments are needle-free. SPICUS uses natural marine sponge spicules that open micro-channels painlessly, and MitoRedLight is completely non-invasive light therapy. Most clients describe a mild tingling at most, and there is no downtime - you can return to your day immediately.",
   },
   {
     q: ["where", "location", "address", "situated", "clinic", "reach", "directions", "parking"],
@@ -414,10 +412,6 @@ export const CAPTURE_FAQS: { q: string[]; a: string }[] = [
   {
     q: ["price", "cost", "charges", "fee", "how much", "expensive", "rates"],
     a: "Single sessions start from Rs. 12,000 for the Exomere Regeneration facial; the Skin Implant treatment is Rs. 15,000; body contouring from Rs. 22,000 per session; and the full MitoRedLight Regenerative Glow is Rs. 18,000. Courses of six carry a meaningful saving. I can share the exact price for any treatment you are considering.",
-  },
-  {
-    q: ["mark-vu", "markvu", "skin analysis", "scan", "analysis"],
-    a: "Every new client begins with a MARK-VU professional skin analysis — a multi-spectral scan of pigmentation, pores, wrinkles, sebum and UV damage. Your specialist uses it to personalise your plan, and we track it across visits so you can see your skin improve on the numbers, not just in the mirror.",
   },
   {
     q: ["payment", "card", "cash", "installment", "pay"],
@@ -433,27 +427,27 @@ export const CAPTURE_FAQS: { q: string[]; a: string }[] = [
   },
   {
     q: ["red light", "redlight", "infrared", "mito", "led"],
-    a: "MitoRedLight is medical-grade red and near-infrared light therapy on our MitoPRO Commercial X and MitoPOD systems (6,960 LED chips, six precision wavelengths). It is clinically supported for collagen production, inflammation recovery, muscle repair, cellular energy, sleep rhythm, and hair and scalp wellness — non-invasive and deeply relaxing.",
+    a: "MitoRedLight is medical-grade red and near-infrared light therapy on our MitoPRO Commercial X and MitoPOD systems (6,960 LED chips, six precision wavelengths). It is clinically supported for collagen production, inflammation recovery, muscle repair, cellular energy, sleep rhythm, and hair and scalp wellness - non-invasive and deeply relaxing.",
   },
   {
     q: ["gift", "voucher", "someone", "wife", "husband", "mother"],
-    a: "We offer gift sessions for every treatment — the MitoRedLight Regenerative Glow is our most-gifted experience. Share the recipient's name and I will arrange a gift booking; the Experience Centre will take care of the rest.",
+    a: "We offer gift sessions for every treatment - the MitoRedLight Regenerative Glow is our most-gifted experience. Share the recipient's name and I will arrange a gift booking; the Experience Centre will take care of the rest.",
   },
   {
     q: ["cancel", "reschedule", "change my", "move my"],
-    a: "Of course — share your name and booked time and I will reschedule or cancel it for you. We appreciate 24 hours' notice where possible so another client can take the slot.",
+    a: "Of course - share your name and booked time and I will reschedule or cancel it for you. We appreciate 24 hours' notice where possible so another client can take the slot.",
   },
   {
     q: ["safe", "pregnancy", "pregnant", "breastfeeding", "medical", "condition"],
-    a: "CAPTURE treatments are needle-free and gentle, but with pregnancy, active skin infections or photosensitive conditions we ask that you consult your physician first. Our specialists review your MARK-VU analysis and medical notes before any programme begins — your safety leads every plan.",
+    a: "CAPTURE treatments are needle-free and gentle, but with pregnancy, active skin infections or photosensitive conditions we ask that you consult your physician first. Our specialists review your consultation notes and medical history before any programme begins - your safety leads every plan.",
   },
   {
     q: ["product", "shop", "buy", "home care", "cleanser", "serum", "delivery", "order"],
-    a: "The full EXOMERE home-care collection is available at the Experience Centre and online at capture.cc — from the Tea Tree Bubble Cleanser (Rs. 6,900) to the Lifting Shot Botani V Serum (Rs. 15,900), plus curated regimens like the Face Contour Regimen (Rs. 55,000). Your specialist can pair products to your treatment plan.",
+    a: "The full EXOMERE home-care collection is available at the Experience Centre and online at capture.cc - from the Tea Tree Bubble Cleanser (Rs. 6,900) to the Lifting Shot Botani V Serum (Rs. 15,900), plus curated regimens like the Face Contour Regimen (Rs. 55,000). Your specialist can pair products to your treatment plan.",
   },
 ];
 
-/** Illustrative-preview disclaimer — required on every visualization output. */
+/** Illustrative-preview disclaimer - required on every visualization output. */
 export const CAPTURE_DISCLAIMER =
   "Illustrative preview of an expected outcome. Individual results vary; this is not a guarantee of results. Reviewed with your CAPTURE specialist.";
 

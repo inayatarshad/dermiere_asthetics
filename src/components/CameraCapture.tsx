@@ -2,7 +2,7 @@
 
 /**
  * Consultation photo capture (04_consultation-canvas-3d.md §2):
- * three poses — front, tilted-right, tilted-left — with ghost overlay
+ * three poses - front, tilted-right, tilted-left - with ghost overlay
  * guides, face auto-check on capture, preview/retake, and an upload
  * fallback when no camera is available.
  */
@@ -77,7 +77,7 @@ const QUALITY_MESSAGES: Record<Exclude<ShotQuality, "good">, string> = {
   too_dark: "Too dark for an accurate 3D fit. Add light and retake.",
   too_bright: "Overexposed. Reduce direct light and retake.",
   turn_more:
-    "Turn the head further — this looks near straight-on. The side profile is what gives the nose and lips real depth.",
+    "Turn the head further - this looks near straight-on. The side profile is what gives the nose and lips real depth.",
   face_camera: "Face the camera straight-on for the front shot.",
 };
 
@@ -85,7 +85,7 @@ const QUALITY_MESSAGES: Record<Exclude<ShotQuality, "good">, string> = {
  * A turned photo only carries depth if it is actually turned; a near-frontal
  * "profile" gives the 3D solver no parallax to work with, so it would silently
  * fall back to front-only relief. Require a clear turn on the side poses (and a
- * roughly straight-on front). Rough angle only — see estimateYawDeg.
+ * roughly straight-on front). Rough angle only - see estimateYawDeg.
  */
 const MIN_PROFILE_YAW_DEG = 12;
 const MAX_FRONT_YAW_DEG = 16;
@@ -101,8 +101,8 @@ interface ShotState {
 /**
  * Bulletproof-capture gate: the 3D mesh is only as good as the photo, so
  * every shot is graded (face present, big enough, centered, well exposed)
- * before it is accepted silently. Failing shots stay usable — booth
- * pragmatism — but the retake prompt says exactly what to fix.
+ * before it is accepted silently. Failing shots stay usable - booth
+ * pragmatism - but the retake prompt says exactly what to fix.
  */
 function gradeShot(
   canvas: HTMLCanvasElement,
@@ -397,7 +397,7 @@ export function CameraCapture({
                 </div>
               )}
               {/* ghost overlay guide: for side poses this communicates a
-                  head ROTATION (yaw), never a tilt — narrower oval, facial
+                  head ROTATION (yaw), never a tilt - narrower oval, facial
                   midline swung toward the nose direction, and a turn arrow.
                   Mirrored preview flips the on-screen direction. */}
               <svg

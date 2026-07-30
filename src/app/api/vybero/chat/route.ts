@@ -1,12 +1,12 @@
 /**
- * POST /api/vybero/chat — the public VYBERO web concierge.
+ * POST /api/vybero/chat - the public VYBERO web concierge.
  *
  * Stateless: the client echoes the conversation state each turn. Answers
  * come from the CAPTURE knowledge base; bookings are written into the
  * clinic's real appointment book (source "vybero") and logged as a call,
  * so the calendar and the analytics dashboard light up live.
  *
- * Public by design (patients use it) — rate-limited per IP, no PHI ever
+ * Public by design (patients use it) - rate-limited per IP, no PHI ever
  * returned, and the clinic is resolved server-side (never trusted from
  * the client beyond a slug).
  */
@@ -49,7 +49,7 @@ async function resolveClinicId(slug?: string): Promise<string | null> {
   try {
     await ensureSeedClinic();
   } catch {
-    // storage down — resolved below (may still work if clinics cached)
+    // storage down - resolved below (may still work if clinics cached)
   }
   try {
     if (slug) {
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "ip";
   if (rateLimited(`chat:${ip}`)) {
     return NextResponse.json(
-      { error: "rate_limited", reply: "One moment please — you are sending messages very quickly.", state: {} },
+      { error: "rate_limited", reply: "One moment please - you are sending messages very quickly.", state: {} },
       { status: 429 }
     );
   }
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
         if (st.booking) st.booking.step = "time";
         return NextResponse.json({
           reply:
-            "That slot was taken just this moment — my apologies. Let me offer you the nearest free times instead. Which time works?",
+            "That slot was taken just this moment - my apologies. Let me offer you the nearest free times instead. Which time works?",
           chips: [],
           state: st,
         });

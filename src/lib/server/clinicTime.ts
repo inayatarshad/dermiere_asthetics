@@ -1,5 +1,5 @@
 /**
- * Clinic timezone helpers — CAPTURE operates in Pakistan (Asia/Karachi,
+ * Clinic timezone helpers - CAPTURE operates in Pakistan (Asia/Karachi,
  * UTC+05:00, no DST). The voice agent speaks local wall-clock times, so
  * every conversion here is pinned explicitly: a booking for "16:00" must
  * be 16:00 in Lahore even when the server runs in UTC (Vercel default).

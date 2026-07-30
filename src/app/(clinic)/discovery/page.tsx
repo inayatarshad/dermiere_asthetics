@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Brand Discovery — admin dashboard for the WhatsApp intake portal
+ * Brand Discovery - admin dashboard for the WhatsApp intake portal
  * (spec: Brand-Discovery-Portal-BUILD-SPEC.md §9/§12).
  * Create per-doctor invite links, share them on WhatsApp, watch the
  * sent -> opened -> completed funnel, read every response, export CSV.
@@ -54,7 +54,7 @@ const LABELS: Record<string, string> = {
   "50_150k": "50–150k",
   over_150k: "150k+",
 };
-const label = (v?: string) => (v ? (LABELS[v] ?? v) : "—");
+const label = (v?: string) => (v ? (LABELS[v] ?? v) : "-");
 
 const STATUS_STYLE: Record<string, string> = {
   PENDING: "bg-white/60 text-ink-400",
@@ -264,7 +264,7 @@ export default function DiscoveryPage() {
                     <tr key={invite.id} className="border-b border-white/40 last:border-0">
                       <td className="py-2.5 pr-3">
                         <span className="font-medium text-ink-900">
-                          {invite.doctorName || resp?.doctorName || "—"}
+                          {invite.doctorName || resp?.doctorName || "-"}
                         </span>
                         <span className="caption block">
                           {invite.clinicName || resp?.clinicName || "unnamed clinic"}
@@ -290,7 +290,7 @@ export default function DiscoveryPage() {
                               day: "numeric",
                               month: "short",
                             })
-                          : "—"}
+                          : "-"}
                       </td>
                       <td className="py-2.5 pr-0">
                         <span className="flex gap-1.5 justify-end">
@@ -422,23 +422,23 @@ export default function DiscoveryPage() {
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
               <div>
                 <div className="caption">City & area</div>
-                {detail.cityArea ?? "—"}
+                {detail.cityArea ?? "-"}
               </div>
               <div>
                 <div className="caption">WhatsApp</div>
-                {detail.whatsapp ?? "—"}
+                {detail.whatsapp ?? "-"}
               </div>
               <div>
                 <div className="caption">Instagram</div>
-                {detail.instagram ?? "—"}
+                {detail.instagram ?? "-"}
               </div>
               <div>
                 <div className="caption">Website</div>
-                {detail.website ?? "—"}
+                {detail.website ?? "-"}
               </div>
               <div>
                 <div className="caption">Patients / day</div>
-                {detail.patientsPerDay ?? "—"}
+                {detail.patientsPerDay ?? "-"}
               </div>
               <div>
                 <div className="caption">Marketing budget (PKR)</div>
@@ -454,7 +454,7 @@ export default function DiscoveryPage() {
                         {label(v)}
                       </span>
                     ))
-                  : "—"}
+                  : "-"}
               </div>
             </div>
             <div>
@@ -466,7 +466,7 @@ export default function DiscoveryPage() {
                         {label(v)}
                       </span>
                     ))
-                  : "—"}
+                  : "-"}
               </div>
             </div>
             <div>
@@ -478,7 +478,7 @@ export default function DiscoveryPage() {
                         {label(v)}
                       </span>
                     ))
-                  : "—"}
+                  : "-"}
               </div>
             </div>
             {detail.servicesInDemand && (

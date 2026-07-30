@@ -1,5 +1,5 @@
 /**
- * The CRM workspace navigation — defined once, rendered in exactly one place.
+ * The CRM workspace navigation - defined once, rendered in exactly one place.
  *
  * A CRM account sees these items in the PRIMARY top bar; there is no second
  * navigation strip beneath it. A Clinic OS account reaches the same screens
@@ -48,7 +48,7 @@ export const CRM_NAV: CrmNavItem[] = [
 /**
  * Is this nav item the active one?
  *
- * "/crm" is the workspace root, so it must match exactly — otherwise it
+ * "/crm" is the workspace root, so it must match exactly - otherwise it
  * would light up on every child route.
  */
 export function isCrmNavActive(href: string, pathname: string): boolean {

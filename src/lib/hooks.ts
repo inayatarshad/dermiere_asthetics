@@ -61,7 +61,7 @@ export interface FaceData {
   error?: string;
 }
 
-/** high for a fused pair, low for a lone profile — mirrors multiview.ts. */
+/** high for a fused pair, low for a lone profile - mirrors multiview.ts. */
 function confidenceFromViews(views: ViewReport[]): Confidence {
   return views.length >= 2
     ? views.every((v) => v.residual <= 0.04)
@@ -86,7 +86,7 @@ async function landmarksForPhoto(
 /**
  * Load a photo asset, detect (or restore cached) landmarks. When the
  * turned-left/right captures are supplied, their parallax refines
- * per-landmark depth (face/multiview.ts) — the reason the capture protocol
+ * per-landmark depth (face/multiview.ts) - the reason the capture protocol
  * takes three photos. Falls back to the single-view mesh whenever the fit
  * fails its quality gates, so the canvas can never break. Everything is
  * cached in IndexedDB, so revisits open instantly
@@ -146,7 +146,7 @@ export function useFaceData(
         }
 
         // composite cache: refined landmarks + view reports (or a recorded
-        // miss). The version prefix busts caches when the solver changes —
+        // miss). The version prefix busts caches when the solver changes -
         // v2: oriented sign resolution (pre-v2 fits could be inside-out).
         const mvKey = `mv2_${asset.id}_${leftId ?? "x"}_${rightId ?? "x"}`;
         const cachedMv = await loadLandmarks(mvKey);
@@ -255,7 +255,7 @@ export function useFaceData(
 }
 
 /**
- * Auto-lock after inactivity — clinical devices are shared, so an unattended
+ * Auto-lock after inactivity - clinical devices are shared, so an unattended
  * screen must not expose patient data (01_registration-and-access.md §2).
  */
 const IDLE_LOCK_MS = 10 * 60 * 1000;

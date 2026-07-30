@@ -1,7 +1,7 @@
 /**
- * GET /api/review/[token] — public meta for the branded review page.
+ * GET /api/review/[token] - public meta for the branded review page.
  * The token is the capability. First open flips PENDING → OPENED.
- * Returns display data only — never phone numbers or clinical details.
+ * Returns display data only - never phone numbers or clinical details.
  */
 
 import { NextRequest, NextResponse } from "next/server";

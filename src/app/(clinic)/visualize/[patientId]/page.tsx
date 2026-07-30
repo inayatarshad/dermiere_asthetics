@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * CAPTURE Visualization Studio — before/after previews for the two
+ * CAPTURE Visualization Studio - before/after previews for the two
  * signature treatment families:
  *   · MitoRedLight glow (face): tone, texture, warmth, radiance
  *   · Exomere body contour: region slimming + firmness
@@ -53,7 +53,7 @@ const GLOW_PROMPT =
   "Show this exact person after a completed course of professional red light and near-infrared light therapy facials: radiant, luminous, even-toned skin with refined texture, healthy hydration and a subtle lit-from-within glow. Keep the identity, facial features, expression, pose, hair, clothing, lighting direction and background EXACTLY the same. Do not add makeup, do not slim or reshape anything, do not retouch beyond natural skin quality. Photorealistic.";
 
 const BODY_PROMPT = (region: string) =>
-  `Show this exact person after a completed course of professional non-invasive body contouring treatments focused on the ${region}: the ${region} area appears naturally firmer, smoother and modestly slimmer with improved skin tone. Keep identity, pose, clothing, lighting and background EXACTLY the same. The change must be subtle, anatomically plausible and realistic — no dramatic reshaping. Photorealistic.`;
+  `Show this exact person after a completed course of professional non-invasive body contouring treatments focused on the ${region}: the ${region} area appears naturally firmer, smoother and modestly slimmer with improved skin tone. Keep identity, pose, clothing, lighting and background EXACTLY the same. The change must be subtle, anatomically plausible and realistic - no dramatic reshaping. Photorealistic.`;
 
 export default function VisualizeStudioPage() {
   const params = useParams<{ patientId: string }>();
@@ -70,7 +70,7 @@ export default function VisualizeStudioPage() {
   const bumpAiUsage = useStore((s) => s.bumpAiUsage);
 
   // deep-link: /visualize/<id>?mode=body preselects the body studio (the
-  // consult flow routes body-primary treatments here). Lazy initializer —
+  // consult flow routes body-primary treatments here). Lazy initializer -
   // the page renders null until mounted, so no hydration mismatch.
   const [mode, setMode] = useState<Mode>(() =>
     typeof window !== "undefined" &&
@@ -96,7 +96,7 @@ export default function VisualizeStudioPage() {
 
   // pose detection: finds the arms/waist/thighs on the photo so the toning
   // lands automatically; the manual window remains the fallback/fine-tune.
-  // State is KEYED by the image it was computed for — switching photos
+  // State is KEYED by the image it was computed for - switching photos
   // derives back to null with no reset effects (react-compiler friendly).
   const [poseState, setPoseState] = useState<{
     for: HTMLImageElement | null;
@@ -165,7 +165,7 @@ export default function VisualizeStudioPage() {
   }, [photoAssets, beforeSrc, mode]);
 
   // load HTMLImageElement whenever the before changes (all setState in
-  // callbacks — react-compiler rule)
+  // callbacks - react-compiler rule)
   useEffect(() => {
     let cancelled = false;
     if (!beforeSrc) {
@@ -267,8 +267,8 @@ export default function VisualizeStudioPage() {
     } else {
       setAiNote(
         out.code === "unauthenticated" || out.code === "not_configured"
-          ? "AI enhancement is not configured — the live studio preview above is shown instead."
-          : `AI enhancement unavailable (${out.message}) — the live studio preview is shown instead.`
+          ? "AI enhancement is not configured - the live studio preview above is shown instead."
+          : `AI enhancement unavailable (${out.message}) - the live studio preview is shown instead.`
       );
     }
     setAiBusy(false);
@@ -368,7 +368,7 @@ export default function VisualizeStudioPage() {
             <div className="aspect-[4/4.4] flex flex-col items-center justify-center text-center gap-3 border border-dashed border-[rgba(28,26,22,0.15)] rounded-xl">
               <Scan size={28} className="text-ink-400" />
               <p className="text-sm text-ink-700 max-w-[26ch]">
-                Add a photo to begin — a face photo for glow, a torso photo for
+                Add a photo to begin - a face photo for glow, a torso photo for
                 body contour.
               </p>
               <button onClick={() => fileRef.current?.click()} className="btn btn-primary btn-sm">
@@ -440,7 +440,7 @@ export default function VisualizeStudioPage() {
                 ))}
               </div>
             ) : (
-              <p className="caption">No photos on record yet — upload one to begin.</p>
+              <p className="caption">No photos on record yet - upload one to begin.</p>
             )}
           </div>
 
@@ -471,7 +471,7 @@ export default function VisualizeStudioPage() {
                 ))}
               </div>
 
-              {/* pose detection status — the toning finds the body part */}
+              {/* pose detection status - the toning finds the body part */}
               {poseBusy && (
                 <p className="caption flex items-center gap-2">
                   <Spinner className="w-3.5 h-3.5" /> Finding the body on the
@@ -485,8 +485,8 @@ export default function VisualizeStudioPage() {
                       {preset.label} detected on the photo
                     </b>
                     {autoRegions && autoRegions.length > 1
-                      ? " — both sides tone together."
-                      : " — toning follows it automatically."}
+                      ? " - both sides tone together."
+                      : " - toning follows it automatically."}
                   </p>
                   <button
                     onClick={() => setManualOverrideFor(img)}
@@ -499,12 +499,12 @@ export default function VisualizeStudioPage() {
               {!poseBusy && !usingAuto && poseLm !== null && autoRegions === null && (
                 <p className="caption">
                   Couldn&apos;t place {preset.label.toLowerCase()} on this
-                  photo — position the treatment window below.
+                  photo - position the treatment window below.
                 </p>
               )}
               {!poseBusy && poseLm === null && img && (
                 <p className="caption">
-                  No full-body pose detected — position the treatment window
+                  No full-body pose detected - position the treatment window
                   below.
                 </p>
               )}

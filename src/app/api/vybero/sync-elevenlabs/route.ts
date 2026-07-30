@@ -1,5 +1,5 @@
 /**
- * GET /api/vybero/sync-elevenlabs — pull Noor's call history from the
+ * GET /api/vybero/sync-elevenlabs - pull Noor's call history from the
  * ElevenLabs API into the analytics call log.
  *
  * The push path (post-call webhook) is real-time; THIS route is the pull
@@ -10,7 +10,7 @@
  *
  * Requires ELEVENLABS_API_KEY in the environment. Callers:
  *   - Vercel Cron (Authorization: Bearer <CRON_SECRET>, when set)
- *   - signed-in admins (session cookie — the page button)
+ *   - signed-in admins (session cookie - the page button)
  *   - ?key=<VYBERO_API_KEY> for manual/scripted runs
  */
 
@@ -179,7 +179,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // conversations already known (either path) — only detail-fetch new ones
+    // conversations already known (either path) - only detail-fetch new ones
     const existing = new Set((await listCalls(clinic.id)).map((c) => c.id));
 
     const after = Math.floor(Date.now() / 1000) - LOOKBACK_DAYS * 86400;
@@ -213,7 +213,7 @@ export async function GET(req: NextRequest) {
     let detailed = 0;
     for (const item of items) {
       if (!item.conversation_id) continue;
-      // skip conversations still in progress — they arrive on the next run
+      // skip conversations still in progress - they arrive on the next run
       if (item.status && item.status !== "done" && item.status !== "failed") continue;
 
       const isNew = !existing.has(`el_${item.conversation_id}`);

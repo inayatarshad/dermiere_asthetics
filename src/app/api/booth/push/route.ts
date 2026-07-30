@@ -1,5 +1,5 @@
 /**
- * POST /api/booth/push (T1) — the phone side of the booth handoff. The
+ * POST /api/booth/push (T1) - the phone side of the booth handoff. The
  * phone is a signed-in clinic device, so the write is scoped to its
  * session's clinic_id. Accepts a patient record + consents + downscaled
  * photos and files them in that clinic's booth inbox.

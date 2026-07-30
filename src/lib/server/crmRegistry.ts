@@ -61,7 +61,7 @@ export async function ensureContactForPatient(
 
   const existing = await findContactByPhone(clinicId, phone);
   if (existing) {
-    // Already linked to this patient — nothing to do.
+    // Already linked to this patient - nothing to do.
     if (existing.patient_id === patient.id) return existing;
     // A lead for this person exists but was never converted. Linking it is
     // the whole point: it keeps one row per human being.
@@ -90,7 +90,7 @@ export async function ensureContactForPatient(
       return linked;
     }
     // Linked to a DIFFERENT patient: two registry records share a number
-    // (a family phone, or a duplicate). Leave both alone — silently
+    // (a family phone, or a duplicate). Leave both alone - silently
     // repointing a contact at another patient would lose history.
     return existing;
   }
@@ -134,7 +134,7 @@ export async function ensureContactForPatient(
 /**
  * Backfill: give every registry patient a CRM contact.
  *
- * Safe to run repeatedly — patients that already have one are skipped.
+ * Safe to run repeatedly - patients that already have one are skipped.
  * Returns how many links were created.
  */
 export async function linkRegistryPatients(

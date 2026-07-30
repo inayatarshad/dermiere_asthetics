@@ -1,20 +1,20 @@
 /**
- * POST /api/assessment/skin — the AI half of the Assessment Report.
+ * POST /api/assessment/skin - the AI half of the Assessment Report.
  *
  * Vision analysis of the front photo against a LOCKED skin taxonomy
  * (spec §6/§7: controlled vocabulary, qualitative severity, never a
  * diagnosis). The generative model classifies; it never invents layout or
- * numbers — the report's geometry and rendering stay deterministic.
+ * numbers - the report's geometry and rendering stay deterministic.
  *
  * Providers, in priority order: Anthropic Claude vision (ANTHROPIC_API_KEY,
  * model ANTHROPIC_VISION_MODEL default claude-opus-4-8) as primary, then
  * OpenAI vision (OPENAI_API_KEY, ASSESSMENT_VISION_MODEL default gpt-4o),
- * then Gemini (GEMINI_API_KEY) — each a fallback for the one before. With
+ * then Gemini (GEMINI_API_KEY) - each a fallback for the one before. With
  * none configured the route answers 501 and the report renders geometry-only.
  *
  * Claude does image UNDERSTANDING here (photo -> findings text); the
  * before/after image EDIT is a separate pipeline (server/providers.ts) that
- * no Anthropic model can do — do not wire Claude in there.
+ * no Anthropic model can do - do not wire Claude in there.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -282,7 +282,7 @@ export async function POST(req: NextRequest) {
       {
         error: "no_api_key",
         message:
-          "Skin analysis needs a vision model. Set ANTHROPIC_API_KEY (recommended) — or OPENAI_API_KEY / GEMINI_API_KEY — on the server; the report's proportion analysis works without it.",
+          "Skin analysis needs a vision model. Set ANTHROPIC_API_KEY (recommended) - or OPENAI_API_KEY / GEMINI_API_KEY - on the server; the report's proportion analysis works without it.",
       },
       { status: 501 }
     );

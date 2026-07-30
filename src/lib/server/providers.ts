@@ -7,21 +7,21 @@
  * via env without touching the UI.
  *
  * Env:
- *   GEMINI_API_KEY       — enables the Gemini provider
- *   GEMINI_IMAGE_MODEL   — default "gemini-2.5-flash-image" (Nano Banana);
+ *   GEMINI_API_KEY       - enables the Gemini provider
+ *   GEMINI_IMAGE_MODEL   - default "gemini-2.5-flash-image" (Nano Banana);
  *                          set "gemini-3-pro-image" (Nano Banana Pro) when
  *                          your key has access
- *   OPENAI_API_KEY       — enables the OpenAI (GPT Image 2) provider
- *   OPENAI_IMAGE_MODEL   — default "gpt-image-1"; set "gpt-image-2" when
+ *   OPENAI_API_KEY       - enables the OpenAI (GPT Image 2) provider
+ *   OPENAI_IMAGE_MODEL   - default "gpt-image-1"; set "gpt-image-2" when
  *                          available on your account
- *   BFL_API_KEY          — enables the FLUX.1 Kontext provider
- *   BFL_MODEL            — default "flux-kontext-pro"
+ *   BFL_API_KEY          - enables the FLUX.1 Kontext provider
+ *   BFL_MODEL            - default "flux-kontext-pro"
  *   HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET
- *                        — enable the Higgsfield Cloud provider
+ *                        - enable the Higgsfield Cloud provider
  *                          (platform.higgsfield.ai; needs API credits, a
  *                          separate wallet from the app subscription)
- *   HIGGSFIELD_IMAGE_MODEL — default "higgsfield-ai/soul/reference"
- *   AI_PROVIDER          — force "gemini" | "openai" | "flux" | "higgsfield"
+ *   HIGGSFIELD_IMAGE_MODEL - default "higgsfield-ai/soul/reference"
+ *   AI_PROVIDER          - force "gemini" | "openai" | "flux" | "higgsfield"
  *                          (optional). Set this to run a like-for-like
  *                          bake-off.
  *
@@ -88,11 +88,11 @@ export const MODEL_OPTIONS: Record<Provider, string[]> = {
   gemini: ["gemini-2.5-flash-image", "gemini-3-pro-image"],
   openai: ["gpt-image-1", "gpt-image-2"],
   flux: ["flux-kontext-pro", "flux-kontext-max"],
-  // popcorn/auto = Higgsfield's identity-consistent photo model — verified
+  // popcorn/auto = Higgsfield's identity-consistent photo model - verified
   // 2026-07-23 against the live API: returns the SAME person with the
   // requested edit (default, and the only account-tier edit-grade model;
   // reve/edit answers 423 model_blocked on standard API accounts).
-  // soul modes are reference-guided RENDERS — they generate a different
+  // soul modes are reference-guided RENDERS - they generate a different
   // person and are kept only for the Settings bake-off comparison.
   higgsfield: [
     "higgsfield-ai/popcorn/auto",
@@ -209,7 +209,7 @@ export async function generateAfter(
       return await RUNNERS[p](image, prompt, model);
     } catch (err) {
       lastErr = err;
-      // A moderation block will recur on every provider — surface it now.
+      // A moderation block will recur on every provider - surface it now.
       if (err instanceof GenerationError && err.code === "safety_blocked") {
         throw err;
       }
@@ -221,7 +221,7 @@ export async function generateAfter(
 }
 
 // ---------------------------------------------------------------------
-// Gemini (Nano Banana family) — REST generateContent with inline image
+// Gemini (Nano Banana family) - REST generateContent with inline image
 // ---------------------------------------------------------------------
 
 async function generateWithGemini(
@@ -297,7 +297,7 @@ async function generateWithGemini(
 }
 
 // ---------------------------------------------------------------------
-// OpenAI GPT Image 2 — images/edits (multipart). Strong spatial reasoning;
+// OpenAI GPT Image 2 - images/edits (multipart). Strong spatial reasoning;
 // input_fidelity:"high" is the key lever for keeping the patient's face.
 // ---------------------------------------------------------------------
 
@@ -360,7 +360,7 @@ async function generateWithOpenAI(
 }
 
 // ---------------------------------------------------------------------
-// Higgsfield Cloud (platform.higgsfield.ai) — upload + submit + poll.
+// Higgsfield Cloud (platform.higgsfield.ai) - upload + submit + poll.
 // Auth: "Authorization: Key {id}:{secret}". Input images travel as URLs
 // via the platform's presigned-upload flow (POST /files/generate-upload-url
 // -> PUT bytes -> reference public_url). Job lifecycle: POST /{model_id}
@@ -376,7 +376,7 @@ async function generateWithOpenAI(
 
 const HF_BASE = "https://platform.higgsfield.ai";
 // Candidate names for the reference-image field. Shape matters as much as
-// name: popcorn/auto takes image_urls as an ARRAY — and it also VALIDATES
+// name: popcorn/auto takes image_urls as an ARRAY - and it also VALIDATES
 // the singular image_url without consuming it (job queues, then fails), so
 // for popcorn the plural form must be tried FIRST or discovery pins the
 // wrong field. Soul (and reve, where unblocked) take the singular image_url.
@@ -428,7 +428,7 @@ function hfError(status: number, body: string): GenerationError {
   if (status === 423 || /model_blocked/i.test(body)) {
     return new GenerationError(
       "provider_error",
-      "Higgsfield has locked the selected model for this account (model_blocked) — reve/edit is not available on standard API accounts. Use 'higgsfield-ai/popcorn/auto' (the default; verified identity-preserving photo edit) under Settings -> AI generation, or set GEMINI_API_KEY as an alternative."
+      "Higgsfield has locked the selected model for this account (model_blocked) - reve/edit is not available on standard API accounts. Use 'higgsfield-ai/popcorn/auto' (the default; verified identity-preserving photo edit) under Settings -> AI generation, or set GEMINI_API_KEY as an alternative."
     );
   }
   return new GenerationError(
@@ -481,7 +481,7 @@ async function generateWithHiggsfield(
     return await hfRunModel(imageUrl, prompt, model);
   } catch (err) {
     // A gated model (423 model_blocked) is an account-tier fact, not a
-    // transient failure — recover onto the known-good whitelist default
+    // transient failure - recover onto the known-good whitelist default
     // (popcorn) instead of failing the consult with a stale model pin.
     // Never retries moderation blocks (those are safety_blocked).
     const fallback = MODEL_OPTIONS.higgsfield[0];
@@ -608,7 +608,7 @@ async function hfRunModel(
 }
 
 // ---------------------------------------------------------------------
-// FLUX.1 Kontext (Black Forest Labs) — submit + poll
+// FLUX.1 Kontext (Black Forest Labs) - submit + poll
 // ---------------------------------------------------------------------
 
 async function generateWithFlux(

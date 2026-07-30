@@ -1,9 +1,9 @@
 /**
- * CRM permissions — one table, used by BOTH the server routes and the UI.
+ * CRM permissions - one table, used by BOTH the server routes and the UI.
  *
  * The UI uses these to decide what to render; the API routes use the same
  * functions to decide what to allow. Hiding a button is a courtesy, not a
- * control — every sensitive route calls requireCrm() server-side against the
+ * control - every sensitive route calls requireCrm() server-side against the
  * verified session role, so a hand-rolled request gets the same answer as
  * the screen.
  *
@@ -74,7 +74,7 @@ export function crmCan(
   return !!caps && caps.includes(capability);
 }
 
-/** Capabilities for a role — handy for passing a set to the client once. */
+/** Capabilities for a role - handy for passing a set to the client once. */
 export function crmCapabilities(role: Role | string | undefined): CrmCapability[] {
   if (!role) return [];
   return MATRIX[role as Role] ?? [];

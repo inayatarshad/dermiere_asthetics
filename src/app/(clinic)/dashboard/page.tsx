@@ -71,19 +71,6 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {/* Investment & configuration sheet (admin-only, incl. Ryan) —
-              a self-contained static doc, opened in its own tab */}
-          {can.manageUsers(user?.role) && (
-            <a
-              href="/financials.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary"
-            >
-              <LineChart size={17} />
-              Financials
-            </a>
-          )}
           <Link href="/patients/new" className="btn btn-primary">
             <UserPlus size={17} />
             Register patient

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Reviews monitoring dashboard (§5.4 + §5.5) — where Rameez and Shah Rukh
+ * Reviews monitoring dashboard (§5.4 + §5.5) - where Rameez and Shah Rukh
  * watch the client voice: scores over time, by location and treatment,
  * low scores flagged for follow-up, the invite funnel and the Capture
  * Circle economy (issued vs redeemed). Server truth via
@@ -329,7 +329,7 @@ export default function ReviewsPage() {
           <EmptyState
             icon={<MessageSquareHeart size={26} />}
             title="No reviews here yet"
-            body="Close a sale in the Point of Sale and send the review link — submissions appear live."
+            body="Close a sale in the Point of Sale and send the review link - submissions appear live."
           />
         ) : (
           <div className="space-y-2.5">
@@ -391,13 +391,13 @@ export default function ReviewsPage() {
       >
         {inviteUrl ? (
           <div className="space-y-3">
-            <p className="text-sm text-ink-700">Link created — share it on WhatsApp:</p>
+            <p className="text-sm text-ink-700">Link created - share it on WhatsApp:</p>
             <p className="text-[12px] bg-mint-100 rounded-lg px-3 py-2 break-all">{inviteUrl}</p>
             <a
               className="btn btn-primary w-full"
               target="_blank"
               href={`https://wa.me/?text=${encodeURIComponent(
-                `Thank you for visiting CAPTURE! We would love to hear about your experience: ${inviteUrl} — your review earns a Capture Circle reward.`
+                `Thank you for visiting CAPTURE! We would love to hear about your experience: ${inviteUrl} - your review earns a Capture Circle reward.`
               )}`}
             >
               Share via WhatsApp

@@ -1,7 +1,7 @@
 /**
  * /api/vybero/call-log
- *  GET  — the signed-in clinic's call log (admin analytics). Session-scoped.
- *  POST — the voice agent reports a finished call (x-vybero-key + x-clinic).
+ *  GET  - the signed-in clinic's call log (admin analytics). Session-scoped.
+ *  POST - the voice agent reports a finished call (x-vybero-key + x-clinic).
  */
 
 import { NextRequest, NextResponse } from "next/server";

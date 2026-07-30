@@ -1,7 +1,7 @@
 /**
  * Sliders → prompt assembly (knowledge base / 05_ai-before-after.md §4–5).
  *
- * Sliders don't change the image directly — they tune the instruction.
+ * Sliders don't change the image directly - they tune the instruction.
  * Magnitude bands: 0–15 no change · 15–40 "very slightly" ·
  * 40–70 "moderately" · 70–100 "noticeably". Extremes stay word-capped so
  * results remain clinically plausible.
@@ -113,7 +113,7 @@ export function assembleMultiPrompt(
   return `${MULTI_OPENING}\n\n${blocks.join("\n\n")}\n\n${MULTI_FOOTER}`;
 }
 
-/** Stable hash of params — used to cache generations per setting. */
+/** Stable hash of params - used to cache generations per setting. */
 export function paramsHash(
   procedure: string,
   params: Record<string, number>

@@ -1,7 +1,7 @@
 /**
  * Fictional Dermiere development data.
  *
- * Everything here is invented — names, numbers, messages, ratings. No real
+ * Everything here is invented - names, numbers, messages, ratings. No real
  * patient information, and nothing from the CAPTURE demo clinic.
  *
  * The generator is deterministic given a seed and anchored to "now", so the
@@ -12,10 +12,16 @@
 
 import type {
   Appointment,
+  Asset,
   ClinicLocation,
+  Consultation,
   Invoice,
   Patient,
+  PlanItem,
+  Report,
+  TreatmentPlan,
 } from "@/lib/types";
+import { getTemplate } from "@/lib/templates";
 import type {
   ContactStage,
   CrmContact,
@@ -30,7 +36,7 @@ import { normalizePhone } from "@/lib/crm/phone";
 import { DERMIERE_TREATMENTS } from "./clinic";
 
 // ---------------------------------------------------------------------
-// Deterministic pseudo-randomness (mulberry32) — same demo every run
+// Deterministic pseudo-randomness (mulberry32) - same demo every run
 // ---------------------------------------------------------------------
 
 function rng(seed: number) {
@@ -47,6 +53,13 @@ const DAY = 86400000;
 
 export interface DermiereSeed {
   patients: Patient[];
+  /** Front portraits, so the 3D canvas and AI studio have a face to work on. */
+  assets: Asset[];
+  /** Worked-up consultations: brief, canvas morphs and the doctor's note. */
+  consultations: Consultation[];
+  plans: TreatmentPlan[];
+  planItems: PlanItem[];
+  reports: Report[];
   appointments: Appointment[];
   invoices: Invoice[];
   contacts: CrmContact[];
@@ -94,7 +107,7 @@ const LEAD_NOTES = [
   "Saw the before/after reel on Instagram. Interested in the same protocol.",
   "Referred by an existing patient. Prefers weekend appointments.",
   "Has sensitive skin; wants a patch test before booking anything.",
-  "Wedding in three months — asked what a full plan would look like.",
+  "Wedding in three months - asked what a full plan would look like.",
   "Comparing us with another clinic. Price-sensitive but keen.",
   "Called about a consultation slot. Works late, evenings only.",
   "Follow-up from the F-11 launch event. Collected details at the desk.",
@@ -174,6 +187,14 @@ export function buildDermiereSeed(
   const messages: CrmMessage[] = [];
   const feedback: CrmFeedback[] = [];
 
+  const assets: Asset[] = [];
+  const consultations: Consultation[] = [];
+  const plans: TreatmentPlan[] = [];
+  const planItems: PlanItem[] = [];
+  const reports: Report[] = [];
+  const converted: Array<{ patient: Patient; branch: string; interest: string }> =
+    [];
+
   const usedPhones = new Set<string>();
   let invoiceSeq = 1;
 
@@ -241,7 +262,7 @@ export function buildDermiereSeed(
 
     // --- converted leads become patients with visits and invoices --------
     if (isWon && patientId) {
-      patients.push({
+      const patient: Patient = {
         id: patientId,
         clinic_id: clinicId,
         name,
@@ -253,7 +274,11 @@ export function buildDermiereSeed(
         source: contact.source === "walk_in" ? "walk_in" : "social",
         clinical_flags: {},
         created_at: contact.created_at,
-      });
+      };
+      patients.push(patient);
+      // Remembered so the clinical records below can pick a doctor at the
+      // branch the patient actually attends.
+      converted.push({ patient, branch, interest: interest[0] });
 
       // 1-3 completed visits; "returning" means 2+ completed visits.
       //
@@ -261,7 +286,7 @@ export function buildDermiereSeed(
       // comparison. Drawing inside a loop that breaks on "is this visit in
       // the past?" would make the number of draws depend on the wall clock,
       // which silently desynchronises the whole sequence from one day to the
-      // next — and then ids stop being stable and re-seeding orphans rows.
+      // next - and then ids stop being stable and re-seeding orphans rows.
       const visitCount = 1 + Math.floor(r() * 3);
       const visitPlans = Array.from({ length: visitCount }, (_, v) => ({
         offsetDays: (v + 1) * (7 + Math.floor(r() * 20)),
@@ -408,10 +433,10 @@ export function buildDermiereSeed(
             : type === "whatsapp"
             ? `WhatsApp the quote to ${name.split(" ")[0]}`
             : type === "post_treatment"
-            ? `Post-treatment check — ${name.split(" ")[0]}`
+            ? `Post-treatment check - ${name.split(" ")[0]}`
             : type === "review_request"
             ? `Ask ${name.split(" ")[0]} for feedback`
-            : `Confirm consultation slot — ${name.split(" ")[0]}`,
+            : `Confirm consultation slot - ${name.split(" ")[0]}`,
         description:
           r() < 0.5
             ? "Confirm they are still interested and offer the next available slot."
@@ -469,7 +494,7 @@ export function buildDermiereSeed(
           internal: false,
           body:
             "Walaikum assalam! Thank you for reaching out to Dermiere. " +
-            "I've shared our current pricing below — would you like me to hold a slot for you this week?",
+            "I've shared our current pricing below - would you like me to hold a slot for you this week?",
           attachments: [],
           state: pick(r, ["delivered", "read", "read", "sent"] as const),
           provider: "mock",
@@ -520,7 +545,7 @@ export function buildDermiereSeed(
     }
 
     // --- feedback ---------------------------------------------------------
-    // Only converted patients are asked for feedback — they are the ones
+    // Only converted patients are asked for feedback - they are the ones
     // with completed visits, which keeps the response rate honest.
     if (isWon && r() < 0.85) {
       const fbMs = now - Math.floor(r() * 60 * DAY);
@@ -572,7 +597,7 @@ export function buildDermiereSeed(
 
   // --- guarantee some service-recovery cases ----------------------------
   // Low ratings are rare by design (see the weighting above), so a small
-  // sample can easily produce none — and then the recovery workflow has
+  // sample can easily produce none - and then the recovery workflow has
   // nothing to show. Rather than skew the ratings distribution, convert a
   // few existing rows so there is always at least one open case and one
   // resolved case to look at.
@@ -663,8 +688,153 @@ export function buildDermiereSeed(
     },
   ];
 
+  // -------------------------------------------------------------------
+  // Worked-up clinical records
+  //
+  // A demo is only convincing if some patients are already part-way through
+  // the workflow: a face on file, a brief the doctor filled in, morphs
+  // pushed around on the canvas, a plan and a generated report. These are
+  // the patients to open when showing the consult journey.
+  //
+  // The portraits are the three bundled demo faces, matched on gender so
+  // the record reads as one person. More portraits in /public/seed means
+  // more worked-up patients: the list below is the only thing to extend.
+  // -------------------------------------------------------------------
+
+  const PORTRAITS: Array<{
+    url: string;
+    gender: "female" | "male";
+    /** a procedure id from templates.ts, so canvas + AI sliders populate */
+    procedure: string;
+    concerns: string[];
+    goal: string;
+    note: string;
+    morphs: Record<string, number>;
+  }> = [
+    {
+      url: "/seed/mahnoor_front.jpg",
+      gender: "female",
+      procedure: "lip_filler",
+      concerns: ["lips", "skin"],
+      goal: "I want my lips a little fuller but still natural, and my skin looks tired in photographs.",
+      note: "Discussed 1 ml hyaluronic filler across upper and lower lip, lower-weighted to keep the balance natural. Skin texture to be addressed separately with a HydraFacial course.",
+      morphs: { lip_upper_volume: 34, lip_lower_volume: 46, lip_ratio: 18, cupids_bow: 22 },
+    },
+    {
+      url: "/seed/zainab_front.jpg",
+      gender: "female",
+      procedure: "pigmentation",
+      concerns: ["skin", "cheeks"],
+      goal: "The dark patches on my cheeks have got worse since summer and makeup does not cover them any more.",
+      note: "Melasma pattern across both cheeks, moderate. Starting a pigmentation correction course with strict photoprotection; reassess at week six before considering any resurfacing.",
+      morphs: { pigment_evenness: 52, tone_clarity: 40 },
+    },
+    {
+      url: "/seed/hassan_front.jpg",
+      gender: "male",
+      procedure: "chin_jaw",
+      concerns: ["jaw", "chin"],
+      goal: "I would like a stronger jawline. I do not want anything that looks obvious.",
+      note: "Good skeletal base, mild soft-tissue laxity along the jawline. Conservative filler to the chin and jaw angles, staged over two sessions.",
+      morphs: { scale_jaw: 28, chin_projection: 24 },
+    },
+  ];
+
+  const usedForPortrait = new Set<string>();
+  for (const portrait of PORTRAITS) {
+    const match = converted.find(
+      (c) => c.patient.gender === portrait.gender && !usedForPortrait.has(c.patient.id)
+    );
+    if (!match) continue;
+    usedForPortrait.add(match.patient.id);
+
+    const { patient, branch } = match;
+    const doctorId = docFor(branch);
+    // Dated a few days after registration: the consult follows the enquiry.
+    const consultMs = Date.parse(patient.created_at) + 3 * DAY;
+    const suffix = patient.id.replace(/^derm_patient_/, "");
+
+    assets.push({
+      id: `derm_asset_front_${suffix}`,
+      patient_id: patient.id,
+      kind: "photo_front",
+      storage_url: portrait.url,
+      visit_date: iso(consultMs).slice(0, 10),
+      meta: { label: "Front photo" },
+      created_at: iso(consultMs),
+    });
+
+    const consultId = `derm_consult_${suffix}`;
+    consultations.push({
+      id: consultId,
+      patient_id: patient.id,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      date: iso(consultMs),
+      brief: {
+        primary_interest: portrait.procedure,
+        interests: [portrait.procedure],
+        concerns: portrait.concerns,
+        goal_text: portrait.goal,
+        flags: {
+          first_treatment: true,
+          budget_sensitive: false,
+          timeline: "ready_now",
+          medical_tourism: false,
+        },
+      },
+      canvas_state: { morphs: portrait.morphs, annotations: [] },
+      doctor_note: portrait.note,
+      status: "completed",
+    });
+
+    // Plan built from the procedure's own template, exactly as the app
+    // does when a doctor accepts a template during the consult.
+    const template = getTemplate(portrait.procedure);
+    const planId = `derm_plan_${suffix}`;
+    plans.push({
+      id: planId,
+      consultation_id: consultId,
+      template_id: template?.id,
+      summary: template
+        ? `${template.name} as visualized and agreed during consultation.`
+        : "Plan agreed during consultation.",
+      status: "accepted",
+      created_at: iso(consultMs),
+    });
+    (template?.plan_template ?? []).forEach((item, i) => {
+      planItems.push({
+        id: `derm_planitem_${suffix}_${i}`,
+        plan_id: planId,
+        kind: item.kind,
+        label: item.label,
+        detail: item.detail,
+        due:
+          item.offset_days !== undefined
+            ? iso(consultMs + item.offset_days * DAY).slice(0, 10)
+            : undefined,
+        // Anything already due in the past has been done.
+        done:
+          item.offset_days !== undefined &&
+          consultMs + item.offset_days * DAY < now,
+        order: i,
+      });
+    });
+
+    reports.push({
+      id: `derm_report_${suffix}`,
+      consultation_id: consultId,
+      generated_at: iso(consultMs + 2 * 3600000),
+    });
+  }
+
   return {
     patients,
+    assets,
+    consultations,
+    plans,
+    planItems,
+    reports,
     appointments,
     invoices,
     contacts,

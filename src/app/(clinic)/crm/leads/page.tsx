@@ -3,17 +3,23 @@
 /**
  * Leads pipeline.
  *
- * Columns come from PIPELINE_STAGES in crm/types.ts — the stage list is
- * defined once, so adding a stage adds a column here and a filter everywhere
- * else without touching this file.
+ * A sortable, filterable list rather than a card board: columns of cards
+ * clipped the detail and got unreadable past a couple of dozen leads. The
+ * stage chips carry what the columns used to say, and every row opens the
+ * contact.
  *
- * Moving a card PATCHes the stage; the server records the transition on the
- * contact's timeline. Terminal stages (lost, archived) live in a drawer
- * rather than the board, because they are not work in progress.
+ * Stages come from PIPELINE_STAGES in crm/types.ts, so adding a stage adds a
+ * chip here and a filter everywhere else without touching this file.
+ *
+ * Changing a row's stage PATCHes it; the server records the transition on
+ * the contact's timeline and, for "consultation booked", puts a real
+ * appointment on the clinic calendar. Terminal stages (lost, archived) are
+ * hidden unless asked for, because they are not work in progress.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, Search, X } from "lucide-react";
 import {
   PIPELINE_STAGES,
@@ -35,11 +41,24 @@ import {
   type StaffLite,
 } from "@/lib/crm/client";
 import { formatPhone, phoneMatchesQuery } from "@/lib/crm/phone";
-import { Field, GlassCard, Modal, SectionTitle, Spinner } from "@/components/ui";
+import {
+  EmptyState,
+  Field,
+  Modal,
+  SectionTitle,
+  Spinner,
+} from "@/components/ui";
 import { Pill, ScrollX } from "@/components/crm/CrmUi";
 import type { ClinicLocation } from "@/lib/types";
 
+type SortCol = "name" | "value" | "updated";
+interface SortState {
+  col: SortCol;
+  dir: "asc" | "desc";
+}
+
 export default function LeadsPage() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [staff, setStaff] = useState<StaffLite[]>([]);
   const [branches, setBranches] = useState<ClinicLocation[]>([]);
@@ -48,6 +67,9 @@ export default function LeadsPage() {
   const [query, setQuery] = useState("");
   const [branch, setBranch] = useState("");
   const [owner, setOwner] = useState("");
+  const [source, setSource] = useState("");
+  const [stage, setStage] = useState("");
+  const [sort, setSort] = useState<SortState>({ col: "updated", dir: "desc" });
   const [showTerminal, setShowTerminal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [lostFor, setLostFor] = useState<CrmContact | null>(null);
@@ -89,7 +111,7 @@ export default function LeadsPage() {
     [staff]
   );
   const branchShort = useCallback(
-    (id?: string) => branches.find((b) => b.id === id)?.short ?? "—",
+    (id?: string) => branches.find((b) => b.id === id)?.short ?? "-",
     [branches]
   );
 
@@ -98,6 +120,7 @@ export default function LeadsPage() {
     return contacts.filter((c) => {
       if (branch && c.branch_id !== branch) return false;
       if (owner && c.assigned_to !== owner) return false;
+      if (source && c.source !== source) return false;
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
@@ -107,14 +130,35 @@ export default function LeadsPage() {
         c.treatment_interest.some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [contacts, query, branch, owner]);
+  }, [contacts, query, branch, owner, source]);
 
-  const byStage = useMemo(() => {
-    const m = new Map<string, CrmContact[]>();
-    for (const s of [...PIPELINE_STAGES, ...TERMINAL_STAGES]) m.set(s.id, []);
-    for (const c of filtered) m.get(c.stage)?.push(c);
+  /** Counts per stage, for the stage filter chips. */
+  const stageCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of filtered) m.set(c.stage, (m.get(c.stage) ?? 0) + 1);
     return m;
   }, [filtered]);
+
+  const rows = useMemo(() => {
+    const terminal = new Set<string>(TERMINAL_STAGES.map((s) => s.id));
+    const out = filtered.filter((c) => {
+      if (stage) return c.stage === stage;
+      // Lost and archived are not work in progress: they stay out of the
+      // list unless asked for, exactly as they were off the board.
+      return showTerminal || !terminal.has(c.stage);
+    });
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return [...out].sort((a, b) => {
+      switch (sort.col) {
+        case "name":
+          return dir * a.name.localeCompare(b.name);
+        case "value":
+          return dir * ((a.estimated_value ?? 0) - (b.estimated_value ?? 0));
+        default:
+          return dir * a.updated_at.localeCompare(b.updated_at);
+      }
+    });
+  }, [filtered, stage, showTerminal, sort]);
 
   const move = async (contact: CrmContact, stage: ContactStage) => {
     if (stage === "lost") {
@@ -206,95 +250,158 @@ export default function LeadsPage() {
             ))}
           </select>
         </div>
+        <div className="w-44">
+          <select
+            className="input input-sm"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            aria-label="Filter by source"
+          >
+            <option value="">Any source</option>
+            {LEAD_SOURCES.map((s) => (
+              <option key={s} value={s}>
+                {LEAD_SOURCE_LABELS[s] ?? s}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           className={`chip ${showTerminal ? "chip-active" : ""}`}
           onClick={() => setShowTerminal((v) => !v)}
+          disabled={!!stage}
         >
           Lost &amp; archived
         </button>
+        {(query || branch || owner || source || stage) && (
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setQuery("");
+              setBranch("");
+              setOwner("");
+              setSource("");
+              setStage("");
+            }}
+          >
+            <X size={14} /> Clear
+          </button>
+        )}
       </div>
 
-      {/* --- board --- */}
-      <ScrollX>
-        <div className="flex gap-3 min-w-max pb-2">
-          {PIPELINE_STAGES.map((stage) => {
-            const cards = byStage.get(stage.id) ?? [];
-            const value = cards.reduce((s, c) => s + (c.estimated_value ?? 0), 0);
-            return (
-              <div key={stage.id} className="w-[260px] shrink-0">
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-ink-900">
-                      {stage.label}
-                    </span>
-                    <span className="text-xs text-ink-400 tabular-nums">
-                      {cards.length}
-                    </span>
-                  </div>
-                  {value > 0 && (
-                    <span className="text-[10px] text-ink-400 tabular-nums">
-                      {money(value)}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {cards.length === 0 && (
-                    <div className="glass-subtle text-center py-6 text-xs text-ink-400">
-                      Nothing here
-                    </div>
-                  )}
-                  {cards.map((c) => (
-                    <LeadCard
-                      key={c.id}
-                      contact={c}
-                      staffName={staffName}
-                      branchShort={branchShort}
-                      busy={busyId === c.id}
-                      onMove={(s) => void move(c, s)}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </ScrollX>
+      {/* Stage filter: what the board's columns used to say, as one row
+          that also works when a stage holds sixty leads. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          className={`chip ${stage === "" ? "chip-active" : ""}`}
+          onClick={() => setStage("")}
+        >
+          All stages
+          <span className="text-ink-400 ml-1 tabular-nums">{rows.length}</span>
+        </button>
+        {[...PIPELINE_STAGES, ...TERMINAL_STAGES].map((st) => (
+          <button
+            key={st.id}
+            className={`chip ${stage === st.id ? "chip-active" : ""}`}
+            onClick={() => setStage(stage === st.id ? "" : st.id)}
+          >
+            {st.label}
+            <span className="text-ink-400 ml-1 tabular-nums">
+              {stageCounts.get(st.id) ?? 0}
+            </span>
+          </button>
+        ))}
+      </div>
 
-      {/* --- lost / archived --- */}
-      {showTerminal && (
-        <GlassCard className="p-5">
-          <div className="grid sm:grid-cols-2 gap-5">
-            {TERMINAL_STAGES.map((stage) => {
-              const cards = byStage.get(stage.id) ?? [];
-              return (
-                <div key={stage.id}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-semibold text-ink-900">
-                      {stage.label}
-                    </span>
-                    <span className="text-xs text-ink-400">{cards.length}</span>
-                  </div>
-                  {cards.length === 0 ? (
-                    <p className="text-sm text-ink-400">None.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {cards.map((c) => (
-                        <LeadCard
-                          key={c.id}
-                          contact={c}
-                          staffName={staffName}
-                          branchShort={branchShort}
-                          busy={busyId === c.id}
-                          onMove={(s) => void move(c, s)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </GlassCard>
+      {/* --- pipeline rows --------------------------------------------
+          A board of cards forced every lead into a 260px column and cut
+          the detail off. Rows show the whole record at a glance, sort,
+          and stay readable however many leads there are. */}
+      {rows.length === 0 ? (
+        <EmptyState
+          title="No leads match"
+          body="Try a different search, or clear the filters."
+        />
+      ) : (
+        <div className="glass p-1">
+          <ScrollX>
+            <table className="w-full text-sm min-w-[900px]">
+              <thead>
+                <tr className="text-left text-ink-400 text-xs">
+                  <SortHeader label="Lead" col="name" sort={sort} onSort={setSort} />
+                  <th className="py-2.5 px-3 font-medium">Stage</th>
+                  <th className="py-2.5 px-3 font-medium">Interest</th>
+                  <th className="py-2.5 px-3 font-medium">Source</th>
+                  <th className="py-2.5 px-3 font-medium">Branch</th>
+                  <th className="py-2.5 px-3 font-medium">Owner</th>
+                  <SortHeader label="Value" col="value" sort={sort} onSort={setSort} align="right" />
+                  <SortHeader label="Updated" col="updated" sort={sort} onSort={setSort} align="right" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => (
+                  <tr
+                    key={c.id}
+                    onClick={() => router.push(`/crm/contacts/${c.id}`)}
+                    className="border-t border-white/60 hover:bg-mint-50/50 cursor-pointer"
+                  >
+                    <td className="py-2.5 px-3">
+                      <Link
+                        href={`/crm/contacts/${c.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-medium text-ink-900 hover:text-mint-600"
+                      >
+                        {c.name}
+                      </Link>
+                      <div className="text-xs text-ink-400">{formatPhone(c.phone)}</div>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {/* Stage stays editable inline: moving a lead was the
+                          one thing the board did well. */}
+                      <select
+                        className="input input-xs !w-auto"
+                        value={c.stage}
+                        disabled={busyId === c.id}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => void move(c, e.target.value as ContactStage)}
+                        aria-label={`Stage for ${c.name}`}
+                      >
+                        {[...PIPELINE_STAGES, ...TERMINAL_STAGES].map((st) => (
+                          <option key={st.id} value={st.id}>
+                            {st.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex flex-wrap gap-1">
+                        {c.treatment_interest.slice(0, 2).map((t) => (
+                          <Pill key={t} tone="teal">
+                            {titleize(t)}
+                          </Pill>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 text-ink-700 whitespace-nowrap">
+                      {LEAD_SOURCE_LABELS[c.source] ?? c.source}
+                    </td>
+                    <td className="py-2.5 px-3 text-ink-700 whitespace-nowrap">
+                      {branchShort(c.branch_id)}
+                    </td>
+                    <td className="py-2.5 px-3 text-ink-700 whitespace-nowrap">
+                      {staffName(c.assigned_to)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
+                      {c.estimated_value ? money(c.estimated_value) : "-"}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-ink-400 whitespace-nowrap">
+                      {relativeTime(c.updated_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollX>
+        </div>
       )}
 
       {/* Mounted only while open, so each one opens with fresh state and
@@ -328,75 +435,48 @@ export default function LeadsPage() {
 
 // ---------------------------------------------------------------------
 
-function LeadCard({
-  contact,
-  staffName,
-  branchShort,
-  busy,
-  onMove,
+/**
+ * A sortable column heading.
+ *
+ * Clicking the active column flips direction; clicking another switches to
+ * it. Kept here rather than in CrmUi because only this table sorts so far.
+ */
+function SortHeader({
+  label,
+  col,
+  sort,
+  onSort,
+  align = "left",
 }: {
-  contact: CrmContact;
-  staffName: (id?: string) => string;
-  branchShort: (id?: string) => string;
-  busy: boolean;
-  onMove: (stage: ContactStage) => void;
+  label: string;
+  col: SortCol;
+  sort: SortState;
+  onSort: (s: SortState) => void;
+  align?: "left" | "right";
 }) {
+  const active = sort.col === col;
   return (
-    <div className={`glass p-3 space-y-2 ${busy ? "opacity-60" : ""}`}>
-      <div className="flex items-start justify-between gap-2">
-        <Link
-          href={`/crm/contacts/${contact.id}`}
-          className="font-medium text-ink-900 text-sm leading-tight hover:text-mint-600"
-        >
-          {contact.name}
-        </Link>
-        {contact.estimated_value ? (
-          <span className="text-[10px] text-ink-400 tabular-nums shrink-0">
-            {money(contact.estimated_value)}
-          </span>
-        ) : null}
-      </div>
-
-      <div className="text-[11px] text-ink-400">{formatPhone(contact.phone)}</div>
-
-      <div className="flex flex-wrap gap-1">
-        <Pill tone="sky">{LEAD_SOURCE_LABELS[contact.source] ?? contact.source}</Pill>
-        {contact.branch_id && <Pill>{branchShort(contact.branch_id)}</Pill>}
-        {contact.treatment_interest.slice(0, 2).map((t) => (
-          <Pill key={t} tone="teal">
-            {titleize(t)}
-          </Pill>
-        ))}
-        {contact.tags.map((t) => (
-          <Pill key={t} tone="amber">
-            {t}
-          </Pill>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between gap-2 text-[10px] text-ink-400">
-        <span className="truncate">{staffName(contact.assigned_to)}</span>
-        <span className="shrink-0">{relativeTime(contact.created_at)}</span>
-      </div>
-
-      <select
-        className="input input-xs"
-        value={contact.stage}
-        disabled={busy}
-        onChange={(e) => onMove(e.target.value as ContactStage)}
-        aria-label={`Move ${contact.name} to another stage`}
+    <th
+      className={`py-2.5 px-3 font-medium ${align === "right" ? "text-right" : ""}`}
+    >
+      <button
+        className={`inline-flex items-center gap-1 hover:text-ink-700 ${
+          active ? "text-ink-900" : ""
+        }`}
+        onClick={() =>
+          onSort({
+            col,
+            dir: active && sort.dir === "desc" ? "asc" : "desc",
+          })
+        }
+        aria-label={`Sort by ${label}`}
       >
-        {[...PIPELINE_STAGES, ...TERMINAL_STAGES].map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-    </div>
+        {label}
+        {active && (sort.dir === "desc" ? "↓" : "↑")}
+      </button>
+    </th>
   );
 }
-
-// ---------------------------------------------------------------------
 
 function NewLeadModal({
   onClose,
@@ -469,7 +549,7 @@ function NewLeadModal({
               placeholder="Full name"
             />
           </Field>
-          <Field label="Phone" hint="Any format — 0300…, +92 300…, 92300…">
+          <Field label="Phone" hint="Any format - 0300…, +92 300…, 92300…">
             <input
               className="input"
               value={form.phone}

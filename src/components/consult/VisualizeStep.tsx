@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * AI Before / After — THE HERO (05_ai-before-after.md).
+ * AI Before / After - THE HERO (05_ai-before-after.md).
  * Sliders tune the instruction; the on-device warp gives an instant live
  * preview (works offline, no key needed); "Generate with AI" runs the
  * identity-preserving model server-side for the photoreal healed result.
@@ -296,7 +296,7 @@ export function VisualizeStep({
     setSaved(false);
   }, [face.image, face.landmarks, params, activeTemplates]);
 
-  // warp on param changes (debounced lightly — warp is fast but not free)
+  // warp on param changes (debounced lightly - warp is fast but not free)
   useEffect(() => {
     if (after?.source !== "simulation" && after !== null) return; // don't clobber an AI result on mount
     const t = setTimeout(runWarp, 90);
@@ -520,7 +520,7 @@ export function VisualizeStep({
 
   // Body-first treatments skip the 3D-face pipeline entirely (owner
   // 2026-07-23): their visualization lives in the photo-based Body Studio
-  // — pose-detected toning + Stryder AI Image on a body photo. Checked
+  // - pose-detected toning + Stryder AI Image on a body photo. Checked
   // BEFORE the front-photo guard: a body consult never needs a face photo.
   if (isBodyTemplate(primary?.id)) {
     return (
@@ -533,8 +533,8 @@ export function VisualizeStep({
         </h2>
         <p className="text-ink-700 mt-3 max-w-md mx-auto leading-relaxed">
           The 3D face canvas isn&apos;t used here. The Body Studio takes a
-          body photo, finds the treated area on it automatically — abdomen,
-          waist, arms, thighs — tones it live like a photo editor, and
+          body photo, finds the treated area on it automatically - abdomen,
+          waist, arms, thighs - tones it live like a photo editor, and
           renders the photoreal course result with Stryder AI Image. Saved
           previews land on {patient.name.split(" ")[0]}&apos;s timeline.
         </p>
@@ -546,7 +546,7 @@ export function VisualizeStep({
           Open Body Contour Studio
         </Link>
         <p className="caption mt-3">
-          Continue to Plan afterwards — the course template and pricing are
+          Continue to Plan afterwards - the course template and pricing are
           already armed for {primary?.name}.
         </p>
       </GlassCard>
@@ -656,7 +656,7 @@ export function VisualizeStep({
             <div className="text-sm text-ink-700">
               {genError.code === "no_api_key" ? (
                 <>
-                  {/* relay the server's reason — it knows which provider/key
+                  {/* relay the server's reason - it knows which provider/key
                       is missing; a hardcoded env-var name here lies */}
                   <b>Simulation mode.</b> {genError.message} You are seeing
                   the on-device preview meanwhile.

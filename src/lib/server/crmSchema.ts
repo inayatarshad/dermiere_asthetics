@@ -1,5 +1,5 @@
 /**
- * CRM schema — additive, idempotent, non-destructive.
+ * CRM schema - additive, idempotent, non-destructive.
  *
  * Called from ensureSchema() in db.ts, so it runs once per server instance
  * on the same bootstrap as the rest of the tables. Every statement is
@@ -7,8 +7,8 @@
  * running it against a database that already has the CRM is a no-op.
  *
  * Storage style follows the rest of the repo: the full record as jsonb, plus
- * the columns queries actually filter or sort on (clinic_id always — the
- * tenant boundary — and the few keys the dashboards group by). All table
+ * the columns queries actually filter or sort on (clinic_id always - the
+ * tenant boundary - and the few keys the dashboards group by). All table
  * names here are literals in this file, never user input.
  */
 
@@ -37,7 +37,7 @@ const CRM_TABLES = [
  * ~25 CREATE ... IF NOT EXISTS statements is correct but costs seconds
  * against a distant region, and the bootstrap memo resets whenever the
  * module is re-evaluated (which dev servers do constantly). Checking first
- * turns the common case — schema already present — into a single query.
+ * turns the common case - schema already present - into a single query.
  *
  * This is an optimisation only: if the check is inconclusive the full,
  * idempotent DDL below still runs.
@@ -60,7 +60,7 @@ export async function ensureCrmSchema(q: Q): Promise<void> {
 
   // --- contacts: leads and patients-as-contacts share one row ----------
   // `stage` is what separates a lead from a converted patient, so a
-  // conversion is an UPDATE, never a second row — that is what keeps the
+  // conversion is an UPDATE, never a second row - that is what keeps the
   // pipeline free of duplicates.
   await q`CREATE TABLE IF NOT EXISTS crm_contacts (
     id text PRIMARY KEY,
@@ -75,7 +75,7 @@ export async function ensureCrmSchema(q: Q): Promise<void> {
     updated_at timestamptz NOT NULL DEFAULT now(),
     payload jsonb NOT NULL
   )`;
-  // One person, one row, per clinic — the database-level dedupe guarantee.
+  // One person, one row, per clinic - the database-level dedupe guarantee.
   await q`CREATE UNIQUE INDEX IF NOT EXISTS uq_crm_contacts_phone
     ON crm_contacts (clinic_id, phone_norm)`;
   await q`CREATE INDEX IF NOT EXISTS idx_crm_contacts_stage

@@ -3,7 +3,7 @@ import { Jost, Fraunces } from "next/font/google";
 import { BrandSplash } from "@/components/BrandSplash";
 import "./globals.css";
 
-// CAPTURE brand face — geometric sans, matches capture.cc
+// CAPTURE brand face - geometric sans, matches capture.cc
 const jost = Jost({
   variable: "--font-jost",
   subsets: ["latin"],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   ),
   title: "Dermiere · Clinic OS",
   description:
-    "Dermiere Clinic OS — patients, calendar, point of sale, reviews, and a CRM for leads, follow-ups, shared conversations and feedback. Gulberg and F-11.",
+    "Dermiere Clinic OS - patients, calendar, point of sale, reviews, and a CRM for leads, follow-ups, shared conversations and feedback. Gulberg and F-11.",
   openGraph: {
     title: "Dermiere · Clinic OS",
     description:
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         type: "image/jpeg",
-        alt: "Dermiere — skin, considered.",
+        alt: "Dermiere - skin, considered.",
       },
     ],
   },

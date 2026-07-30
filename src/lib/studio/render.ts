@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * CAPTURE Visualization Studio — deterministic on-device renderers.
+ * CAPTURE Visualization Studio - deterministic on-device renderers.
  *
  * Two preset families, both illustrative previews:
  *  - Red-light glow (MitoRedLight): tone, texture, warmth and bloom
@@ -9,7 +9,7 @@
  *  - Body contour (Exomere): an elliptical inward pinch warp (inverse
  *    mapping + bilinear sampling) that slims/firms a chosen region.
  *
- * Like the face warp, these run offline with no API key — the AI pass is
+ * Like the face warp, these run offline with no API key - the AI pass is
  * an optional upgrade, never a dependency (booth-grade reliability).
  */
 
@@ -82,7 +82,7 @@ export function renderGlow(
   const tone = p.tone / 100;
   const warm = p.warmth / 100;
 
-  // 1. texture refinement — soft-focus blend (mid-frequency smoothing)
+  // 1. texture refinement - soft-focus blend (mid-frequency smoothing)
   if (t > 0.02) {
     ctx.save();
     ctx.filter = `blur(${(1.5 + t * 4).toFixed(1)}px)`;
@@ -91,7 +91,7 @@ export function renderGlow(
     ctx.restore();
   }
 
-  // 2. tone evenness — gentle saturation/contrast normalization
+  // 2. tone evenness - gentle saturation/contrast normalization
   if (tone > 0.02) {
     ctx.save();
     ctx.filter = `saturate(${(1 + tone * 0.14).toFixed(2)}) contrast(${(1 - tone * 0.08).toFixed(2)}) brightness(${(1 + tone * 0.05).toFixed(2)})`;
@@ -100,7 +100,7 @@ export function renderGlow(
     ctx.restore();
   }
 
-  // 3. radiant bloom — blurred screen pass, brightest where skin is lit
+  // 3. radiant bloom - blurred screen pass, brightest where skin is lit
   if (g > 0.02) {
     ctx.save();
     ctx.filter = `blur(${(6 + g * 10).toFixed(1)}px) brightness(${(1.05 + g * 0.18).toFixed(2)})`;
@@ -110,7 +110,7 @@ export function renderGlow(
     ctx.restore();
   }
 
-  // 4. warm light bias — soft-light warm wash
+  // 4. warm light bias - soft-light warm wash
   if (warm > 0.02) {
     ctx.save();
     ctx.globalCompositeOperation = "soft-light";
@@ -154,7 +154,7 @@ export interface MultiContourParams {
 /**
  * Multi-region variant: each ellipse pinches horizontally toward its own
  * vertical axis (same inverse-mapped warp as before), so pose-detected
- * areas — both upper arms, both thighs, the waistline — slim together
+ * areas - both upper arms, both thighs, the waistline - slim together
  * in one pass.
  */
 export function renderContourRegions(
@@ -213,7 +213,7 @@ export function renderContourRegions(
     ctx.putImageData(out, 0, 0);
   }
 
-  // firmness — localized smoothing clipped to the union of regions
+  // firmness - localized smoothing clipped to the union of regions
   const f = p.firmness / 100;
   if (f > 0.03 && px.length > 0) {
     const smooth = document.createElement("canvas");
@@ -248,7 +248,7 @@ const clamp01 = (n: number, lo = 0.02, hi = 0.98) =>
 /**
  * Derive the pinch ellipses for a preset from MediaPipe Pose landmarks
  * ([x, y, z, visibility], normalized). Returns null when the needed
- * joints aren't confidently visible — callers fall back to the manual
+ * joints aren't confidently visible - callers fall back to the manual
  * treatment window.
  */
 export function regionsFromPose(

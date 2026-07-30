@@ -2,14 +2,14 @@
 
 /**
  * Dermiere brand splash (owner 2026-07-23: "a proper page when you load the
- * system — the logo starts closed and expands; and a small loading-screen
+ * system - the logo starts closed and expands; and a small loading-screen
  * animation when you log in. Make it beautiful.")
  *
  * Two modes on one full-screen ivory overlay:
- *   reveal — plays once per full page load (SSR-rendered, so it also masks
+ *   reveal - plays once per full page load (SSR-rendered, so it also masks
  *            the first paint): the wordmark opens from a closed center
  *            curtain, a champagne light sweeps across, CLINIC OS fades up.
- *   sweep  — fired by triggerBrandSplash() right after a successful login;
+ *   sweep  - fired by triggerBrandSplash() right after a successful login;
  *            it lives in the ROOT layout so it survives the route change
  *            into the dashboard, then dissolves.
  *

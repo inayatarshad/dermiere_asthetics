@@ -1,5 +1,5 @@
 /**
- * POST /api/rewards/redeem — marks a Capture Circle code redeemed against
+ * POST /api/rewards/redeem - marks a Capture Circle code redeemed against
  * an invoice. Called by POS at checkout, after validate. Idempotent-safe:
  * an already-redeemed code answers 409 so a double click can never apply
  * a discount twice.

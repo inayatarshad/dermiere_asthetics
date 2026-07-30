@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Contacts — one searchable list of everyone the clinic knows, leads and
+ * Contacts - one searchable list of everyone the clinic knows, leads and
  * converted patients alike.
  *
  * This is deliberately NOT a second patients screen: a converted contact
@@ -64,7 +64,7 @@ export default function ContactsPage() {
   const staffName = (id?: string) =>
     staff.find((s) => s.id === id)?.name ?? "Unassigned";
   const branchShort = (id?: string) =>
-    branches.find((b) => b.id === id)?.short ?? "—";
+    branches.find((b) => b.id === id)?.short ?? "-";
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -214,7 +214,7 @@ export default function ContactsPage() {
                       {staffName(c.assigned_to)}
                     </td>
                     <td className="py-2.5 px-3 text-right tabular-nums text-ink-700 whitespace-nowrap">
-                      {c.estimated_value ? money(c.estimated_value) : "—"}
+                      {c.estimated_value ? money(c.estimated_value) : "-"}
                     </td>
                     <td className="py-2.5 px-3 text-right text-ink-400 whitespace-nowrap">
                       {relativeTime(c.created_at)}

@@ -6,8 +6,8 @@
  * Extends the clinic's existing review capture with structured ratings
  * (branch / doctor / treatment) and a recovery workflow for low scores.
  *
- * Averages are only shown where feedback actually exists — a branch with no
- * responses shows "—", never a 0.0 or an inherited clinic average.
+ * Averages are only shown where feedback actually exists - a branch with no
+ * responses shows "-", never a 0.0 or an inherited clinic average.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -87,7 +87,7 @@ export default function FeedbackPage() {
   const staffName = (id?: string) =>
     staff.find((s) => s.id === id)?.name ?? (id ? "Unknown" : "Unassigned");
   const branchShort = (id?: string) =>
-    branches.find((b) => b.id === id)?.short ?? (id ? titleize(id) : "—");
+    branches.find((b) => b.id === id)?.short ?? (id ? titleize(id) : "-");
 
   const scoped = useMemo(
     () => (branch ? items.filter((f) => f.branch_id === branch) : items),

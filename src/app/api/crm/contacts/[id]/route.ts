@@ -1,5 +1,5 @@
 /**
- * /api/crm/contacts/[id] — one lead/contact plus its unified timeline.
+ * /api/crm/contacts/[id] - one lead/contact plus its unified timeline.
  *
  *   GET    the contact, its timeline, follow-ups, conversations and feedback
  *   PATCH  edit fields, move pipeline stage, or convert to a patient
@@ -98,8 +98,8 @@ export async function GET(
           kind: a.status === "completed" ? "visit" : "appointment",
           summary:
             a.status === "completed"
-              ? `Visit completed — ${a.type.replace(/_/g, " ")}`
-              : `Appointment ${a.status.replace(/_/g, " ")} — ${a.type.replace(/_/g, " ")}`,
+              ? `Visit completed - ${a.type.replace(/_/g, " ")}`
+              : `Appointment ${a.status.replace(/_/g, " ")} - ${a.type.replace(/_/g, " ")}`,
           detail: a.notes,
           branch_id: a.location_id,
           ref_id: a.id,
@@ -114,7 +114,7 @@ export async function GET(
           contact_id: contact.id,
           patient_id: contact.patient_id,
           kind: "invoice",
-          summary: `Invoice ${inv.number} — Rs. ${inv.total.toLocaleString("en-PK")}`,
+          summary: `Invoice ${inv.number} - Rs. ${inv.total.toLocaleString("en-PK")}`,
           branch_id: inv.location_id,
           ref_id: inv.id,
           created_at: inv.created_at,
@@ -324,7 +324,7 @@ function onlyLostFields(body: Record<string, unknown>): boolean {
 }
 
 /**
- * POST /api/crm/contacts/[id] — convert this lead into a patient.
+ * POST /api/crm/contacts/[id] - convert this lead into a patient.
  *
  * Reuses the existing `patients` collection rather than creating a parallel
  * one, and links the two by id, so converting does NOT re-enter the person:
@@ -350,7 +350,7 @@ export async function POST(
       });
     }
 
-    // An existing patient with the same number is the same person — link to
+    // An existing patient with the same number is the same person - link to
     // them instead of creating a duplicate patient record.
     const patients = await pgListRecords<Patient>(ctx.clinicId, "patients");
     const match = patients.find(

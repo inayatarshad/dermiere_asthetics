@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * VYBERO Analytics — the admin's view of the voice agent's phone work,
+ * VYBERO Analytics - the admin's view of the voice agent's phone work,
  * modeled on the TechGIS VYBERO Analytics dashboard (KPI row, call
  * volume, peak hours, topic + question mining, recent calls) and
  * clinic-flavored: topics are procedures, outcomes are bookings.
@@ -45,7 +45,7 @@ import {
 import type { VyberoCall } from "@/lib/types";
 import type { TranscriptTurn } from "@/app/api/vybero/call-transcript/route";
 
-/** ElevenLabs-derived calls (webhook or daily sync) — the REAL history.
+/** ElevenLabs-derived calls (webhook or daily sync) - the REAL history.
  *  Anything else in the store is the seeded demo story. */
 const isLiveCall = (c: VyberoCall) => c.id.startsWith("el_");
 
@@ -67,7 +67,7 @@ export default function AnalyticsPage() {
 
   // Truth switch (owner 2026-07-23: "56 calls in 14 days is just not true"):
   // live = only ElevenLabs-derived calls; the seeded demo story is opt-in
-  // and always labeled. null = auto — live as soon as any real call exists.
+  // and always labeled. null = auto - live as soon as any real call exists.
   const liveCalls = useMemo(() => calls.filter(isLiveCall), [calls]);
   const [dataModeChoice, setDataMode] = useState<"live" | "all" | null>(null);
   const dataMode =
@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
         <GlassCard className="px-4 py-2.5 mb-3 border border-amber-200/70 bg-amber-50/60">
           <p className="text-xs text-amber-900">
             <b>Demo data.</b> The numbers below include the seeded demo story
-            — they are not Noor&apos;s real call history. Switch to Live
+            - they are not Noor&apos;s real call history. Switch to Live
             calls (or press Sync calls) for the truth.
           </p>
         </GlassCard>
@@ -193,7 +193,7 @@ export default function AnalyticsPage() {
         <GlassCard className="px-4 py-2.5 mb-3">
           <p className="text-xs text-ink-700">
             No synced calls yet. Press <b>Sync calls</b> to pull Noor&apos;s
-            history from ElevenLabs — every real call also lands here
+            history from ElevenLabs - every real call also lands here
             automatically via the daily sync and the post-call webhook.
           </p>
         </GlassCard>
@@ -373,7 +373,7 @@ export default function AnalyticsPage() {
         </div>
       </GlassCard>
 
-      {/* Recent calls — click a row for the recording + transcript */}
+      {/* Recent calls - click a row for the recording + transcript */}
       <GlassCard className="p-5 mt-4">
         <h3 className="h2 text-ink-900">Recent calls</h3>
         <p className="caption mt-0.5 mb-3">
@@ -438,7 +438,7 @@ export default function AnalyticsPage() {
                     </span>
                   </td>
                   <td className="py-2.5 pr-0 text-right text-ink-700 whitespace-nowrap">
-                    {c.duration_secs > 0 ? formatDuration(c.duration_secs) : "—"}
+                    {c.duration_secs > 0 ? formatDuration(c.duration_secs) : "-"}
                   </td>
                 </tr>
               ))}
@@ -609,7 +609,7 @@ function CallDetailModal({
         </>
       ) : (
         <p className="text-sm text-amber-900 bg-amber-50/70 border border-amber-200/70 rounded-xl px-3.5 py-2.5 mt-5">
-          This is a seeded demo call — part of the sample story, so no
+          This is a seeded demo call - part of the sample story, so no
           recording or transcript exists. Synced ElevenLabs calls open with
           the real audio and conversation here.
         </p>

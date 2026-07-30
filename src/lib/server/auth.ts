@@ -2,7 +2,7 @@
  * Server auth (node runtime): password hashing (scrypt) + request→session
  * resolution + role guards. The real tenant boundary: every protected API
  * route calls requireSession()/requireRole() and scopes its data by the
- * returned clinic_id — never by anything the client sends.
+ * returned clinic_id - never by anything the client sends.
  */
 
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
@@ -17,7 +17,7 @@ import {
 } from "./session";
 
 // ---------------------------------------------------------------------
-// Passwords — scrypt with a per-user random salt, constant-time compare.
+// Passwords - scrypt with a per-user random salt, constant-time compare.
 // Stored as "scrypt:<saltHex>:<hashHex>".
 // ---------------------------------------------------------------------
 

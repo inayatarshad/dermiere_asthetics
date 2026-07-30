@@ -6,7 +6,6 @@ import {
   Search,
   UserPlus,
   Users,
-  ScanLine,
   Stethoscope,
   Megaphone,
   ArrowDownAZ,
@@ -32,22 +31,16 @@ const SOURCE_ORDER: PatientSource[] = [
 export default function PatientsPage() {
   const patients = useStore((s) => s.patients);
   const consultations = useStore((s) => s.consultations);
-  const skinAnalyses = useStore((s) => s.skinAnalyses);
   const consents = useStore((s) => s.consents);
   const newArrivals = useStore((s) => s.newArrivals);
 
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<PatientSource | "all">("all");
-  const [onlyMarkVu, setOnlyMarkVu] = useState(false);
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [onlyMarketing, setOnlyMarketing] = useState(false);
   const [sort, setSort] = useState<SortKey>("newest");
 
   // attribute lookups, derived once per data change (stable selectors above)
-  const markVuIds = useMemo(
-    () => new Set(skinAnalyses.map((a) => a.patient_id)),
-    [skinAnalyses]
-  );
   const openConsultIds = useMemo(
     () =>
       new Set(
@@ -74,7 +67,6 @@ export default function PatientsPage() {
     const digits = q.replace(/\D/g, "");
     const list = patients.filter((p) => {
       if (source !== "all" && p.source !== source) return false;
-      if (onlyMarkVu && !markVuIds.has(p.id)) return false;
       if (onlyOpen && !openConsultIds.has(p.id)) return false;
       if (onlyMarketing && !marketingIds.has(p.id)) return false;
       if (!q) return true;
@@ -90,10 +82,10 @@ export default function PatientsPage() {
         ? a.name.localeCompare(b.name)
         : b.created_at.localeCompare(a.created_at)
     );
-  }, [patients, query, source, onlyMarkVu, onlyOpen, onlyMarketing, sort, markVuIds, openConsultIds, marketingIds]);
+  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds]);
 
   const filtersActive =
-    source !== "all" || onlyMarkVu || onlyOpen || onlyMarketing || !!query.trim();
+    source !== "all" || onlyOpen || onlyMarketing || !!query.trim();
 
   return (
     <div className="space-y-5">
@@ -160,9 +152,6 @@ export default function PatientsPage() {
           </Chip>
         ))}
         <span className="w-px h-5 bg-[rgba(28,26,22,0.12)] mx-1.5 hidden sm:inline-block" />
-        <Chip active={onlyMarkVu} onClick={() => setOnlyMarkVu(!onlyMarkVu)}>
-          <ScanLine size={12} /> MARK-VU on file
-        </Chip>
         <Chip active={onlyOpen} onClick={() => setOnlyOpen(!onlyOpen)}>
           <Stethoscope size={12} /> Open consult
         </Chip>
@@ -212,11 +201,6 @@ export default function PatientsPage() {
                     {newArrivals.includes(p.id) && (
                       <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-mint-500 text-white pulse-mint">
                         NEW
-                      </span>
-                    )}
-                    {markVuIds.has(p.id) && (
-                      <span className="chip chip-static text-xs">
-                        <ScanLine size={11} /> MARK-VU
                       </span>
                     )}
                     {template && (

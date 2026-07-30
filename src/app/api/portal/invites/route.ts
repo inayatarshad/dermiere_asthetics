@@ -1,11 +1,11 @@
 /**
  * Admin invite management for the Brand Discovery Portal, scoped to the
  * signed-in clinic.
- *   POST — create an invite (returns token + shareable link)
- *   GET  — this clinic's invites joined with their responses (dashboard)
+ *   POST - create an invite (returns token + shareable link)
+ *   GET  - this clinic's invites joined with their responses (dashboard)
  *
  * Real auth: a valid session cookie is required, and every read/write is
- * scoped to that session's clinic_id — one clinic never sees another's BD
+ * scoped to that session's clinic_id - one clinic never sees another's BD
  * pipeline.
  */
 

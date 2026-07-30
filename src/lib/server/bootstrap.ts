@@ -1,5 +1,5 @@
 /**
- * The bootstrap payload — everything the client store hydrates from on
+ * The bootstrap payload - everything the client store hydrates from on
  * login, all scoped to the caller's clinic. This is the single source of
  * truth handoff: the browser renders from here, never from a client-only
  * seed. Shared by /api/auth/login and /api/auth/me.
@@ -17,7 +17,6 @@ import type {
   PlanItem,
   Report,
   Reward,
-  SkinAnalysis,
   TreatmentPlan,
   User,
   Visualization,
@@ -73,7 +72,6 @@ export interface BootstrapPayload {
     reports: Report[];
     invoices?: Invoice[];
     rewards?: Reward[];
-    skinAnalyses?: SkinAnalysis[];
   };
   appointments: Appointment[];
   vyberoCalls: VyberoCall[];
@@ -98,7 +96,6 @@ export async function buildBootstrap(
     reports,
     invoices,
     rewards,
-    skinAnalyses,
     appointments,
     vyberoCalls,
     usage,
@@ -116,7 +113,6 @@ export async function buildBootstrap(
     pgListRecords<Report>(clinicId, "reports"),
     pgListRecords<Invoice>(clinicId, "invoices"),
     pgListRecords<Reward>(clinicId, "rewards"),
-    pgListRecords<SkinAnalysis>(clinicId, "skin_analyses"),
     pgListAppointments<Appointment>(clinicId),
     pgListCalls<VyberoCall>(clinicId),
     pgGetUsage(clinicId, currentMonth()),
@@ -136,7 +132,7 @@ export async function buildBootstrap(
 
   const me = users.find((u) => u.id === userId);
   // A session whose user no longer exists (demo reset, deleted staff) or
-  // was deactivated must not hydrate a ghost workspace — the caller
+  // was deactivated must not hydrate a ghost workspace - the caller
   // answers 401/404 and the client returns to login.
   if (!me || !me.active) return null;
 
@@ -180,7 +176,6 @@ export async function buildBootstrap(
       reports,
       invoices,
       rewards,
-      skinAnalyses,
     },
     appointments,
     vyberoCalls,

@@ -1,5 +1,5 @@
 /**
- * GET /api/booth/pull (T1) — the desktop side of the booth handoff. Returns
+ * GET /api/booth/pull (T1) - the desktop side of the booth handoff. Returns
  * the signed-in clinic's live inbox items only (expired ones are purged by
  * the store). Session-scoped: never another clinic's patients.
  */

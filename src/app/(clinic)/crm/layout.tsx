@@ -4,7 +4,7 @@
  * CRM shell.
  *
  * A CRM account already has these sections in the PRIMARY top bar, so this
- * renders nothing extra — one navigation bar, never two. The secondary strip
+ * renders nothing extra - one navigation bar, never two. The secondary strip
  * exists only for Clinic OS accounts, who arrive through a single "CRM"
  * entry in their own bar and need a way to move between CRM sections.
  *
@@ -30,7 +30,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-5">
       <nav
-        className="glass-subtle flex flex-wrap items-center gap-1 p-1.5"
+        className="nav-strip glass-subtle flex items-center gap-1 p-1.5"
         aria-label="CRM sections"
       >
         {tabs.map(({ href, label, icon: Icon }) => {

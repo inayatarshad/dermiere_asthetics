@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Calendar — the clinic's appointment book. Week grid on desktop, single
+ * Calendar - the clinic's appointment book. Week grid on desktop, single
  * day on mobile. Slots derive from clinic hours; free cells book on tap.
  * VYBERO's phone bookings arrive via the shared server book (VyberoAgent
  * pull) and are badged; local bookings push up so the agent's
@@ -223,7 +223,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* location filter — each CAPTURE site keeps its own diary */}
+      {/* location filter - each CAPTURE site keeps its own diary */}
       {locations.length > 1 && (
         <div className="flex gap-1.5 flex-wrap mb-3">
           {locations.map((l) => (
@@ -374,7 +374,7 @@ function BookingModal({
   );
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  // the tapped slot when it is genuinely free, else the first free slot —
+  // the tapped slot when it is genuinely free, else the first free slot -
   // never let a taken time be pre-selected and silently double-booked
   const [offset, setOffset] = useState(() =>
     freeOffsets.includes(slot.offset) ? slot.offset : (freeOffsets[0] ?? 0)

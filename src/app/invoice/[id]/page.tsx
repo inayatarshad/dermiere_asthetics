@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * CAPTURE A4 invoice — the printed artefact that closes the visit (§5.3).
+ * CAPTURE A4 invoice - the printed artefact that closes the visit (§5.3).
  * Letterhead discipline (flat white, Fraunces display, hairline rules,
  * champagne accents only) on the print-exact report-sheet pipeline.
- * Public route by unguessable id, like /report — front desk opens it with
+ * Public route by unguessable id, like /report - front desk opens it with
  * ?print=1 and the dialog fires.
  */
 
@@ -25,7 +25,7 @@ function InvoiceInner() {
   const invoice = useStore((st) => st.invoices.find((i) => i.id === params.id));
   const locations = useStore((st) => st.locations);
   const patients = useStore((st) => st.patients);
-  // one-shot auto-print guard — a ref, not state: nothing re-renders on it
+  // one-shot auto-print guard - a ref, not state: nothing re-renders on it
   const printedRef = useRef(false);
 
   useEffect(() => {

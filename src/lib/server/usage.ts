@@ -2,7 +2,7 @@
  * AI spend control. Both paid endpoints (/api/generate, /api/assessment/skin)
  * pass through aiGuard() BEFORE calling any provider: it requires a session,
  * rate-limits per clinic+IP, and enforces the clinic's monthly cap. On
- * success the route calls recordAi() to attribute the spend to the clinic —
+ * success the route calls recordAi() to attribute the spend to the clinic -
  * so the owner can always see who spent what, and no clinic can run the bill
  * away.
  */
@@ -34,7 +34,7 @@ export interface GuardFail {
 }
 
 /**
- * Per-minute burst limit per clinic+IP (blunt abuse) — the monthly cap is the
+ * Per-minute burst limit per clinic+IP (blunt abuse) - the monthly cap is the
  * real budget control. Generous enough for normal consultation use.
  */
 const PER_MINUTE = 20;

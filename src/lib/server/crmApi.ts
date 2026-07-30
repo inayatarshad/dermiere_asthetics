@@ -63,7 +63,7 @@ export async function readJson<T>(req: Request): Promise<T | null> {
 }
 
 // ---------------------------------------------------------------------
-// Input validation helpers — small, explicit, no dependency
+// Input validation helpers - small, explicit, no dependency
 // ---------------------------------------------------------------------
 
 export function str(

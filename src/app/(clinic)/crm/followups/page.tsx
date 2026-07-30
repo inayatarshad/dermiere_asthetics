@@ -4,7 +4,7 @@
  * Follow-ups dashboard.
  *
  * Buckets (due today / upcoming / overdue / completed) are derived from the
- * clock at render time via followUpState(), never read from stored status —
+ * clock at render time via followUpState(), never read from stored status -
  * so an item becomes overdue on its own, without a job to age it.
  *
  * Notification indicators are in-app only. Email / SMS / WhatsApp delivery
@@ -22,6 +22,7 @@ import {
   CircleSlash,
   RefreshCw,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import {
   FOLLOWUP_TYPE_LABELS,
@@ -33,6 +34,7 @@ import {
   dateTime,
   fetchFollowUps,
   relativeTime,
+  runAutomations,
   updateFollowUp,
   type StaffLite,
 } from "@/lib/crm/client";
@@ -66,6 +68,8 @@ export default function FollowUpsPage() {
   const [rescheduling, setRescheduling] = useState<CrmFollowUp | null>(null);
   const [cancelling, setCancelling] = useState<CrmFollowUp | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** How many the engine sent on this load, for the banner. */
+  const [autoSent, setAutoSent] = useState(0);
 
   const apply = useCallback((res: Awaited<ReturnType<typeof fetchFollowUps>>) => {
     if (res) {
@@ -80,6 +84,13 @@ export default function FollowUpsPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Automation runs BEFORE the board is fetched, so anything the system
+      // can handle itself is already sent and closed by the time it renders.
+      // A failure here is not fatal: the board still loads, the due items
+      // simply stay pending.
+      const run = await runAutomations().catch(() => null);
+      if (cancelled) return;
+      if (run?.ok && run.data && run.data.sent > 0) setAutoSent(run.data.sent);
       const res = await fetchFollowUps();
       if (!cancelled) apply(res);
     })();
@@ -102,7 +113,7 @@ export default function FollowUpsPage() {
     [staff]
   );
   const branchShort = useCallback(
-    (id?: string) => branches.find((b) => b.id === id)?.short ?? "—",
+    (id?: string) => branches.find((b) => b.id === id)?.short ?? "-",
     [branches]
   );
 
@@ -181,13 +192,29 @@ export default function FollowUpsPage() {
     <div className="space-y-5">
       <SectionTitle
         title="Follow-ups"
-        sub="Everything the team owes a patient or a lead"
+        sub="Messages send themselves; what is left needs a person"
         action={
           <button className="btn btn-ghost btn-sm" onClick={refresh} aria-label="Refresh">
             <RefreshCw size={15} />
           </button>
         }
       />
+
+      {/* Automation reports what it just did. Without this the board looks
+          like it simply had fewer items than the team expected. */}
+      {autoSent > 0 && (
+        <div className="glass-subtle flex items-center gap-2 px-4 py-2.5 text-sm text-ink-700">
+          <Sparkles size={15} className="text-[color:var(--mint-500)] shrink-0" />
+          <span>
+            <strong className="font-medium text-ink-900">
+              {autoSent} follow-up{autoSent === 1 ? "" : "s"}
+            </strong>{" "}
+            came due and {autoSent === 1 ? "was" : "were"} sent automatically.
+            Anything still listed needs a person: a call, a payment or a
+            consultation to book.
+          </span>
+        </div>
+      )}
 
       {/* --- at-a-glance --- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

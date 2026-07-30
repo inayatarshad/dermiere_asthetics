@@ -1,5 +1,5 @@
 /**
- * Messaging provider interface — the WhatsApp boundary.
+ * Messaging provider interface - the WhatsApp boundary.
  *
  *   CRM UI  ->  /api/crm/*  ->  messagingService  ->  MessagingProvider
  *                                                      |- mock (now)
@@ -7,7 +7,7 @@
  *
  * Nothing above this line knows what a provider is. The CRM UI and the CRM
  * business logic never import a provider, never hold a phone-number id and
- * never call Meta — they call the service, which resolves a provider from
+ * never call Meta - they call the service, which resolves a provider from
  * configuration. Swapping the mock for the real Cloud API is a change to
  * `resolveProvider()` and one new file implementing this interface; no route
  * and no screen changes.
@@ -76,7 +76,7 @@ export interface ProviderTemplate {
 export interface MessagingProvider {
   readonly id: string;
   readonly label: string;
-  /** False when credentials are absent — the service refuses to send. */
+  /** False when credentials are absent - the service refuses to send. */
   readonly configured: boolean;
 
   send(message: OutboundMessage): Promise<SendResult>;

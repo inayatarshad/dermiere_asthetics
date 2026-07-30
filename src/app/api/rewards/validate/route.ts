@@ -1,5 +1,5 @@
 /**
- * GET /api/rewards/validate?code=CIRCLE-XXXX — POS checks a Capture
+ * GET /api/rewards/validate?code=CIRCLE-XXXX - POS checks a Capture
  * Circle code before applying the discount. Session-scoped: only this
  * clinic's rewards are consulted, and codes issued seconds ago on a
  * client's phone validate immediately (server truth, not the local cache).

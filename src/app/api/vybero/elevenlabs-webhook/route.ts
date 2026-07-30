@@ -1,13 +1,13 @@
 /**
- * POST /api/vybero/elevenlabs-webhook — ElevenLabs post-call webhook sink.
+ * POST /api/vybero/elevenlabs-webhook - ElevenLabs post-call webhook sink.
  *
  * Fires after every Noor conversation with the full transcript + analysis.
  * We translate ElevenLabs' payload into our VyberoCall shape so the calls
- * land in the same store the Analytics dashboard already reads — real call
+ * land in the same store the Analytics dashboard already reads - real call
  * history, not seeded.
  *
  * Auth (either):
- *   1. ?key=<VYBERO_API_KEY> on the webhook URL — the documented-and-certain
+ *   1. ?key=<VYBERO_API_KEY> on the webhook URL - the documented-and-certain
  *      route, since ElevenLabs' HMAC header format is not published.
  *   2. HMAC: set ELEVENLABS_WEBHOOK_SECRET and we verify the
  *      `elevenlabs-signature: t=<unix>,v0=<hex>` header (sha256 over
@@ -82,7 +82,7 @@ function safeEqual(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-/** `t=<unix>,v0=<hex>` — sha256 over "<t>.<rawBody>". */
+/** `t=<unix>,v0=<hex>` - sha256 over "<t>.<rawBody>". */
 function hmacValid(secret: string, header: string | null, rawBody: string): boolean {
   if (!header) return false;
   const parts = Object.fromEntries(

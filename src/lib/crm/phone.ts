@@ -1,5 +1,5 @@
 /**
- * Phone normalization — the dedupe key for CRM contacts.
+ * Phone normalization - the dedupe key for CRM contacts.
  *
  * Pakistani numbers arrive in every shape a human can type: 0300 1234567,
  * +92 300 1234567, 92-300-1234567, 03001234567. They are all one person, so
@@ -8,7 +8,7 @@
  *
  * Output is digits-only with a country code and no "+", e.g. 923001234567.
  * Anything we cannot confidently interpret is returned digits-only rather
- * than mangled — a wrong-but-stable key still dedupes exact repeats.
+ * than mangled - a wrong-but-stable key still dedupes exact repeats.
  */
 
 const DEFAULT_COUNTRY = "92"; // Pakistan
@@ -36,7 +36,7 @@ export function normalizePhone(
   // Already carries the country code.
   if (digits.startsWith(country)) return digits;
 
-  // A bare national subscriber number (3001234567) — 10 digits for PK.
+  // A bare national subscriber number (3001234567) - 10 digits for PK.
   if (digits.length === 10) return country + digits;
 
   return digits;

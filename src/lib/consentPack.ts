@@ -1,5 +1,5 @@
 /**
- * Consent pack copy (T5) — ONE editable place for clinics to tune the
+ * Consent pack copy (T5) - ONE editable place for clinics to tune the
  * acknowledgement wording and the per-category risks checklist that print
  * on the consent sheet. Legal review happens here, not in components.
  */

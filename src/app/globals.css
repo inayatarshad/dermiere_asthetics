@@ -1,7 +1,7 @@
 ﻿@import "tailwindcss";
 
 /* ============================================================
-   CAPTURE — Noir & Champagne design system
+   CAPTURE - Noir & Champagne design system
    The intimate science of beauty: ivory stage, warm charcoal ink,
    champagne-gold accent, Jost type. Token NAMES keep the engine's
    legacy "mint" prefix so 100+ component classes retune from here.
@@ -74,7 +74,7 @@ body {
   letter-spacing: 0.005em;
 }
 
-/* Ambient champagne glow blobs — slow liquid-light drift (transform-only,
+/* Ambient champagne glow blobs - slow liquid-light drift (transform-only,
    GPU-cheap; stilled under prefers-reduced-motion) */
 .bg-stage::before,
 .bg-stage::after {
@@ -368,6 +368,25 @@ select.input.input-sm {
   padding-right: 2.25rem;
   background-position: right 0.65rem center;
 }
+
+/**
+ * The top navigation strip.
+ *
+ * One line, always: wrapping pushed items onto a second row and made the
+ * header jump height as the window narrowed. It scrolls horizontally if it
+ * has to, but the scrollbar itself is hidden - the bar is short enough that
+ * a visible track looked like a defect cutting across the chrome.
+ */
+.nav-strip {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nav-strip::-webkit-scrollbar {
+  display: none;
+}
+
 
 /**
  * Room for a leading icon inside the field.
@@ -1243,7 +1262,7 @@ input[type="range"].mint-slider::-moz-range-track {
   align-items: flex-end;
   gap: 24px;
   padding-bottom: 14px;
-  /* champagne rule over an ink hairline — the letterhead signature */
+  /* champagne rule over an ink hairline - the letterhead signature */
   border-bottom: 2px solid rgba(196, 161, 90, 0.55);
   box-shadow: 0 3px 0 -2px rgba(28, 26, 22, 0.12);
   margin-bottom: 16px;
@@ -1356,7 +1375,7 @@ input[type="range"].mint-slider::-moz-range-track {
   align-items: center;
   gap: 8px;
 }
-/* champagne tick before each section title — quiet chapter marker */
+/* champagne tick before each section title - quiet chapter marker */
 .ar-section-head h2::before {
   content: "";
   width: 14px;
@@ -1464,7 +1483,7 @@ input[type="range"].mint-slider::-moz-range-track {
   padding-bottom: 8px;
 }
 /* evidence tiles doubled (owner 2026-07-23: "their own square image…
-   just too small") — crops render at 280px, so 78px stays crisp in print */
+   just too small") - crops render at 280px, so 78px stays crisp in print */
 .ar-skin-thumb {
   width: 92px;
   position: relative;
@@ -2245,7 +2264,7 @@ input[type="range"].mint-slider::-moz-range-track {
 }
 
 /* ============================================================
-   Brand splash — CAPTURE reveal on cold load + post-login sweep
+   Brand splash - CAPTURE reveal on cold load + post-login sweep
    (BrandSplash.tsx). Ivory stage, champagne light, ink wordmark.
    ============================================================ */
 .brand-splash {

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Hairstyle try-on — the second half of the hair transplant vertical.
+ * Hairstyle try-on - the second half of the hair transplant vertical.
  * Styles are exclusive on/off choices stored as flat AI params
  * (style_* = 100, bandless prompt phrases), so persistence, the params
  * hash, prompt assembly and report labels all work unchanged. The chips

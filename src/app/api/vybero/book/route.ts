@@ -1,5 +1,5 @@
 /**
- * POST /api/vybero/book — create (or upsert) an appointment for a clinic.
+ * POST /api/vybero/book - create (or upsert) an appointment for a clinic.
  *
  * Callers:
  *  - the VYBERO voice agent (ElevenLabs webhook tool "book_appointment",
@@ -57,7 +57,7 @@ interface FlatBooking {
 
 /** Map a spoken treatment name to the catalogue (or consultation). */
 function matchTreatmentByName(name: string | undefined): {
-  /** Always set — "consultation" when nothing matched, so the calendar
+  /** Always set - "consultation" when nothing matched, so the calendar
    *  never shows a blank treatment (the bug behind label-less bookings). */
   id: string;
   durationMin: number;
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
     const extra = [
       flat.notes?.toString().trim(),
       flat.email ? `Email: ${flat.email}` : "",
-      // spoken wording the matcher couldn't place — front desk sees the ask
+      // spoken wording the matcher couldn't place - front desk sees the ask
       !tr.matched && flat.treatment ? `Asked for: ${flat.treatment.toString().slice(0, 80)}` : "",
     ]
       .filter(Boolean)

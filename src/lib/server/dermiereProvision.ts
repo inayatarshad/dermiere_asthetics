@@ -62,7 +62,7 @@ const uid = () => crypto.randomUUID();
  *  - only rows whose id carries a generator prefix (isSeedRow),
  *  - only ids absent from the seed that was just written.
  *
- * Anything a user created — any id without the prefix — is invisible to
+ * Anything a user created - any id without the prefix - is invisible to
  * this function and can never be deleted by it. It is opt-in (reconcile:
  * true) because deleting is not something a provisioning call should do by
  * default.
@@ -245,7 +245,7 @@ export async function provisionDermiere(
     hours: existing?.payload?.hours ?? DERMIERE_BRAND.hours,
     menu: DERMIERE_TREATMENTS.map((t) => t.id),
     prices: Object.fromEntries(DERMIERE_TREATMENTS.map((t) => [t.id, t.price])),
-    // Branches live here — configurable in Settings, not in CRM code.
+    // Branches live here - configurable in Settings, not in CRM code.
     locations: existing?.payload?.locations?.length
       ? existing.payload.locations
       : DERMIERE_BRANCHES,
@@ -269,7 +269,7 @@ export async function provisionDermiere(
     if (found) {
       idsByKey[s.key] = found.id;
       // Keep the account's password and id, but let name/title/workspace
-      // catch up — a rename or a workspace change must reach an account
+      // catch up - a rename or a workspace change must reach an account
       // that already exists.
       await pgUpsertUser(
         found.id,
@@ -320,6 +320,23 @@ export async function provisionDermiere(
 
     for (const p of seed.patients) {
       await pgUpsertRecord(clinicId, "patients", p.id, p);
+    }
+    // The clinical layer: a face, a worked-up consult, a plan and a report.
+    // Without these the patient screens render but have nothing to show.
+    for (const a of seed.assets) {
+      await pgUpsertRecord(clinicId, "assets", a.id, a);
+    }
+    for (const c of seed.consultations) {
+      await pgUpsertRecord(clinicId, "consultations", c.id, c);
+    }
+    for (const pl of seed.plans) {
+      await pgUpsertRecord(clinicId, "plans", pl.id, pl);
+    }
+    for (const pi of seed.planItems) {
+      await pgUpsertRecord(clinicId, "plan_items", pi.id, pi);
+    }
+    for (const rep of seed.reports) {
+      await pgUpsertRecord(clinicId, "reports", rep.id, rep);
     }
     for (const inv of seed.invoices) {
       await pgUpsertRecord(clinicId, "invoices", inv.id, inv);
@@ -404,7 +421,7 @@ export async function provisionDermiere(
         contact_id: f.contact_id,
         patient_id: f.patient_id,
         kind: "feedback",
-        summary: `Feedback received — ${f.overall_rating}/5`,
+        summary: `Feedback received - ${f.overall_rating}/5`,
         detail: f.comment,
         branch_id: f.branch_id,
         ref_id: f.id,
@@ -414,6 +431,10 @@ export async function provisionDermiere(
     for (const t of seed.templates) await saveTemplate(t);
 
     counts.patients = seed.patients.length;
+    counts.consultations = seed.consultations.length;
+    counts.assets = seed.assets.length;
+    counts.plans = seed.plans.length;
+    counts.reports = seed.reports.length;
     counts.appointments = seed.appointments.length;
     counts.invoices = seed.invoices.length;
     counts.contacts = seed.contacts.length;

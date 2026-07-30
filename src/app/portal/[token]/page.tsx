@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Brand Discovery Portal — the doctor's form
+ * Brand Discovery Portal - the doctor's form
  * (spec: Brand-Discovery-Portal-BUILD-SPEC.md).
  *
  * Public, zero-login, token-gated. Opens instantly from a WhatsApp tap,
@@ -385,7 +385,7 @@ export default function PortalPage() {
     );
   }
 
-  // greet with the name exactly as the invite stored it — names carry
+  // greet with the name exactly as the invite stored it - names carry
   // their own titles (Dr, Col, Sir), and inventing one misaddresses
   // anyone who is not a doctor
   const greeting = meta?.doctorName ? `hi ${meta.doctorName.trim()},` : "hello,";
@@ -395,7 +395,7 @@ export default function PortalPage() {
       className="portal-stage"
       style={accent ? ({ "--portal-accent": accent } as React.CSSProperties) : undefined}
     >
-      {/* personalized welcome — plays once, tap anywhere to skip */}
+      {/* personalized welcome - plays once, tap anywhere to skip */}
       {intro === "playing" && (
         <div
           className="portal-intro"

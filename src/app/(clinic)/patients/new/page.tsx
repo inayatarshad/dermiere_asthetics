@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Patient registration — the front desk flow
+ * Patient registration - the front desk flow
  * (01_registration-and-access.md §3): search first, core details, consent
  * before any photo, then the three consultation photos, then the queue.
  * One progressive screen, minimal typing, under 90 seconds.
@@ -122,7 +122,7 @@ export default function RegisterPatientPage() {
         </p>
       </div>
 
-      {/* Step 1 — details */}
+      {/* Step 1 - details */}
       <GlassCard className="p-6 fade-up-1">
         <StepHeader n={1} title="Core details" done={detailsComplete} />
         <div className="grid sm:grid-cols-2 gap-4 mt-4">
@@ -240,7 +240,7 @@ export default function RegisterPatientPage() {
         </div>
       </GlassCard>
 
-      {/* Step 2 — consent */}
+      {/* Step 2 - consent */}
       <GlassCard className="p-6 fade-up-2">
         <StepHeader
           n={2}
@@ -280,7 +280,7 @@ export default function RegisterPatientPage() {
         </div>
       </GlassCard>
 
-      {/* Step 3 — photos */}
+      {/* Step 3 - photos */}
       <GlassCard className="p-6 fade-up-3">
         <StepHeader n={3} title="Consultation photos" done={photos.length > 0} />
         <p className="caption mt-1">

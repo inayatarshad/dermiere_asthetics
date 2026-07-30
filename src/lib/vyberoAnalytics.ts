@@ -1,5 +1,5 @@
 /**
- * VYBERO call analytics for the admin module — clinic-flavored adaptation
+ * VYBERO call analytics for the admin module - clinic-flavored adaptation
  * of the VYBERO Analytics computations (VYBERO_Analytics_0.1/src/lib/
  * analytics.ts + deep-analytics.ts): same KPI/volume/peak-hour shapes,
  * with the keyword taxonomy swapped from TechGIS products/industries to
@@ -20,7 +20,6 @@ export const CALL_TOPICS: { id: string; label: string; keywords: string[] }[] = 
   { id: "exomere-regeneration", label: "Regeneration", keywords: ["regeneration", "sensitive skin", "barrier", "dryness", "restorative facial"] },
   { id: "mito-full-body-reset", label: "Full Body Reset", keywords: ["full body reset", "full body", "sleep", "muscle recovery", "wellness", "fatigue"] },
   { id: "products", label: "Home-care products", keywords: ["product", "serum", "cleanser", "cream", "ampoule", "mask", "balm", "delivery", "shop", "order"] },
-  { id: "markvu", label: "MARK-VU analysis", keywords: ["mark-vu", "markvu", "skin analysis", "skin scan", "scan"] },
   { id: "pricing", label: "Pricing", keywords: ["price", "cost", "how much", "fees", "charges", "payment", "installment", "package"] },
   { id: "availability", label: "Appointments / timing", keywords: ["appointment", "book", "slot", "available", "timing", "schedule", "evening", "weekend"] },
   { id: "location", label: "Location / directions", keywords: ["location", "address", "where", "directions", "parking", "vogue", "branch"] },

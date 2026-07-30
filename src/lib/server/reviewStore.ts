@@ -1,10 +1,10 @@
 /**
- * Reviews + Capture Circle — server store.
+ * Reviews + Capture Circle - server store.
  *
  * The portal pattern, repointed at clients: front desk (or POS checkout)
  * mints a token link per visit; the client opens it (PENDING→OPENED),
  * submits a rating (→COMPLETED), and the submit issues a Capture Circle
- * reward that POS can redeem. Postgres in production, devDb locally —
+ * reward that POS can redeem. Postgres in production, devDb locally -
  * both via the db layer's self-routing helpers.
  */
 

@@ -1,5 +1,5 @@
 /**
- * Client-fallback seed — CAPTURE demo clinic.
+ * Client-fallback seed - CAPTURE demo clinic.
  *
  * Real logins hydrate from the server bootstrap (clinicStore seeds the
  * database). This module only feeds device-local fallback surfaces (the
@@ -17,7 +17,6 @@ import type {
   Patient,
   PlanItem,
   Reward,
-  SkinAnalysis,
   TreatmentPlan,
   User,
   VyberoCall,
@@ -54,7 +53,6 @@ export interface SeedData {
   planItems: PlanItem[];
   invoices: Invoice[];
   rewards: Reward[];
-  skinAnalyses: SkinAnalysis[];
 }
 
 function makeCast(): { users: User[]; cast: CaptureCast } {
@@ -98,7 +96,6 @@ export function buildSeed(_manifest: SeedManifest | null): SeedData {
     planItems: [],
     invoices: cast.invoices,
     rewards: cast.rewards,
-    skinAnalyses: cast.skinAnalyses,
   };
 }
 
@@ -117,7 +114,7 @@ export async function fetchSeedManifest(): Promise<SeedManifest | null> {
 }
 
 // ---------------------------------------------------------------------
-// VYBERO demo story (appointments + calls) — same deterministic cast, so
+// VYBERO demo story (appointments + calls) - same deterministic cast, so
 // ids line up with buildSeed() output on the same device.
 // ---------------------------------------------------------------------
 

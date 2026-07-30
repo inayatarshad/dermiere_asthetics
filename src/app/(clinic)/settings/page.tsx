@@ -40,8 +40,8 @@ interface ProviderStatus {
 }
 
 /**
- * White-label (owner 2026-07-23): the clinic sees ONE engine — "Stryder AI
- * Image" — never the underlying provider or model names. "auto" is the
+ * White-label (owner 2026-07-23): the clinic sees ONE engine - "Stryder AI
+ * Image" - never the underlying provider or model names. "auto" is the
  * store value behind the engine card, so selecting it also clears any stale
  * per-provider pin from older builds; the server routes to the best
  * configured provider (Higgsfield popcorn today) behind the curtain.
@@ -54,7 +54,7 @@ const AI_CHOICES: {
   {
     id: "auto",
     label: "Stryder AI Image",
-    desc: "TechGIS photoreal engine — identity-preserving before/after edits on the patient's own photo",
+    desc: "TechGIS photoreal engine - identity-preserving before/after edits on the patient's own photo",
   },
   {
     id: "none",
@@ -373,7 +373,7 @@ export default function SettingsPage() {
             providerStatus &&
             providerStatus.active === null && (
               <p className="text-sm text-warning mt-4">
-                Stryder AI Image is not configured on this server yet — ask
+                Stryder AI Image is not configured on this server yet - ask
                 TechGIS to enable it. The on-device preview keeps working
                 regardless.
               </p>

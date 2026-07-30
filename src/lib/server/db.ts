@@ -1,10 +1,10 @@
 /**
- * Neon Postgres layer — the multi-tenant system of record.
+ * Neon Postgres layer - the multi-tenant system of record.
  *
  * Every row is clinic-scoped: identity (clinics, users), the operational
  * collections the voice agent / booth / portal write into, the per-clinic
  * clinical records synced from the app, and AI usage counters. Every read,
- * write and delete is filtered by clinic_id — the tenant boundary lives
+ * write and delete is filtered by clinic_id - the tenant boundary lives
  * here, at the query, not in the UI.
  *
  * Storage style: one table per collection, the full record as jsonb plus
@@ -13,7 +13,7 @@
  * input), so parameterized `sql.query()` with an interpolated table name is
  * injection-safe; all values travel as $-params.
  *
- * Driver: @neondatabase/serverless over HTTP — no pool to manage in
+ * Driver: @neondatabase/serverless over HTTP - no pool to manage in
  * serverless functions.
  */
 
@@ -118,7 +118,7 @@ function sql(): Sql {
 }
 
 /**
- * Per-clinic clinical record collections — all share the same shape
+ * Per-clinic clinical record collections - all share the same shape
  * (id, clinic_id, payload jsonb, created_at) and are synced from the app.
  * The set is a fixed whitelist: `record()` rejects anything not here, so
  * the table name is always safe to interpolate into a query string.
@@ -134,7 +134,6 @@ export const RECORD_TABLES = [
   "reports",
   "invoices",
   "rewards",
-  "skin_analyses",
 ] as const;
 export type RecordTable = (typeof RECORD_TABLES)[number];
 
@@ -173,7 +172,7 @@ export function ensureSchema(): Promise<void> {
 
       // --- operational (agent / booth / portal) ---------------------
       // Tables first (no clinic_id index yet), THEN migrate legacy tables to
-      // add clinic_id, THEN build the clinic_id indexes — an existing DB's
+      // add clinic_id, THEN build the clinic_id indexes - an existing DB's
       // pre-tenancy tables won't have the column until the ALTER runs.
       await q`CREATE TABLE IF NOT EXISTS appointments (
         id text PRIMARY KEY,

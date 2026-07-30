@@ -1,5 +1,5 @@
 /**
- * CRM domain model — shared by server and client.
+ * CRM domain model - shared by server and client.
  *
  * Everything here is clinic-scoped at the query layer (see crmStore.ts); the
  * types carry `clinic_id` so a payload read back from jsonb is self-describing.
@@ -10,7 +10,7 @@
  */
 
 // ---------------------------------------------------------------------
-// Pipeline — defined ONCE. Never hardcode a stage string elsewhere.
+// Pipeline - defined ONCE. Never hardcode a stage string elsewhere.
 // ---------------------------------------------------------------------
 
 export const PIPELINE_STAGES = [
@@ -120,7 +120,7 @@ export const LOST_REASON_LABELS: Record<LostReason, string> = {
 export interface CrmContact {
   id: string;
   clinic_id: string;
-  /** Set once converted — links to the existing `patients` record. */
+  /** Set once converted - links to the existing `patients` record. */
   patient_id?: string;
   name: string;
   phone: string;
@@ -140,7 +140,7 @@ export interface CrmContact {
   estimated_value?: number; // PKR
   lost_reason?: LostReason;
   lost_note?: string;
-  /** Marketing / communication consent — drives who may be messaged. */
+  /** Marketing / communication consent - drives who may be messaged. */
   marketing_opt_in: boolean;
   opted_out_at?: string;
   created_at: string;
@@ -157,7 +157,7 @@ export const FOLLOWUP_STATUSES = ["pending", "completed", "cancelled"] as const;
 export type FollowUpStatus = (typeof FOLLOWUP_STATUSES)[number];
 
 /**
- * "Overdue" is derived, never stored — a pending follow-up whose due time has
+ * "Overdue" is derived, never stored - a pending follow-up whose due time has
  * passed. Storing it would go stale the moment the clock moved.
  */
 export type FollowUpDerivedStatus = FollowUpStatus | "overdue";
@@ -203,6 +203,11 @@ export interface CrmFollowUp {
   completion_note?: string;
   cancelled_at?: string;
   cancel_reason?: string;
+  /**
+   * Reserve this one for a person: automation will leave it alone.
+   * Unset means the follow-up sends itself when it comes due.
+   */
+  manual?: boolean;
   /** Audit trail of reschedules: previous due dates, most recent last. */
   rescheduled_from: string[];
   created_at: string;
@@ -210,7 +215,7 @@ export interface CrmFollowUp {
   updated_at: string;
 }
 
-/** Derives overdue from the clock — call this everywhere instead of reading status. */
+/** Derives overdue from the clock - call this everywhere instead of reading status. */
 export function followUpState(
   f: Pick<CrmFollowUp, "status" | "due_at">,
   now: Date = new Date()
@@ -275,7 +280,7 @@ export interface CrmMessage {
   attachments: MessageAttachment[];
   state: MessageState;
   error?: string;
-  /** Provider's own id — the idempotency key for webhook ingestion. */
+  /** Provider's own id - the idempotency key for webhook ingestion. */
   provider_message_id?: string;
   provider: string;
   author_id?: string; // staff user id for outbound/internal

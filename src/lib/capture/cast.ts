@@ -1,11 +1,11 @@
 /**
- * CAPTURE demo cast — the deterministic story the demo clinic wakes up
+ * CAPTURE demo cast - the deterministic story the demo clinic wakes up
  * with. One place builds every record (patients, consents, photos, open
  * consultation, appointments, VYBERO calls, invoices, reviews, Capture
- * Circle rewards, MARK-VU scans) so the server seed (clinicStore) and the
+ * Circle rewards) so the server seed (clinicStore) and the
  * client fallback seed (seed.ts) can never drift apart.
  *
- * Isomorphic: no browser APIs, no fs — safe on server and client.
+ * Isomorphic: no browser APIs, no fs - safe on server and client.
  * Deterministic RNG (mulberry32) so every reseed tells the same story.
  */
 
@@ -21,7 +21,6 @@ import type {
   Patient,
   Reward,
   ReviewInvite,
-  SkinAnalysis,
   User,
   VyberoCall,
   Role,
@@ -81,7 +80,7 @@ export const CAPTURE_STAFF: CastStaff[] = [
   { key: "doctor", name: "Dr. Sadia Khan", email: "dr.sadia@capture.cc", role: "doctor", title: "Medical Director" },
   { key: "ops", name: "Shah Rukh Ahmed", email: "shahrukh@capture.cc", role: "admin", title: "Head of Operations" },
   { key: "marketing", name: "Rameez Hasan", email: "rameez@capture.cc", role: "admin", title: "Marketing Lead" },
-  // Ryan leads the CAPTURE project — full workspace access (owner 2026-07-23)
+  // Ryan leads the CAPTURE project - full workspace access (owner 2026-07-23)
   { key: "creative", name: "Ryan Hikmat", email: "ryan@capture.cc", role: "admin", title: "Creative Director" },
   { key: "frontdesk", name: "Amal Fatima", email: "frontdesk@capture.cc", role: "front_desk", title: "Front Desk · Experience Centre" },
 ];
@@ -101,7 +100,6 @@ export interface CaptureCast {
   reviews: ClinicReview[];
   reviewInvites: ReviewInvite[];
   rewards: Reward[];
-  skinAnalyses: SkinAnalysis[];
 }
 
 interface StaffIds {
@@ -161,7 +159,7 @@ export function buildCaptureCast(
       allergies: "None known",
       fitzpatrick: 3,
       prior_treatments: "Regular facials; first regenerative programme",
-      notes: "Wedding on the 14th of next month — glow programme timed to it.",
+      notes: "Wedding on the 14th of next month - glow programme timed to it.",
     },
     createdDaysAgo: 24,
   });
@@ -232,7 +230,7 @@ export function buildCaptureCast(
       allergies: "Aspirin (mild)",
       fitzpatrick: 3,
       prior_treatments: "HydraFacial course (2025)",
-      notes: "Jawline definition + pigmentation; MARK-VU baseline taken.",
+      notes: "Jawline definition + pigmentation; baseline taken.",
     },
     createdDaysAgo: 9,
   });
@@ -326,54 +324,7 @@ export function buildCaptureCast(
   };
 
   // -------------------------------------------------------------------
-  // MARK-VU skin analyses (progress deltas sell the tracking story)
-  // -------------------------------------------------------------------
-
-  const skinAnalyses: SkinAnalysis[] = [
-    {
-      id: uid(),
-      patient_id: mahnoor.id,
-      taken_at: iso(at(-24, 11, 20)),
-      metrics: { pigmentation: 62, pores: 48, wrinkles: 22, sebum: 55, uv_damage: 58, moisture: 41 },
-      notes: "Intake scan. Pigmentation + dehydration primary.",
-      created_at: iso(at(-24, 11, 25)),
-    },
-    {
-      id: uid(),
-      patient_id: mahnoor.id,
-      taken_at: iso(at(-3, 17, 10)),
-      metrics: { pigmentation: 48, pores: 42, wrinkles: 20, sebum: 49, uv_damage: 55, moisture: 58 },
-      notes: "After session 2 — pigmentation −14, moisture +17.",
-      created_at: iso(at(-3, 17, 15)),
-    },
-    {
-      id: uid(),
-      patient_id: zainab.id,
-      taken_at: iso(at(-38, 12, 0)),
-      metrics: { pigmentation: 44, pores: 66, wrinkles: 18, sebum: 61, uv_damage: 39, moisture: 45 },
-      notes: "Intake scan. Post-acne texture, enlarged pores.",
-      created_at: iso(at(-38, 12, 5)),
-    },
-    {
-      id: uid(),
-      patient_id: zainab.id,
-      taken_at: iso(at(-6, 16, 40)),
-      metrics: { pigmentation: 38, pores: 52, wrinkles: 17, sebum: 50, uv_damage: 37, moisture: 56 },
-      notes: "After session 3 of the Implant course — pores −14.",
-      created_at: iso(at(-6, 16, 45)),
-    },
-    {
-      id: uid(),
-      patient_id: zara.id,
-      taken_at: iso(at(-9, 13, 30)),
-      metrics: { pigmentation: 71, pores: 44, wrinkles: 47, sebum: 38, uv_damage: 66, moisture: 39 },
-      notes: "Baseline. UV damage and pigmentation lead; laxity visible on jawline.",
-      created_at: iso(at(-9, 13, 35)),
-    },
-  ];
-
-  // -------------------------------------------------------------------
-  // Invoices — ~3 weeks of billing across the four locations
+  // Invoices - ~3 weeks of billing across the four locations
   // -------------------------------------------------------------------
 
   const invoices: Invoice[] = [];
@@ -574,7 +525,7 @@ export function buildCaptureCast(
   });
   mkReview({
     daysAgo: 9, patient: mahnoor, locationId: EC, treatments: ["mito-regenerative-glow"], rating: 5,
-    comment: "Session two and my MARK-VU numbers actually improved. Seeing the pigmentation score drop is so motivating.",
+    comment: "Session two and my results actually improved. Seeing the pigmentation fade is so motivating.",
     highlights: ["visible results", "staff care"], reward: "issued",
   });
   mkReview({
@@ -664,7 +615,7 @@ export function buildCaptureCast(
   });
 
   // -------------------------------------------------------------------
-  // Appointments — past two weeks + coming week across locations
+  // Appointments - past two weeks + coming week across locations
   // -------------------------------------------------------------------
 
   const appointments: Appointment[] = [];
@@ -707,10 +658,10 @@ export function buildCaptureCast(
     return appointments[appointments.length - 1];
   };
 
-  // Today's queue at the Experience Centre — the demo opens on this
-  mkAppt({ dayOffset: 0, hour: 11, patient: mahnoor, treatment: "mito-regenerative-glow", status: "confirmed", notes: "Session 3 of 6 — glow programme, wedding timeline", type: "treatment" });
-  mkAppt({ dayOffset: 0, hour: 12, minute: 30, patient: zara, treatment: "exomere-face-contour", status: "confirmed", type: "consultation", notes: "MARK-VU review + contour plan" });
-  mkAppt({ dayOffset: 0, hour: 15, patient: amina, treatment: "exomere-body-contour", status: "booked", notes: "Session 3 — abdomen + hips", type: "treatment" });
+  // Today's queue at the Experience Centre - the demo opens on this
+  mkAppt({ dayOffset: 0, hour: 11, patient: mahnoor, treatment: "mito-regenerative-glow", status: "confirmed", notes: "Session 3 of 6 - glow programme, wedding timeline", type: "treatment" });
+  mkAppt({ dayOffset: 0, hour: 12, minute: 30, patient: zara, treatment: "exomere-face-contour", status: "confirmed", type: "consultation", notes: "Progress review + contour plan" });
+  mkAppt({ dayOffset: 0, hour: 15, patient: amina, treatment: "exomere-body-contour", status: "booked", notes: "Session 3 - abdomen + hips", type: "treatment" });
   mkAppt({ dayOffset: 0, hour: 17, minute: 30, patientName: "Nida Farooq", phone: "0333 8891245", treatment: "exomere-regeneration", source: "vybero", status: "booked", type: "consultation" });
   // Tomorrow + this week
   mkAppt({ dayOffset: 1, hour: 11, patient: hassan, treatment: "mito-full-body-reset", status: "booked", notes: "Session 3" });
@@ -738,7 +689,7 @@ export function buildCaptureCast(
   mkAppt({ dayOffset: -1, hour: 12, patientName: "Dua Chaudhry", treatment: "mito-regenerative-glow", status: "no_show" });
 
   // -------------------------------------------------------------------
-  // VYBERO call story — two weeks, CAPTURE topics
+  // VYBERO call story - two weeks, CAPTURE topics
   // -------------------------------------------------------------------
 
   const CALLER_NAMES = [
@@ -785,7 +736,6 @@ export function buildCaptureCast(
     availability: ["Are you open on Saturday?", "Any slot this evening?"],
     location: ["Where is the Experience Centre exactly?", "Is there parking at Vogue Towers?"],
     aftercare: ["What should I avoid after the facial?", "When can I wear makeup again?"],
-    markvu: ["What is the MARK-VU scan?", "Does the scan cost extra?"],
   };
 
   const PROC_TOPICS = [
@@ -796,7 +746,7 @@ export function buildCaptureCast(
   ];
   const SIDE_TOPICS = [
     "pricing", "pricing", "pricing", "availability", "availability",
-    "aftercare", "location", "markvu",
+    "aftercare", "location",
   ];
 
   const vyberoCalls: VyberoCall[] = [];
@@ -870,7 +820,6 @@ export function buildCaptureCast(
     reviews,
     reviewInvites,
     rewards,
-    skinAnalyses,
   };
 }
 

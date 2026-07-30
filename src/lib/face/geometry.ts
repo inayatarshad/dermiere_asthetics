@@ -5,7 +5,7 @@
  * engine shared by the 3D canvas and the 2D preview warp
  * (knowledge base / 04_consultation-canvas-3d.md §3 "feature selection").
  *
- * The mesh is semantic — the app knows which landmarks are nose, lips, jaw —
+ * The mesh is semantic - the app knows which landmarks are nose, lips, jaw -
  * so tools act on anatomically sensible regions with soft falloff, never raw
  * vertex chaos.
  */
@@ -39,7 +39,7 @@ export const ANCHOR = {
 };
 
 // ---------------------------------------------------------------------
-// Triangulation — derived from the official tessellation edge list by
+// Triangulation - derived from the official tessellation edge list by
 // 3-clique detection, so we never ship a hardcoded 2,640-number table.
 // Computed once and cached.
 // ---------------------------------------------------------------------
@@ -78,7 +78,7 @@ export function faceTriangles(): number[] {
 }
 
 // ---------------------------------------------------------------------
-// Eye fill — the tessellation leaves the eye openings unfilled, which
+// Eye fill - the tessellation leaves the eye openings unfilled, which
 // renders as "empty" (see-through) eyes on a textured mesh. Fill each eye
 // with a triangle fan from its centroid so the photo's own eyes show
 // through. The centroid UV is the average of the eyelid ring, so it samples
@@ -180,7 +180,7 @@ function fall(d: number, inner: number, outer: number) {
 }
 
 // ---------------------------------------------------------------------
-// The nose frame — everything nose-related is measured against it
+// The nose frame - everything nose-related is measured against it
 // ---------------------------------------------------------------------
 
 export interface NoseFrame {
@@ -253,7 +253,7 @@ function blobW(p: Pt, cx: number, cy: number, r: number): number {
 }
 
 // ---------------------------------------------------------------------
-// Lip frame — drives the lip-filler morph fields: vermilion volume,
+// Lip frame - drives the lip-filler morph fields: vermilion volume,
 // upper/lower ratio, cupid's bow, border, corners, projection, philtrum,
 // and the botox lip flip.
 // ---------------------------------------------------------------------
@@ -308,7 +308,7 @@ function lowerSide(p: Pt, lf: LipFrame): number {
 }
 
 // ---------------------------------------------------------------------
-// Chin frame — drives the chin-filler fields: projection, vertical length,
+// Chin frame - drives the chin-filler fields: projection, vertical length,
 // width/taper, labiomental crease, prejowl blend. The chin unit L is the
 // lower-lip-to-menton distance, so magnitudes scale with the face.
 // ---------------------------------------------------------------------
@@ -335,7 +335,7 @@ function chinPadWeight(p: Pt, cf: ChinFrame): number {
 }
 
 // ---------------------------------------------------------------------
-// Brow + jaw frame — drives the geometric botox fields: chemical brow lift
+// Brow + jaw frame - drives the geometric botox fields: chemical brow lift
 // (brow tails from the eyebrow landmark sets) and masseter slimming (the
 // widest jawline points between mouth and chin height on the face oval).
 // ---------------------------------------------------------------------
@@ -550,7 +550,7 @@ function cheekCenter(ff: FeatureFrame, side: "L" | "R") {
 }
 
 // ---------------------------------------------------------------------
-// The morph engine — slider params → displaced landmarks.
+// The morph engine - slider params → displaced landmarks.
 // Same math powers the 3D mesh and the 2D photo warp, so what the doctor
 // sculpts and what the preview shows always agree.
 // Magnitudes are deliberately capped to stay clinically plausible.
@@ -867,13 +867,13 @@ function featureCentroid(feature: FeatureId, ff: FeatureFrame): { x: number; y: 
 }
 
 /**
- * Map the doctor's canvas morphs to AI visualization slider presets —
+ * Map the doctor's canvas morphs to AI visualization slider presets -
  * the canvas is the sketch; the AI image is the render
  * (04_consultation-canvas-3d.md §4 handoff).
  */
 export function canvasMorphsToAiParams(
   morphs: MorphParams,
-  /** The active template's slider keys — the handoff is procedure-agnostic. */
+  /** The active template's slider keys - the handoff is procedure-agnostic. */
   allowedKeys: string[]
 ): Record<string, number> {
   const out: Record<string, number> = {};

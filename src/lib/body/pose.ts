@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * MediaPipe PoseLandmarker singleton — body-part detection for the
+ * MediaPipe PoseLandmarker singleton - body-part detection for the
  * Visualization Studio's contour mode (owner 2026-07-23: "some sort of way
  * where it just identifies where the arm is in the picture").
  *

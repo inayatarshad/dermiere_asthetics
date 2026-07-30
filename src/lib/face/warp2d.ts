@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * 2D landmark-driven photo warp — the instant, on-device preview layer of
+ * 2D landmark-driven photo warp - the instant, on-device preview layer of
  * the AI before/after loop (05_ai-before-after.md §6 "live preview").
  *
  * The photo is treated as a triangulated texture (same triangulation as the
  * 3D canvas). Sliders displace the nose landmarks via the shared morph
  * engine; each affected triangle is redrawn with the affine transform that
  * maps its source triangle to its displaced destination. Runs in
- * milliseconds, fully offline — the booth-reliable half of the hero moment.
+ * milliseconds, fully offline - the booth-reliable half of the hero moment.
  * The photoreal, identity-preserving pass is the server-side model call.
  */
 

@@ -52,3 +52,6 @@ next-env.d.ts
 # dev database (file-backed Postgres twin)
 .dev-db/
 
+
+# Local dev-server logs from the preview harness
+.codex-preview/

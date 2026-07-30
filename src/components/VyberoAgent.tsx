@@ -14,7 +14,7 @@ import { useStore, useSessionUser } from "@/lib/store";
 import type { Appointment, VyberoCall } from "@/lib/types";
 
 // 45s is plenty for phone bookings to surface; hidden tabs skip entirely
-// (storage bills per operation — see vyberoStore.ts header).
+// (storage bills per operation - see vyberoStore.ts header).
 const PULL_MS = 45_000;
 
 export function VyberoAgent() {

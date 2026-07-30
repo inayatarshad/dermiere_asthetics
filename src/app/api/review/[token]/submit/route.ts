@@ -1,9 +1,9 @@
 /**
- * POST /api/review/[token]/submit — the client submits their review.
+ * POST /api/review/[token]/submit - the client submits their review.
  * Server-side validation is the source of truth (rating bounds, comment
  * length, highlight whitelist, per-IP rate limit). On success the invite
  * flips COMPLETED and the Capture Circle reward is issued and returned so
- * the thank-you screen can reveal it immediately — the §5.5 loop, live.
+ * the thank-you screen can reveal it immediately - the §5.5 loop, live.
  */
 
 import { NextRequest, NextResponse } from "next/server";

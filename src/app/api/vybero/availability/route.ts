@@ -5,7 +5,7 @@
  * appointments). Read by the VYBERO voice agent (ElevenLabs webhook tool
  * "check_availability") before offering times. Agent-authenticated
  * (x-vybero-key or Authorization: Bearer) + clinic-scoped. Exposes only
- * free/busy windows — never patient data.
+ * free/busy windows - never patient data.
  *
  * Voice-friendly response: `open_slots` as HH:MM labels in Pakistan time
  * (Asia/Karachi), regardless of server timezone, so the agent can read

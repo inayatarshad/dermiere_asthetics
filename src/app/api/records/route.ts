@@ -1,5 +1,5 @@
 /**
- * POST /api/records — clinic-scoped write-through for the app's records.
+ * POST /api/records - clinic-scoped write-through for the app's records.
  * The client sends a batch of {table, op, id, payload} diffs; every write
  * is scoped to the session's clinic_id (never anything the client claims),
  * so one clinic can never write into another's data.
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         } else if (c.payload) {
           await pgUpsertRecord(clinicId, c.table, c.id, c.payload);
           // A patient registered anywhere in Clinic OS must appear in the
-          // CRM too — one list of people, not two. Best-effort: a CRM
+          // CRM too - one list of people, not two. Best-effort: a CRM
           // bookkeeping failure must never fail the clinical write.
           if (c.table === "patients") {
             try {

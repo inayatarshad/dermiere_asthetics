@@ -5,7 +5,7 @@
  *         from one payload, so switching tabs costs no round trip)
  *   POST  create one
  *
- * "Overdue" is never stored — see followUpState() in crm/types.ts.
+ * "Overdue" is never stored - see followUpState() in crm/types.ts.
  */
 
 import { NextResponse } from "next/server";
@@ -25,7 +25,7 @@ import {
   newId,
   saveFollowUp,
 } from "@/lib/server/crmStore";
-import { listStaff, getClinicConfig } from "@/lib/server/clinicStore";
+import { listAssignableStaff, getClinicConfig } from "@/lib/server/clinicStore";
 import { FOLLOWUP_TYPES, PRIORITIES } from "@/lib/crm/types";
 import { onFollowUpCreated } from "@/lib/server/crmEvents";
 
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
     const ctx = await requireCrm(req, "view_crm");
     const [followUps, staff, config] = await Promise.all([
       listFollowUps(ctx.clinicId),
-      listStaff(ctx.clinicId),
+      listAssignableStaff(ctx.clinicId),
       getClinicConfig(ctx.clinicId),
     ]);
     return NextResponse.json({

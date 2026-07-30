@@ -1,5 +1,5 @@
 /**
- * Treatment templates — the reusable unit that makes the system scale
+ * Treatment templates - the reusable unit that makes the system scale
  * across procedures (knowledge base / 06_treatments-and-plan.md).
  *
  * A template bundles: the AI slider schema + prompt template (drives
@@ -16,7 +16,7 @@
  * + hairstyle try-on, PRP).
  *
  * Two hard invariants make the set composable:
- *  1. Slider keys are GLOBALLY UNIQUE across every available template — the
+ *  1. Slider keys are GLOBALLY UNIQUE across every available template - the
  *     multi-procedure flow (T2) keeps one flat params record keyed by
  *     slider key, so a collision would cross-wire two procedures. The dev
  *     assertion at the foot of this file guards it.
@@ -25,7 +25,7 @@
  *     tuned fields are owned by the original five verticals; new geometric
  *     procedures use the free feature-scale fields (scale_cheeks for cheek
  *     filler, scale_jaw for jawline filler). Everything else is AI-pass
- *     only (canvas_handles: []), exactly like the hair vertical — the
+ *     only (canvas_handles: []), exactly like the hair vertical - the
  *     slider still drives the identity-preserving prompt, it just does not
  *     move the live 3D sketch.
  *
@@ -218,7 +218,7 @@ export const TEMPLATES: TreatmentTemplate[] = [
   },
 
   // =====================================================================
-  // LIP FILLER (injectable) — full lip-architecture control set
+  // LIP FILLER (injectable) - full lip-architecture control set
   // =====================================================================
   {
     id: "lip_filler",
@@ -389,7 +389,7 @@ export const TEMPLATES: TreatmentTemplate[] = [
   },
 
   // =====================================================================
-  // CHIN FILLER (injectable) — non-surgical chin augmentation
+  // CHIN FILLER (injectable) - non-surgical chin augmentation
   // =====================================================================
   {
     id: "chin_filler",
@@ -537,7 +537,7 @@ export const TEMPLATES: TreatmentTemplate[] = [
   },
 
   // =====================================================================
-  // BOTOX (injectable) — line softening + shape effects
+  // BOTOX (injectable) - line softening + shape effects
   // =====================================================================
   {
     id: "botox",
@@ -677,7 +677,7 @@ export const TEMPLATES: TreatmentTemplate[] = [
   },
 
   // =====================================================================
-  // HAIR TRANSPLANT (hair restoration) — restoration goals + hairstyle
+  // HAIR TRANSPLANT (hair restoration) - restoration goals + hairstyle
   // try-on. Hair sits outside the face mesh, so this vertical is AI-pass
   // only (no geometric canvas handles); the try-on chips are exclusive
   // on/off params (style_* = 100, bandless phrases).
@@ -912,7 +912,7 @@ export const TEMPLATES: TreatmentTemplate[] = [
   },
 
   // =====================================================================
-  // CHEEK / MIDFACE FILLER (injectable) — regional volume; the cheek scale
+  // CHEEK / MIDFACE FILLER (injectable) - regional volume; the cheek scale
   // is a real geometric handle (applyMorphs feature-scale on "cheeks").
   // =====================================================================
   {
@@ -1042,7 +1042,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // TEAR-TROUGH / UNDER-EYE FILLER (injectable) — AI pass only: filling a
+  // TEAR-TROUGH / UNDER-EYE FILLER (injectable) - AI pass only: filling a
   // hollow is a forward-volume change the isotropic scale field can't fake.
   // =====================================================================
   {
@@ -1136,7 +1136,7 @@ Preserve exactly, with no changes: the person's identity, eye shape, eye colour 
   },
 
   // =====================================================================
-  // NASOLABIAL FOLD FILLER (injectable) — AI pass only.
+  // NASOLABIAL FOLD FILLER (injectable) - AI pass only.
   // =====================================================================
   {
     id: "nasolabial_filler",
@@ -1228,7 +1228,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // JAWLINE FILLER / CONTOUR (injectable) — the jaw scale is a real
+  // JAWLINE FILLER / CONTOUR (injectable) - the jaw scale is a real
   // geometric handle (applyMorphs feature-scale on "jaw").
   // =====================================================================
   {
@@ -1339,7 +1339,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // TEMPLE FILLER (injectable) — AI pass only.
+  // TEMPLE FILLER (injectable) - AI pass only.
   // =====================================================================
   {
     id: "temple_filler",
@@ -1419,7 +1419,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // LIQUID RHINOPLASTY (injectable, non-surgical nose) — AI pass only; the
+  // LIQUID RHINOPLASTY (injectable, non-surgical nose) - AI pass only; the
   // geometric nose fields are owned by the surgical rhinoplasty template.
   // Non-surgical: volume can be added/camouflaged, not reduced.
   // =====================================================================
@@ -1525,7 +1525,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // CHIN & JAW SURGERY (surgical, genioplasty / jaw contouring) — AI pass
+  // CHIN & JAW SURGERY (surgical, genioplasty / jaw contouring) - AI pass
   // only; the non-surgical chin fields are owned by the chin-filler template.
   // =====================================================================
   {
@@ -1646,7 +1646,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // BLEPHAROPLASTY (surgical, eyelids) — AI pass only.
+  // BLEPHAROPLASTY (surgical, eyelids) - AI pass only.
   // =====================================================================
   {
     id: "blepharoplasty",
@@ -1765,7 +1765,7 @@ Preserve exactly, with no changes: the person's identity, eye colour, gaze direc
   },
 
   // =====================================================================
-  // FACELIFT / NECK LIFT (surgical) — AI pass only.
+  // FACELIFT / NECK LIFT (surgical) - AI pass only.
   // =====================================================================
   {
     id: "facelift",
@@ -1902,7 +1902,7 @@ Preserve exactly, with no changes: the person's identity, the character of their
   },
 
   // =====================================================================
-  // BUCCAL FAT REMOVAL (surgical) — AI pass only.
+  // BUCCAL FAT REMOVAL (surgical) - AI pass only.
   // =====================================================================
   {
     id: "buccal_fat",
@@ -1982,7 +1982,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // FACIAL FAT TRANSFER (surgical, autologous fat grafting) — AI pass only.
+  // FACIAL FAT TRANSFER (surgical, autologous fat grafting) - AI pass only.
   // =====================================================================
   {
     id: "fat_transfer",
@@ -2083,7 +2083,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // LASER RESURFACING (skin) — AI pass only.
+  // LASER RESURFACING (skin) - AI pass only.
   // =====================================================================
   {
     id: "laser_resurfacing",
@@ -2193,7 +2193,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
   },
 
   // =====================================================================
-  // CHEMICAL PEEL (skin) — AI pass only.
+  // CHEMICAL PEEL (skin) - AI pass only.
   // =====================================================================
   {
     id: "chemical_peel",
@@ -2296,7 +2296,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
   },
 
   // =====================================================================
-  // MICRONEEDLING RF (skin) — AI pass only.
+  // MICRONEEDLING RF (skin) - AI pass only.
   // =====================================================================
   {
     id: "microneedling_rf",
@@ -2390,7 +2390,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
   },
 
   // =====================================================================
-  // HYDRAFACIAL GLOW (skin) — AI pass only.
+  // HYDRAFACIAL GLOW (skin) - AI pass only.
   // =====================================================================
   {
     id: "hydrafacial",
@@ -2477,7 +2477,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
   },
 
   // =====================================================================
-  // PIGMENTATION / MELASMA (skin) — AI pass only.
+  // PIGMENTATION / MELASMA (skin) - AI pass only.
   // =====================================================================
   {
     id: "pigmentation",
@@ -2588,7 +2588,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
   },
 
   // =====================================================================
-  // ACNE SCAR REVISION (skin) — AI pass only.
+  // ACNE SCAR REVISION (skin) - AI pass only.
   // =====================================================================
   {
     id: "acne_scar",
@@ -2691,7 +2691,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
   },
 
   // =====================================================================
-  // LASER HAIR REMOVAL (skin, facial hair) — AI pass only.
+  // LASER HAIR REMOVAL (skin, facial hair) - AI pass only.
   // =====================================================================
   {
     id: "laser_hair_removal",
@@ -2784,7 +2784,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
   },
 
   // =====================================================================
-  // SKIN TIGHTENING (skin, HIFU / RF) — AI pass only.
+  // SKIN TIGHTENING (skin, HIFU / RF) - AI pass only.
   // =====================================================================
   {
     id: "skin_tightening",
@@ -2890,7 +2890,7 @@ Preserve exactly, with no changes: the person's identity, all facial features an
   },
 
   // =====================================================================
-  // PDO THREAD LIFT (other, minimally-invasive lifting) — AI pass only.
+  // PDO THREAD LIFT (other, minimally-invasive lifting) - AI pass only.
   // =====================================================================
   {
     id: "thread_lift",
@@ -2999,7 +2999,7 @@ Preserve exactly, with no changes: the person's identity and all other facial fe
   },
 
   // =====================================================================
-  // PRP HAIR RESTORATION (hair) — AI pass only; the transplant density /
+  // PRP HAIR RESTORATION (hair) - AI pass only; the transplant density /
   // hairline fields are owned by the hair-transplant template.
   // =====================================================================
   {
@@ -3103,7 +3103,7 @@ Preserve exactly, with no changes: the person's identity, face and all facial fe
   },
 
   // =====================================================================
-  // CAPTURE signature treatments — ids match lib/capture/kb.ts, so the
+  // CAPTURE signature treatments - ids match lib/capture/kb.ts, so the
   // clinic menu, POS catalogue, VYBERO bookings and the consultation flow
   // all speak the same six ids. Texture-first: canvas_handles stay empty
   // (nothing geometric moves) and the AI pass is the reveal.
@@ -3117,7 +3117,7 @@ Preserve exactly, with no changes: the person's identity, face and all facial fe
     model: "gemini-2.5-flash-image",
     prompt_template: `Edit ONLY the skin in this photograph to visualize the cumulative result of a course of professional red light and near-infrared therapy facials. {assembled_slider_phrases}
 
-Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep natural, realistic skin with visible pores; the change is a healthy, lit-from-within radiance and calmer, more even skin — never plastic smoothing, never reshaping. The result must look like the SAME person after excellent treatment. Photorealistic, consistent lighting, no artifacts.`,
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep natural, realistic skin with visible pores; the change is a healthy, lit-from-within radiance and calmer, more even skin - never plastic smoothing, never reshaping. The result must look like the SAME person after excellent treatment. Photorealistic, consistent lighting, no artifacts.`,
     slider_schema: [
       {
         key: "rgl_radiance",
@@ -3164,9 +3164,9 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
     plan_template: [
       {
         kind: "milestone",
-        label: "MARK-VU intake scan",
+        label: "Skin assessment at intake",
         detail:
-          "Baseline pigmentation, moisture and texture scores — the numbers this programme will move.",
+          "Baseline pigmentation, moisture and texture scores - the numbers this programme will move.",
         offset_days: 0,
       },
       {
@@ -3178,7 +3178,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
       },
       {
         kind: "milestone",
-        label: "Mid-course MARK-VU rescan",
+        label: "Mid-course skin reassessment",
         detail: "After session 3: compare pigmentation and moisture against intake.",
         offset_days: 21,
       },
@@ -3206,7 +3206,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
     model: "gemini-2.5-flash-image",
     prompt_template: `Edit ONLY the skin in this photograph to visualize the result of a course of needle-free SPICUS micro-channel skin renewal with exosome actives. {assembled_slider_phrases}
 
-Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep realistic skin with natural pores; improvements are clarity, brightness and firmness — never plastic smoothing, never feature reshaping. The result must look like the SAME person with visibly renewed skin. Photorealistic, consistent lighting, no artifacts.`,
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep realistic skin with natural pores; improvements are clarity, brightness and firmness - never plastic smoothing, never feature reshaping. The result must look like the SAME person with visibly renewed skin. Photorealistic, consistent lighting, no artifacts.`,
     slider_schema: [
       {
         key: "xfi_clarity",
@@ -3253,7 +3253,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
     plan_template: [
       {
         kind: "milestone",
-        label: "MARK-VU intake scan",
+        label: "Skin assessment at intake",
         detail: "Baseline pores, pigmentation and texture scores on record.",
         offset_days: 0,
       },
@@ -3273,7 +3273,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
       {
         kind: "followup",
         label: "Course review + rescan",
-        detail: "MARK-VU rescan against intake; before/after photographs under the same light.",
+        detail: "Reassessment against intake; before/after photographs under the same light.",
         offset_days: 84,
       },
       {
@@ -3293,7 +3293,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
     model: "gemini-2.5-flash-image",
     prompt_template: `Edit ONLY the skin in this photograph to visualize the result of a deeply restorative barrier-repair facial course. {assembled_slider_phrases}
 
-Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep realistic skin; the change is calm, hydrated, healthy-looking skin — reduced redness and dryness, a soft natural glow. Never plastic smoothing, never reshaping. The SAME person, restored. Photorealistic, no artifacts.`,
+Preserve exactly, with no changes: the person's identity, facial features, proportions, eyes, nose, lips, hairstyle, lighting, camera angle, and background. Keep realistic skin; the change is calm, hydrated, healthy-looking skin - reduced redness and dryness, a soft natural glow. Never plastic smoothing, never reshaping. The SAME person, restored. Photorealistic, no artifacts.`,
     slider_schema: [
       {
         key: "xrg_hydration",
@@ -3341,7 +3341,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
       {
         kind: "milestone",
         label: "Skin barrier assessment",
-        detail: "Sensitivity history + MARK-VU moisture score. Programme tuned to the barrier's state.",
+        detail: "Sensitivity history + hydration assessment. Programme tuned to the barrier's state.",
         offset_days: 0,
       },
       {
@@ -3354,7 +3354,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
       {
         kind: "followup",
         label: "Glow check at 72 hours",
-        detail: "The glow peaks at 48–72 hours as the barrier rebuilds — quick WhatsApp check-in.",
+        detail: "The glow peaks at 48–72 hours as the barrier rebuilds - quick WhatsApp check-in.",
         offset_days: 3,
       },
       {
@@ -3380,7 +3380,7 @@ Preserve exactly, with no changes: the person's identity, facial features, propo
     model: "gemini-2.5-flash-image",
     prompt_template: `Edit this photograph to visualize the fully settled result of a course of non-invasive lifting and contouring treatment on the lower face and neck. {assembled_slider_phrases}
 
-The contour changes are the POINT of this image — they must be clearly visible in a side-by-side comparison: a crisper jaw-to-neck angle, a cleaner shadow line along the mandible, reduced fullness under the jaw. Keep them believable for a non-surgical treatment (soft tissue only, no altered bone), but do NOT wash them out into a mere glow. Preserve exactly: the person's identity, facial features, eyes, nose, lips, hairstyle, lighting, camera angle, framing and background. The SAME person, visibly contoured. Photorealistic, no artifacts.`,
+The contour changes are the POINT of this image - they must be clearly visible in a side-by-side comparison: a crisper jaw-to-neck angle, a cleaner shadow line along the mandible, reduced fullness under the jaw. Keep them believable for a non-surgical treatment (soft tissue only, no altered bone), but do NOT wash them out into a mere glow. Preserve exactly: the person's identity, facial features, eyes, nose, lips, hairstyle, lighting, camera angle, framing and background. The SAME person, visibly contoured. Photorealistic, no artifacts.`,
     slider_schema: [
       {
         key: "xfc_jawline",
@@ -3431,7 +3431,7 @@ The contour changes are the POINT of this image — they must be clearly visible
       {
         kind: "milestone",
         label: "Contour assessment + photos",
-        detail: "Jawline and neck photographed at fixed angles — the comparison set for the course.",
+        detail: "Jawline and neck photographed at fixed angles - the comparison set for the course.",
         offset_days: 0,
       },
       {
@@ -3443,7 +3443,7 @@ The contour changes are the POINT of this image — they must be clearly visible
       {
         kind: "followup",
         label: "Day-14 photo comparison",
-        detail: "Cumulative lift shows by the second week — same angles, same light.",
+        detail: "Cumulative lift shows by the second week - same angles, same light.",
         offset_days: 14,
       },
       {
@@ -3463,7 +3463,7 @@ The contour changes are the POINT of this image — they must be clearly visible
     model: "gemini-2.5-flash-image",
     prompt_template: `Edit this photograph to visualize the result of a course of professional non-invasive body contouring on the treated area. {assembled_slider_phrases}
 
-Preserve exactly: the person's identity, pose, clothing, lighting, camera angle, and background. Changes must be SUBTLE, gradual-looking and anatomically plausible — firmer, smoother skin and modestly refined contours in the treated region only; never dramatic reshaping, never a different body. The SAME person after a successful course. Photorealistic, no artifacts.`,
+Preserve exactly: the person's identity, pose, clothing, lighting, camera angle, and background. Changes must be SUBTLE, gradual-looking and anatomically plausible - firmer, smoother skin and modestly refined contours in the treated region only; never dramatic reshaping, never a different body. The SAME person after a successful course. Photorealistic, no artifacts.`,
     slider_schema: [
       {
         key: "xbc_firmness",
@@ -3514,7 +3514,7 @@ Preserve exactly: the person's identity, pose, clothing, lighting, camera angle,
       {
         kind: "followup",
         label: "Weekly photo tracking",
-        detail: "Photograph weekly under the same light — the course tells its story in the series.",
+        detail: "Photograph weekly under the same light - the course tells its story in the series.",
         offset_days: 7,
       },
       {
@@ -3534,7 +3534,7 @@ Preserve exactly: the person's identity, pose, clothing, lighting, camera angle,
     model: "gemini-2.5-flash-image",
     prompt_template: `Edit ONLY the skin in this photograph to visualize the result of a course of full-body red light and near-infrared therapy. {assembled_slider_phrases}
 
-Preserve exactly: the person's identity, features, pose, clothing, hairstyle, lighting, camera angle, and background. The change is healthier, more rested, subtly firmer-looking skin with an even, vital tone — never plastic smoothing, never reshaping. The SAME person, visibly recovered and well. Photorealistic, no artifacts.`,
+Preserve exactly: the person's identity, features, pose, clothing, hairstyle, lighting, camera angle, and background. The change is healthier, more rested, subtly firmer-looking skin with an even, vital tone - never plastic smoothing, never reshaping. The SAME person, visibly recovered and well. Photorealistic, no artifacts.`,
     slider_schema: [
       {
         key: "fbr_vitality",
@@ -3586,7 +3586,7 @@ Preserve exactly: the person's identity, features, pose, clothing, hairstyle, li
       {
         kind: "followup",
         label: "Weekly rhythm",
-        detail: "Weekly sessions compound — keep a consistent slot.",
+        detail: "Weekly sessions compound - keep a consistent slot.",
         offset_days: 7,
       },
       {
@@ -3607,7 +3607,7 @@ export const PROCEDURE_CATEGORIES: {
   {
     id: "capture",
     label: "CAPTURE Signature",
-    blurb: "EXOMERE & MitoRedLight — the six needle-free house treatments",
+    blurb: "EXOMERE & MitoRedLight - the six needle-free house treatments",
     templateIds: [
       "mito-regenerative-glow",
       "exomere-face-implant",

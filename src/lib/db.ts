@@ -38,7 +38,7 @@ export async function resolveImageUrl(
   return url;
 }
 
-/** Landmark cache — computed once per photo, reused by canvas + warp. */
+/** Landmark cache - computed once per photo, reused by canvas + warp. */
 export async function saveLandmarks(assetId: string, landmarks: number[][]) {
   await set(`lm:${assetId}`, landmarks);
 }

@@ -23,7 +23,7 @@ import VyberoConcierge from "@/components/VyberoConcierge";
 /**
  * Sign-in shortcuts for the development workspace.
  *
- * These fill in the EMAIL only — no password is stored in the repo. The
+ * These fill in the EMAIL only - no password is stored in the repo. The
  * accounts are created by the provisioning script, which is where their
  * password is set.
  */
@@ -41,7 +41,7 @@ const ROLE_CARDS = [
     email: "anusha@dermiere.pk",
     label: "Founder & Director",
     name: "Dr. Anusha Liaqat",
-    desc: "Full Clinic OS: patients, calendar, POS, reviews — and the CRM",
+    desc: "Full Clinic OS: patients, calendar, POS, reviews - and the CRM",
     icon: ShieldCheck,
   },
   {
@@ -106,7 +106,7 @@ function LoginInner() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // After an explicit sign-out or idle lock, the sign-in screen must show
-  // unconditionally — auto-bootstrap here is what looped the spinner when
+  // unconditionally - auto-bootstrap here is what looped the spinner when
   // the cookie was mid-clear.
   const [checking, setChecking] = useState(!locked && !signedOut);
 
@@ -154,7 +154,7 @@ function LoginInner() {
   /**
    * Fill in a seeded account and arm the form so a single Enter signs in.
    *
-   * Both fields are filled — this is the demonstration clinic, whose shared
+   * Both fields are filled - this is the demonstration clinic, whose shared
    * password is not a secret (see DERMIERE_DEMO_PASSWORD). Focus lands on
    * the submit button rather than an input, so Enter or Space completes the
    * sign-in without anything further to type.
@@ -258,7 +258,7 @@ function LoginInner() {
 
           <div className="mt-7">
             <div className="caption mb-2.5">
-              The Dermiere team — pick one, then press Enter to sign in.
+              The Dermiere team - pick one, then press Enter to sign in.
             </div>
             <div className="space-y-2">
               {ROLE_CARDS.map(({ email: qEmail, label, name, desc, icon: Icon }) => (
@@ -286,7 +286,7 @@ function LoginInner() {
         </div>
       </div>
 
-      {/* VYBERO web concierge — the public booking agent, live on the landing page */}
+      {/* VYBERO web concierge - the public booking agent, live on the landing page */}
       <VyberoConcierge />
     </div>
   );

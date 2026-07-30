@@ -1,5 +1,5 @@
 /**
- * POST /api/crm/messaging/simulate — inject a fictional inbound message.
+ * POST /api/crm/messaging/simulate - inject a fictional inbound message.
  *
  * This is the demo path for "a customer messages the clinic". It goes
  * through the SAME ingest function a real provider webhook would use, so

@@ -1,5 +1,5 @@
 /**
- * CRM storage — every read and write is scoped by clinic_id.
+ * CRM storage - every read and write is scoped by clinic_id.
  *
  * The tenant boundary lives here, at the query, exactly as it does in db.ts:
  * callers pass the clinic id they got from the verified session, never from
@@ -28,6 +28,7 @@ import type {
   MessageTemplate,
 } from "@/lib/crm/types";
 import { normalizePhone } from "@/lib/crm/phone";
+import { cancelCrmBooking, ensureConsultationBooked } from "./crmBooking";
 
 export const CRM_TABLES = [
   "crm_contacts",
@@ -64,8 +65,8 @@ export const newId = () => crypto.randomUUID();
 /**
  * Every CRM row for a clinic. The dashboards work over hundreds of rows per
  * clinic, so pulling a collection and refining in TypeScript keeps one
- * filtering implementation for both backends; the clinic_id predicate — the
- * one that matters for isolation and for index selectivity — stays in SQL.
+ * filtering implementation for both backends; the clinic_id predicate - the
+ * one that matters for isolation and for index selectivity - stays in SQL.
  */
 async function listAll<T>(clinicId: string, name: CrmTable): Promise<T[]> {
   // Re-checked at runtime, not just in the type system: this is the value
@@ -374,7 +375,7 @@ export async function listAllMessages(clinicId: string): Promise<CrmMessage[]> {
   return listAll<CrmMessage>(clinicId, "crm_messages");
 }
 
-/** Look a message up by the provider's id — the idempotency check. */
+/** Look a message up by the provider's id - the idempotency check. */
 export async function findMessageByProviderId(
   clinicId: string,
   provider: string,
@@ -569,7 +570,7 @@ export async function addActivity(
 }
 
 // ---------------------------------------------------------------------
-// Stage transition helper — the one place a stage change is recorded
+// Stage transition helper - the one place a stage change is recorded
 // ---------------------------------------------------------------------
 
 export async function moveContactStage(
@@ -600,5 +601,20 @@ export async function moveContactStage(
     branch_id: contact.branch_id,
     ref_id: contactId,
   });
+
+  // A booking is only real once it is on the calendar. Booking-related
+  // stages put it there; giving up releases the slot again.
+  try {
+    if (stage === "consult_booked") {
+      await ensureConsultationBooked(clinicId, updated, { actorId });
+    } else if (stage === "lost" || stage === "archived") {
+      await cancelCrmBooking(clinicId, contactId);
+    }
+  } catch (err) {
+    // The stage change is the user's action and must stand; a calendar
+    // failure is logged rather than rolled back into their face.
+    console.error("[crm] calendar sync failed", err);
+  }
+
   return updated;
 }

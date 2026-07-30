@@ -1,5 +1,5 @@
 /**
- * DELETE /api/booth/:id (T1 privacy) — removes a booth inbox item and its
+ * DELETE /api/booth/:id (T1 privacy) - removes a booth inbox item and its
  * photos. Scoped to the caller's clinic, so a clinic can only delete its own
  * booth items. Items also auto-expire after 24h regardless.
  */

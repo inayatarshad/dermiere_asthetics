@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The exportable patient report (07_report-export.md) — the takeaway.
+ * The exportable patient report (07_report-export.md) - the takeaway.
  * Three A4 sheets: cover · consultation + visualization · plan + next steps.
  * Surfaces use pre-composed opaque glass (no backdrop-filter) so the printed
  * PDF matches the screen pixel for pixel.
@@ -126,7 +126,7 @@ export function ReportView({
         <section className="report-sheet report-body">
           <SheetHeader clinic={clinic.name} title="Consent summary" />
 
-          {/* 1 — who / when / what */}
+          {/* 1 - who / when / what */}
           <div className="rb-panel cp-tight">
             <div className="rb-tl-head">
               <span className="rb-list-label">{patient.name}</span>
@@ -141,7 +141,7 @@ export function ReportView({
             </div>
           </div>
 
-          {/* 2 — the simulation viewed */}
+          {/* 2 - the simulation viewed */}
           <div className="rb-panel cp-tight">
             <div className="rb-label">The visualization you were shown</div>
             {beforeUrl && afterUrl ? (
@@ -161,13 +161,13 @@ export function ReportView({
             </div>
           </div>
 
-          {/* 3 — acknowledgement */}
+          {/* 3 - acknowledgement */}
           <div className="rb-panel cp-tight">
             <div className="rb-label">Acknowledgement</div>
             <p className="cp-body">{CONSENT_ACK_PARAGRAPH}</p>
           </div>
 
-          {/* 4 — risks checklist */}
+          {/* 4 - risks checklist */}
           <div className={categories.length > 1 ? "rb-two-col" : ""}>
             {categories.map((cat) => (
               <div key={cat} className="rb-panel cp-tight">
@@ -184,7 +184,7 @@ export function ReportView({
             ))}
           </div>
 
-          {/* 5 — consents actually captured */}
+          {/* 5 - consents actually captured */}
           <div className="rb-panel cp-tight" style={{ marginTop: categories.length > 1 ? "14px" : undefined }}>
             <div className="rb-label">Consents on record</div>
             <ul className="cp-consents">
@@ -204,7 +204,7 @@ export function ReportView({
             </ul>
           </div>
 
-          {/* 6 — signatures */}
+          {/* 6 - signatures */}
           <div className="cp-signatures">
             <div>
               <div className="cp-sign-line" />
@@ -234,7 +234,7 @@ export function ReportView({
 
   return (
     <div className="report-root">
-      {/* ============ SHEET 1 — COVER ============ */}
+      {/* ============ SHEET 1 - COVER ============ */}
       <section className="report-sheet report-cover">
         <div className="rc-orb rc-orb-1" />
         <div className="rc-orb rc-orb-2" />
@@ -273,7 +273,7 @@ export function ReportView({
         </footer>
       </section>
 
-      {/* ============ SHEET 2 — CONSULTATION + VISUALIZATION ============ */}
+      {/* ============ SHEET 2 - CONSULTATION + VISUALIZATION ============ */}
       <section className="report-sheet report-body">
         <SheetHeader clinic={clinic.name} title="Your consultation" />
 
@@ -364,7 +364,7 @@ export function ReportView({
         />
       </section>
 
-      {/* ============ SHEET 3 — PLAN + NEXT STEPS ============ */}
+      {/* ============ SHEET 3 - PLAN + NEXT STEPS ============ */}
       <section className="report-sheet report-body">
         <SheetHeader clinic={clinic.name} title="Your treatment plan" />
 

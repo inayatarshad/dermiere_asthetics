@@ -1,5 +1,5 @@
 /**
- * GET /api/crm/overview — every number on the CRM dashboard.
+ * GET /api/crm/overview - every number on the CRM dashboard.
  *
  * Computed server-side from the caller's clinic only, then filtered by the
  * date range and branch in the query string. Owner-only: the full

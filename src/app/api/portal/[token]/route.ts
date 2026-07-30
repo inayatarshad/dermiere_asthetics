@@ -1,5 +1,5 @@
 /**
- * GET /api/portal/[token] — public invite lookup for the doctor's form.
+ * GET /api/portal/[token] - public invite lookup for the doctor's form.
  * A valid first open flips PENDING -> OPENED. The token is the capability
  * (crypto-random, unguessable); the write is scoped to the invite's owning
  * clinic. Unknown tokens 404 so links stay opaque.

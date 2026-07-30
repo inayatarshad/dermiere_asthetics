@@ -64,7 +64,7 @@ const SUBDIV_LEVELS = 2;
 
 export function FaceScene(props: FaceSceneProps) {
   // Mobile (T4): with Draw/Sculpt active, a second finger must still
-  // orbit/zoom — no tool traps. Track live pointer count; two or more
+  // orbit/zoom - no tool traps. Track live pointer count; two or more
   // switches the gesture to navigation and cancels any live stroke.
   const pointers = useRef(new Set<number>());
   const [multiTouch, setMultiTouch] = useState(false);
@@ -271,7 +271,7 @@ function FaceMeshObject({
     if (sculptDelta.current.length !== n * 3) {
       sculptDelta.current = new Float32Array(n * 3);
     }
-    // Evaluate the smooth morph field at every subdivided vertex — this is
+    // Evaluate the smooth morph field at every subdivided vertex - this is
     // what turns per-triangle bulk movement into a refined, curved push.
     const morphedPx = applyMorphs(frame.points, morphs);
     const delta = sculptDelta.current;
@@ -425,7 +425,7 @@ function FaceMeshObject({
           toneMapped={false}
         />
       </mesh>
-      {/* highlight glow layer — soft mint rim, face stays visible */}
+      {/* highlight glow layer - soft mint rim, face stays visible */}
       <mesh geometry={geometry} scale={1.004} raycast={() => null}>
         <meshBasicMaterial
           vertexColors
@@ -445,7 +445,7 @@ function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
 }
 
-/** Soft elliptical shadow under the head — the "floating on a stage" cue. */
+/** Soft elliptical shadow under the head - the "floating on a stage" cue. */
 function StageShadow() {
   const texture = useMemo(() => {
     const c = document.createElement("canvas");

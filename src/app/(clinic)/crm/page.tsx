@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * CRM Overview — "what needs attention today".
+ * CRM Overview - "what needs attention today".
  *
  * Deliberately kept to the operational picture: what came in, what is owed
- * to someone, what went wrong. The business analysis — branch comparison,
- * lead sources, treatment demand, trends — lives on /crm/analytics so the
+ * to someone, what went wrong. The business analysis - branch comparison,
+ * lead sources, treatment demand, trends - lives on /crm/analytics so the
  * two screens do not say the same thing twice.
  *
  * Every figure comes from /api/crm/overview, computed server-side from the
  * caller's clinic. Rates arrive as `number | null`; null means the
- * denominator was empty and renders as "—" with a reason, never as 0%.
+ * denominator was empty and renders as "-" with a reason, never as 0%.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -368,7 +368,7 @@ export default function CrmOverviewPage() {
           <div className="font-medium text-ink-900">Branch comparison and trends</div>
           <p className="caption mt-0.5">
             Gulberg versus F-11 on leads, conversion, no-shows, revenue and
-            satisfaction — plus lead sources and treatment demand.
+            satisfaction - plus lead sources and treatment demand.
           </p>
         </div>
         <ArrowRight size={18} className="text-ink-400 shrink-0" />

@@ -1,8 +1,8 @@
 /**
  * Clinic staff management (admin only), scoped to the caller's clinic.
- *  GET   — list staff
- *  POST  — add a staff user { name, email, role, title?, password? }
- *  PATCH — set active { id, active } OR reset password { id, password }
+ *  GET   - list staff
+ *  POST  - add a staff user { name, email, role, title?, password? }
+ *  PATCH - set active { id, active } OR reset password { id, password }
  */
 
 import { NextRequest, NextResponse } from "next/server";

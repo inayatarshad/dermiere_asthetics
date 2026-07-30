@@ -1,6 +1,6 @@
 /**
- * GET  /api/clinic — the caller's clinic config (any signed-in staff).
- * PUT  /api/clinic — update it (admin only). Branding, hours, treatment
+ * GET  /api/clinic - the caller's clinic config (any signed-in staff).
+ * PUT  /api/clinic - update it (admin only). Branding, hours, treatment
  * menu, prices, voice-agent id, booking url, AI caps all live here and
  * persist to Postgres, so 5 clinics keep 5 different configs.
  */

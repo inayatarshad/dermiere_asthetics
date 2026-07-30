@@ -1,5 +1,5 @@
 /**
- * POST /api/portal/[token]/submit — the doctor's answers.
+ * POST /api/portal/[token]/submit - the doctor's answers.
  * Server-side validation is the source of truth (spec §10): consent must
  * be true, honeypot must be empty, enums are whitelisted, rate-limited
  * per IP. Saving flips the invite to COMPLETED and optionally pings H
@@ -118,7 +118,7 @@ export async function POST(
     invite.doctorName = doctorName;
     await saveInvite(clinicId, invite);
 
-    // optional ping to H — fire and forget
+    // optional ping to H - fire and forget
     const hook = process.env.SLACK_WEBHOOK_URL;
     if (hook) {
       void fetch(hook, {

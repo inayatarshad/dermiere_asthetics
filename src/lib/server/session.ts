@@ -17,7 +17,7 @@ export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
  * This is a SEPARATE axis from `role`. Role answers "what may this person
  * do" and still governs every permission check; workspace answers "which
  * product surface do they see". A CRM account is an ordinary user of the
- * same clinic, with the same auth and the same database — it simply gets
+ * same clinic, with the same auth and the same database - it simply gets
  * the CRM navigation instead of the Clinic OS one.
  */
 export type Workspace = "clinic" | "crm";

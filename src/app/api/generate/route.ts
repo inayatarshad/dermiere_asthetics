@@ -1,5 +1,5 @@
 /**
- * POST /api/generate — the thin server wrapper around the identity-preserving
+ * POST /api/generate - the thin server wrapper around the identity-preserving
  * image-edit model. Keeps API keys server-side; the client only ever sends a
  * downscaled photo + the assembled instruction.
  */
@@ -26,11 +26,11 @@ const PROVIDERS: Provider[] = ["gemini", "openai", "flux", "higgsfield"];
  * treatment: image models love to re-light, re-frame and beautify, which
  * reads as fake (and hides the actual change). Owner feedback 2026-07-23:
  * "lighting needs to be the same... the woman just got closer to the
- * camera and got glow" — this footer is the fix.
+ * camera and got glow" - this footer is the fix.
  */
-const CONSISTENCY_FOOTER = `TECHNICAL CONSISTENCY — MANDATORY. This image is the "after" half of a clinical before/after pair, so everything except the described treatment result must be IDENTICAL to the original photograph:
+const CONSISTENCY_FOOTER = `TECHNICAL CONSISTENCY - MANDATORY. This image is the "after" half of a clinical before/after pair, so everything except the described treatment result must be IDENTICAL to the original photograph:
 - Lighting: exact same color temperature, white balance, exposure, contrast and shadow direction. Do not re-light, brighten or cool the image.
-- Framing: exact same crop, zoom, camera distance and head position — the face must occupy the same size and place in the frame. Do not move the subject closer to the camera.
+- Framing: exact same crop, zoom, camera distance and head position - the face must occupy the same size and place in the frame. Do not move the subject closer to the camera.
 - Background: pixel-identical background, same tone.
 - No global beautification: do not add glow, smoothness, radiance or make-up anywhere except where the instruction above explicitly asks. Untreated areas must keep their exact original texture, pores and tone.
 - The described treatment changes themselves must be clearly visible when compared side by side with the original.`;

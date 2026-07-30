@@ -1,5 +1,5 @@
 /**
- * Clinic identity, config and provisioning — server side.
+ * Clinic identity, config and provisioning - server side.
  *
  * A "clinic" is a Postgres row (clinics) plus its staff (users). This module
  * creates them, authenticates logins, serves per-clinic config, and seeds a
@@ -141,7 +141,7 @@ function toStaff(row: UserRow<StaffPayload>): StaffUser {
     role: row.role as Role,
     title: row.payload?.title,
     active: row.active,
-    // Absent means an ordinary Clinic OS login — the safe default.
+    // Absent means an ordinary Clinic OS login - the safe default.
     workspace: row.payload?.workspace === "crm" ? "crm" : "clinic",
   };
 }
@@ -149,6 +149,19 @@ function toStaff(row: UserRow<StaffPayload>): StaffUser {
 export async function listStaff(clinicId: string): Promise<StaffUser[]> {
   const rows = await pgListUsers<StaffPayload>(clinicId);
   return rows.map(toStaff);
+}
+
+/**
+ * Staff who can be assigned work.
+ *
+ * Deactivated accounts stay in listStaff() so existing records still resolve
+ * a name, but they must not appear in "assign to" pickers - a leaver would
+ * otherwise keep collecting follow-ups.
+ */
+export async function listAssignableStaff(
+  clinicId: string
+): Promise<StaffUser[]> {
+  return (await listStaff(clinicId)).filter((s) => s.active !== false);
 }
 
 export async function addStaff(
@@ -282,7 +295,7 @@ export async function provisionClinic(
 
 /**
  * Production gate: with SEED_DEMO=false (or 0/off) an empty database is
- * left empty — real deployments provision clean clinics via
+ * left empty - real deployments provision clean clinics via
  * /api/admin/provision and demo data can never mix with client data.
  */
 function demoSeedDisabled(): boolean {
@@ -292,8 +305,8 @@ function demoSeedDisabled(): boolean {
 
 /**
  * Seeds the demo clinic (CAPTURE) with the full team and the complete
- * demo story — patients, MARK-VU scans, appointments across all four
- * locations, VYBERO calls, invoices, reviews and Capture Circle rewards —
+ * demo story: patients, appointments across all four
+ * locations, VYBERO calls, invoices, reviews and Capture Circle rewards -
  * but only when the database has no clinics yet. Idempotent and safe to
  * call on every login attempt / bootstrap. Disabled by SEED_DEMO=false.
  */
@@ -302,7 +315,7 @@ export function ensureSeedClinic(): Promise<void> {
   if (demoSeedDisabled()) return Promise.resolve();
   // In-flight guard only (no once-per-instance memo): the count query is
   // one cheap SELECT per login, and always re-checking means truncating
-  // the database reseeds on the very next login — the demo-refresh path —
+  // the database reseeds on the very next login - the demo-refresh path -
   // instead of depending on which warm serverless instance answers.
   if (!seedInFlight) {
     seedInFlight = (async () => {
@@ -336,7 +349,7 @@ export function ensureSeedClinic(): Promise<void> {
         prices: Object.fromEntries(
           CAPTURE_TREATMENTS.map((t) => [t.id, t.pricePkr])
         ),
-        // Noor — the ElevenLabs voice agent behind the VYBERO page widget
+        // Noor - the ElevenLabs voice agent behind the VYBERO page widget
         vyberoAgentId: "agent_5601kxp631h7fgmthsaq3w3729qv",
         locations: CAPTURE_LOCATIONS.map((l) => ({
           id: l.id,
@@ -404,7 +417,6 @@ async function seedDemoData(
   await replace("consultations", cast.consultations);
   await replace("invoices", cast.invoices);
   await replace("rewards", cast.rewards);
-  await replace("skin_analyses", cast.skinAnalyses);
 
   for (const a of cast.appointments) {
     await pgUpsertAppointment(clinicId, a.id, a.start, a.status, a);

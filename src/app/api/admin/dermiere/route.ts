@@ -1,9 +1,9 @@
 /**
- * POST /api/admin/dermiere — provision the Dermiere development clinic and
+ * POST /api/admin/dermiere - provision the Dermiere development clinic and
  * its fictional CRM data.
  *
  * Superuser operation, guarded exactly like /api/admin/provision: the
- * platform key when one is configured, otherwise dev-only. It is additive —
+ * platform key when one is configured, otherwise dev-only. It is additive -
  * it creates what is missing and refreshes the deterministic seed rows in
  * place. By default it never drops, truncates or resets anything.
  *

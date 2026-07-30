@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Public review page (§5.4) — the client's side of the loop. Zero-login,
+ * Public review page (§5.4) - the client's side of the loop. Zero-login,
  * mobile-first, CAPTURE noir/gold. Rate → highlights → note → submit;
  * the thank-you screen reveals the Capture Circle reward immediately
  * (§5.5 made visible). Deliberately avoids the clinic store: light
@@ -155,7 +155,7 @@ export default function ReviewPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/capture-logo-black.png" alt="" width={132} height={34} style={{ objectFit: "contain", margin: "0 auto" }} />
         <h1>you have already shared your review</h1>
-        <p>thank you — it means the world to the team. your Capture Circle reward is waiting at the front desk.</p>
+        <p>thank you - it means the world to the team. your Capture Circle reward is waiting at the front desk.</p>
       </div>
     );
   }
@@ -210,7 +210,7 @@ export default function ReviewPage() {
               {reward.code}
             </div>
             <p style={{ fontSize: 13.5, color: "#4A443A", lineHeight: 1.5 }}>
-              {reward.value}% off your next visit — show this code at the
+              {reward.value}% off your next visit - show this code at the
               desk. Valid until{" "}
               {new Date(reward.expires_at).toLocaleDateString("en-GB", {
                 day: "numeric",
@@ -250,7 +250,7 @@ export default function ReviewPage() {
           {meta?.treatments?.length
             ? `${meta.treatments.join(" · ")} at ${meta.locationName}.`
             : `your visit at ${meta?.locationName ?? "CAPTURE"}.`}{" "}
-          two taps and a thought — and your Capture Circle reward is yours.
+          two taps and a thought - and your Capture Circle reward is yours.
         </p>
 
         {/* stars */}
@@ -280,10 +280,10 @@ export default function ReviewPage() {
           {rating > 0 && (
             <p style={{ fontSize: 13.5, color: "#4A443A" }}>
               {rating === 5
-                ? "wonderful — thank you."
+                ? "wonderful - thank you."
                 : rating === 4
-                  ? "lovely — and we want to earn the fifth."
-                  : "thank you for the honesty — the team will read every word."}
+                  ? "lovely - and we want to earn the fifth."
+                  : "thank you for the honesty - the team will read every word."}
             </p>
           )}
         </div>
@@ -313,7 +313,7 @@ export default function ReviewPage() {
           </h2>
           <label className="portal-area">
             <textarea
-              placeholder="what should we keep doing — or do better?"
+              placeholder="what should we keep doing - or do better?"
               value={comment}
               maxLength={900}
               onChange={(e) => setComment(e.target.value)}

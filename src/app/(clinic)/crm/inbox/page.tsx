@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Shared inbox — customer conversations, not staff chat.
+ * Shared inbox - customer conversations, not staff chat.
  *
  * Every send goes UI -> /api/crm/conversations/[id] -> messaging service ->
  * provider. This screen has no idea which provider is behind that, and it
@@ -223,7 +223,7 @@ export default function InboxPage() {
             <span className="font-medium">Messaging provider: {provider.label}.</span>{" "}
             {provider.live
               ? "Messages are delivered through the connected provider."
-              : "No WhatsApp Business account is connected, so nothing leaves this machine. The CRM already talks to the provider interface the Meta WhatsApp Cloud API will implement — connecting it later is configuration, not a rewrite."}
+              : "No WhatsApp Business account is connected, so nothing leaves this machine. The CRM already talks to the provider interface the Meta WhatsApp Cloud API will implement - connecting it later is configuration, not a rewrite."}
           </p>
         </div>
       )}
@@ -419,7 +419,7 @@ export default function InboxPage() {
                   </button>
                   {internal && (
                     <span className="text-[11px] text-ink-400">
-                      Staff only — never sent to the patient.
+                      Staff only - never sent to the patient.
                     </span>
                   )}
                 </div>
@@ -591,7 +591,7 @@ function SimulateModal({
     }
     setResult(
       res.data.duplicate
-        ? "That exact message was already ingested — the conversation is unchanged."
+        ? "That exact message was already ingested - the conversation is unchanged."
         : null
     );
     await onDone(res.data.conversation_id);

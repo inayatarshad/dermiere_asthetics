@@ -1,10 +1,10 @@
 /**
- * CRM analytics — every number on the owner dashboard is computed here.
+ * CRM analytics - every number on the owner dashboard is computed here.
  *
  * Two rules run through this file:
  *
  *  1. No invented metrics. A rate whose denominator is zero is `null`, not 0
- *     and not 100 — the UI renders "—" and says why. `rate()` is the only
+ *     and not 100 - the UI renders "-" and says why. `rate()` is the only
  *     place a division happens, so a divide-by-zero cannot slip in.
  *  2. Definitions are stated once. "Returning patient" means a patient with
  *     at least RETURNING_VISIT_THRESHOLD completed visits, and that constant

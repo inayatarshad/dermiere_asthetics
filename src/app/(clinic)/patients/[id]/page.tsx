@@ -43,7 +43,6 @@ import { useAssetUrl } from "@/lib/hooks";
 import { GlassCard, EmptyState, StatusChip, Toggle, Chip, Modal, Spinner } from "@/components/ui";
 import { PatientAvatar } from "@/components/PatientAvatar";
 import { CameraCapture } from "@/components/CameraCapture";
-import { MarkVuPanel } from "@/components/MarkVuPanel";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: UserIcon },
@@ -358,7 +357,7 @@ export default function PatientProfilePage() {
             </dl>
           </GlassCard>
 
-          {/* Billing history — the POS writes invoices onto the patient
+          {/* Billing history - the POS writes invoices onto the patient
               record (owner 2026-07-23: the sale summary must live in the
               database and be visible on the client). */}
           <GlassCard className="p-6 lg:col-span-2">
@@ -376,7 +375,7 @@ export default function PatientProfilePage() {
             </div>
             {invoices.length === 0 ? (
               <p className="caption">
-                No purchases yet — sales recorded at the POS with this client
+                No purchases yet - sales recorded at the POS with this client
                 selected appear here automatically.
               </p>
             ) : (
@@ -423,9 +422,6 @@ export default function PatientProfilePage() {
               </div>
             )}
           </GlassCard>
-
-          {/* MARK-VU intake scanner integration (§5.6) */}
-          <MarkVuPanel patientId={patient.id} />
 
           {latestConsult && (
             <GlassCard className="p-6 lg:col-span-2">

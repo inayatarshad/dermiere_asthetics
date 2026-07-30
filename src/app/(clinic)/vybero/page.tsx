@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * VYBERO Voice Agent console — the in-app home of the ElevenLabs phone
+ * VYBERO Voice Agent console - the in-app home of the ElevenLabs phone
  * agent (Noor). Hosts the call widget so the CAPTURE team can talk to
  * the agent right here, plus the admin webhook configuration and the
  * on-demand call-history sync. Bookings live on the Calendar; call
- * history and recordings live on Analytics — no duplicate feeds here.
+ * history and recordings live on Analytics - no duplicate feeds here.
  *
- * Replaces the Discovery slot in the nav for the CAPTURE deployment —
+ * Replaces the Discovery slot in the nav for the CAPTURE deployment -
  * open to every staff role so the whole team can test the agent.
  */
 
@@ -31,7 +31,7 @@ const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
 const cleanAgentId = (id: string) => id.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
 
 // hydration-safe origin: server snapshot is the placeholder, client
-// snapshot is the real origin — no setState-in-effect needed
+// snapshot is the real origin - no setState-in-effect needed
 const noopSubscribe = () => () => {};
 function useOrigin(): string {
   return useSyncExternalStore(
@@ -107,7 +107,7 @@ export default function VyberoAgentPage() {
      * right:0). On our stage we want it dead centre, so we inject two
      * rules into its shadow root: centre the overlay's cross axis and
      * release the sheet's horizontal insets, letting it settle on its
-     * centred static position at its own natural width — no hardcoded
+     * centred static position at its own natural width - no hardcoded
      * sizes, so their responsive rules keep working.
      */
     const centreWidget = (): boolean => {
@@ -129,7 +129,7 @@ export default function VyberoAgentPage() {
       widgetHost.current.innerHTML = `<elevenlabs-convai agent-id="${agentId}" variant="expanded"></elevenlabs-convai>`;
       setWidgetReady(true);
       // the custom element upgrades (and attaches its shadow root)
-      // asynchronously — retry briefly until the injection lands
+      // asynchronously - retry briefly until the injection lands
       let tries = 0;
       const timer = setInterval(() => {
         if (cancelled || centreWidget() || ++tries > 40) clearInterval(timer);
@@ -163,7 +163,7 @@ export default function VyberoAgentPage() {
             VYBERO Voice Agent
           </h1>
           <p className="caption mt-0.5">
-            Talk to Noor right here — bookings land on the calendar below,
+            Talk to Noor right here - bookings land on the calendar below,
             live. The same agent answers the clinic&rsquo;s phone line.
           </p>
         </div>
@@ -193,7 +193,7 @@ export default function VyberoAgentPage() {
         <GlassCard strong className="p-6 fade-up space-y-4">
           <SectionTitle
             title="ElevenLabs webhook tools"
-            sub="Agent → Tools → Add tool → Webhook. Auth: attach the secret as either header — both are accepted."
+            sub="Agent → Tools → Add tool → Webhook. Auth: attach the secret as either header - both are accepted."
           />
           <div className="grid gap-3">
             <ToolRow
@@ -217,7 +217,7 @@ export default function VyberoAgentPage() {
           </div>
           <p className="caption">
             The secret is the <b>VYBERO_API_KEY</b> environment variable on
-            this deployment — store it in ElevenLabs Secrets and attach it to
+            this deployment - store it in ElevenLabs Secrets and attach it to
             both authenticated tools. Full copy-paste guide:{" "}
             <b>VYBERO_VOICE_SETUP.md</b> in the project root.
           </p>
@@ -232,14 +232,14 @@ export default function VyberoAgentPage() {
                 name="post_call_transcription"
                 method="POST"
                 url={`${origin}/api/vybero/elevenlabs-webhook?key=VYBERO_API_KEY`}
-                note="Replace VYBERO_API_KEY with the real key value. Transcript, summary, duration and outcome are mapped into the call log automatically — booked calls are detected from the actual book_appointment tool call, not from what the agent says."
+                note="Replace VYBERO_API_KEY with the real key value. Transcript, summary, duration and outcome are mapped into the call log automatically - booked calls are detected from the actual book_appointment tool call, not from what the agent says."
               />
             </div>
           </div>
         </GlassCard>
       )}
 
-      {/* The widget stage — front and center. The wrapper's transform makes
+      {/* The widget stage - front and center. The wrapper's transform makes
           it the containing block for the widget's fixed-position UI, so the
           ElevenLabs orb/panel renders INSIDE this stage instead of the
           browser corner; the TechGIS bar owns the attribution strip. */}
@@ -247,7 +247,7 @@ export default function VyberoAgentPage() {
         <div className="flex items-center gap-3 mb-3 px-1">
           <SectionTitle
             title="Call Noor"
-            sub="Live voice session with the CAPTURE agent — bookings land on the calendar below"
+            sub="Live voice session with the CAPTURE agent - bookings land on the calendar below"
           />
           {agentId && isAdmin && (
             <button
@@ -312,7 +312,7 @@ export default function VyberoAgentPage() {
             body={
               isAdmin
                 ? "Paste the agent id from ElevenLabs (Agents → your agent → ID, looks like agent_...) and the call widget appears here for the whole team."
-                : "An admin needs to link the ElevenLabs agent id — then the whole team can test calls from this page."
+                : "An admin needs to link the ElevenLabs agent id - then the whole team can test calls from this page."
             }
             action={
               isAdmin ? (

@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * CAPTURE Point of Sale — the visit closes here (§5.3 + §5.5 redemption).
+ * CAPTURE Point of Sale - the visit closes here (§5.3 + §5.5 redemption).
  * Build the bill from treatments + retail, apply a Capture Circle code,
  * record the payment (cash/card, record-only) and hand off to the printed
- * A4 invoice and the review link — the full end-of-visit ritual.
+ * A4 invoice and the review link - the full end-of-visit ritual.
  */
 
 import { useMemo, useState } from "react";
@@ -100,7 +100,7 @@ export default function PosPage() {
   }, [patients, clientName]);
 
   // The billed client: explicit pick wins; exact typed name still links
-  // (covers the today's-sessions prefill) — otherwise it's a walk-in.
+  // (covers the today's-sessions prefill) - otherwise it's a walk-in.
   const matchedPatient = useMemo(() => {
     if (selectedPatientId) {
       const p = patients.find((x) => x.id === selectedPatientId);
@@ -127,7 +127,7 @@ export default function PosPage() {
     setPickerOpen(false);
   };
 
-  // Today's sessions at this location — one tap closes the visit out
+  // Today's sessions at this location - one tap closes the visit out
   const todaysSessions = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     return appointments
@@ -335,7 +335,7 @@ export default function PosPage() {
       const data = (await res.json()) as { ok?: boolean; url?: string };
       if (data.ok && data.url) {
         setReviewUrl(data.url);
-        const msg = `Thank you for visiting CAPTURE, ${done.patient_name.split(" ")[0]}. We would love to hear about your experience: ${data.url} — your review earns you a Capture Circle reward for your next visit.`;
+        const msg = `Thank you for visiting CAPTURE, ${done.patient_name.split(" ")[0]}. We would love to hear about your experience: ${data.url} - your review earns you a Capture Circle reward for your next visit.`;
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
       }
     } finally {
@@ -610,7 +610,7 @@ export default function PosPage() {
                 ) : (
                   clientName.trim() && (
                     <p className="caption mt-1">
-                      Walk-in — not linked to a patient record.
+                      Walk-in - not linked to a patient record.
                     </p>
                   )
                 )}
@@ -712,7 +712,7 @@ export default function PosPage() {
               {codeError && <p className="text-xs text-danger mt-1">{codeError}</p>}
             </div>
 
-            {/* flat discount — no code needed (owner 2026-07-23) */}
+            {/* flat discount - no code needed (owner 2026-07-23) */}
             <div>
               <span className="field-label flex items-center gap-1.5">
                 <Banknote size={13} className="text-[color:var(--mint-500)]" />

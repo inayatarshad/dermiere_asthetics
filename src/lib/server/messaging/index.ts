@@ -1,5 +1,5 @@
 /**
- * Messaging service — the only thing CRM code talks to.
+ * Messaging service - the only thing CRM code talks to.
  *
  * Responsibilities that belong HERE rather than in a route or a screen:
  *  - resolve the active provider (mock today, Meta later),
@@ -44,7 +44,7 @@ export type { MessagingProvider } from "./provider";
  *
  * The Meta WhatsApp Cloud provider is intentionally NOT implemented yet and
  * no placeholder credentials exist. When it is added, it goes here behind a
- * real-credentials check — absent credentials must keep falling through to
+ * real-credentials check - absent credentials must keep falling through to
  * the mock rather than half-configuring a live channel.
  */
 export function resolveProvider(): MessagingProvider {
@@ -200,7 +200,7 @@ export class OptedOutError extends Error {}
 /**
  * Send a reply on a conversation.
  *
- * Internal notes never reach the provider — they are staff-only and are
+ * Internal notes never reach the provider - they are staff-only and are
  * written straight to storage.
  */
 export async function sendReply(

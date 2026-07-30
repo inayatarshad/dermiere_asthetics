@@ -27,7 +27,7 @@ import {
   newId,
   saveFeedback,
 } from "@/lib/server/crmStore";
-import { listStaff, getClinicConfig } from "@/lib/server/clinicStore";
+import { listAssignableStaff, getClinicConfig } from "@/lib/server/clinicStore";
 import { crmCan } from "@/lib/crm/permissions";
 import { AuthError } from "@/lib/server/auth";
 import { LOW_RATING_THRESHOLD, RECOVERY_STATUSES } from "@/lib/crm/types";
@@ -44,7 +44,7 @@ export async function GET(req: Request) {
     const ctx = await requireCrm(req, "manage_feedback");
     const [feedback, staff, config] = await Promise.all([
       listFeedback(ctx.clinicId),
-      listStaff(ctx.clinicId),
+      listAssignableStaff(ctx.clinicId),
       getClinicConfig(ctx.clinicId),
     ]);
     return NextResponse.json({
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
       treatment_rating: num(body.treatment_rating, 1, 5),
       treatment_id: str(body.treatment_id, { max: 64 }),
       comment: str(body.comment, { max: 4000 }),
-      // A low score opens a service-recovery case automatically — that is
+      // A low score opens a service-recovery case automatically - that is
       // the whole point of tracking it.
       recovery_status: low ? "open" : "none",
       created_at: new Date().toISOString(),
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
       contact_id: feedback.contact_id,
       patient_id: feedback.patient_id,
       kind: "feedback",
-      summary: `Feedback received — ${overall}/5`,
+      summary: `Feedback received - ${overall}/5`,
       detail: feedback.comment,
       branch_id: feedback.branch_id,
       ref_id: feedback.id,

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The before | after reveal — the money moment of the demo
+ * The before | after reveal - the money moment of the demo
  * (05_ai-before-after.md §9). Draggable frosted divider, mint accent line.
  */
 

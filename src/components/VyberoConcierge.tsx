@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * VYBERO web concierge widget — CAPTURE's public support + booking chat.
+ * VYBERO web concierge widget - CAPTURE's public support + booking chat.
  * Floats on the landing page; talks to /api/vybero/chat (deterministic
  * KB engine, real availability, real bookings). Conversation survives
  * reloads via sessionStorage.
@@ -34,7 +34,7 @@ interface ChatResponse {
 
 const GREETING: Msg = {
   who: "agent",
-  text: "Welcome to CAPTURE — the intimate science of beauty. I am VYBERO, your concierge. Ask me about our EXOMERE and MitoRedLight treatments, prices, aftercare or locations — or let me book your visit.",
+  text: "Welcome to CAPTURE - the intimate science of beauty. I am VYBERO, your concierge. Ask me about our EXOMERE and MitoRedLight treatments, prices, aftercare or locations - or let me book your visit.",
 };
 const FIRST_CHIPS = ["Book a session", "Treatments", "Prices", "Where are you?"];
 
@@ -82,7 +82,7 @@ export default function VyberoConcierge() {
         JSON.stringify({ messages: messages.slice(-60), chips, state })
       );
     } catch {
-      // storage full — fine
+      // storage full - fine
     }
   }, [messages, chips, state]);
 

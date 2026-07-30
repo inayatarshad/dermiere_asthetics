@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * One contact — profile, unified timeline, follow-ups, conversations,
+ * One contact - profile, unified timeline, follow-ups, conversations,
  * feedback.
  *
  * The timeline mixes CRM activity with the clinical record the app already
@@ -104,7 +104,7 @@ export default function ContactDetailPage() {
   const staffName = (sid?: string) =>
     users.find((u) => u.id === sid)?.name ?? (sid ? "Unknown" : "Unassigned");
   const branchName = (bid?: string) =>
-    locations?.find((l) => l.id === bid)?.short ?? (bid ? titleize(bid) : "—");
+    locations?.find((l) => l.id === bid)?.short ?? (bid ? titleize(bid) : "-");
 
   if (loading && !data) {
     return (
@@ -131,7 +131,7 @@ export default function ContactDetailPage() {
   const { contact, patient, patientSummary, timeline, followUps, conversations, feedback } =
     data;
   // A CRM account has no Clinic OS navigation, so the full patient screen is
-  // not reachable for them — their patient detail is rendered here instead.
+  // not reachable for them - their patient detail is rendered here instead.
   const isCrmWorkspace = user?.workspace === "crm";
 
   const changeStage = async (stage: ContactStage) => {
@@ -313,7 +313,7 @@ export default function ContactDetailPage() {
                     value={
                       patientSummary.invoiceCount > 0
                         ? money(patientSummary.totalBilled)
-                        : "—"
+                        : "-"
                     }
                   />
                 </div>
@@ -511,7 +511,7 @@ function MiniStat({
 }
 
 /**
- * Clinical flags worth seeing next to a phone number — the things that
+ * Clinical flags worth seeing next to a phone number - the things that
  * change how you speak to someone before a treatment. Rendered only when the
  * registry actually holds them; an empty record says so plainly.
  */

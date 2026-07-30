@@ -1,5 +1,5 @@
 /**
- * GET /api/auth/me — re-hydrate the current session's clinic-scoped
+ * GET /api/auth/me - re-hydrate the current session's clinic-scoped
  * bootstrap (used on app mount / tab focus). 401 when unauthenticated so
  * the client redirects to login.
  */

@@ -2,7 +2,7 @@
  * GET /api/vybero/call-transcript?id=el_<conversation_id>
  *
  * On-demand transcript for a synced ElevenLabs call. The turns are fetched
- * from the conversation detail endpoint rather than stored — call rows stay
+ * from the conversation detail endpoint rather than stored - call rows stay
  * light and the transcript is always the provider's authoritative copy.
  * Admin session only; the ElevenLabs key never leaves the server.
  */

@@ -3,7 +3,7 @@
  *
  * The agent authenticates with the platform key (x-vybero-key, constant-time
  * compare) and names its clinic with an x-clinic header (clinic id or slug)
- * — so clinic A's agent can only ever write to clinic A. On a single-clinic
+ * - so clinic A's agent can only ever write to clinic A. On a single-clinic
  * deployment with no header, it falls back to the only clinic. Clinic-screen
  * pulls use the session cookie instead (see the route handlers).
  */
@@ -24,7 +24,7 @@ function presentedKey(req: Request): string {
   if (bearer) return bearer;
   // Query param: the agent platform's tool builder makes headers awkward to
   // configure, and a URL is one field. Same secret, weaker channel (URLs can
-  // land in logs) — so it stays a convenience, not the documented default.
+  // land in logs) - so it stays a convenience, not the documented default.
   try {
     return new URL(req.url).searchParams.get("key") ?? "";
   } catch {

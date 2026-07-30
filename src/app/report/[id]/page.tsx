@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Full-screen report route — the printable surface. "Download PDF" uses the
+ * Full-screen report route - the printable surface. "Download PDF" uses the
  * browser's print-to-PDF: the sheets are pre-composed for pixel-identical
  * output (07_report-export.md §4).
  */

@@ -1,7 +1,7 @@
 /**
- * /api/reviews/invites — clinic side of the review loop.
+ * /api/reviews/invites - clinic side of the review loop.
  *  POST: mint a review link for a visit (front desk / POS checkout).
- *  GET:  the monitoring dashboard's data — invites, reviews and rewards,
+ *  GET:  the monitoring dashboard's data - invites, reviews and rewards,
  *        session-scoped to the caller's clinic.
  */
 

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Deterministic report annotation — draws the assessment overlays onto the
+ * Deterministic report annotation - draws the assessment overlays onto the
  * patient's own photo with plain canvas 2D, using landmark coordinates.
  * No generative model touches the annotated visual: same photo + same
  * findings = pixel-identical overlay, which is what makes the report
@@ -108,7 +108,7 @@ export function buildAnnotatedImage(
   const lw = Math.max(2.4, w / 420);
   ctx.lineCap = "round";
 
-  /** Cased stroke: dark under-line then mint over-line — distinct on any
+  /** Cased stroke: dark under-line then mint over-line - distinct on any
    *  skin tone, screen or print. */
   const cased = (draw: () => void, dash?: number[]) => {
     ctx.setLineDash(dash ?? []);

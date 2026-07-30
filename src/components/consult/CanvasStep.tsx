@@ -157,7 +157,7 @@ export function CanvasStep({
 
   const scaleKey = highlight ? `scale_${highlight}` : null;
 
-  // Body-first treatments don't use the 3D face canvas — send the doctor
+  // Body-first treatments don't use the 3D face canvas - send the doctor
   // straight to the photo-based Body Studio (owner 2026-07-23). Checked
   // BEFORE the photos guard: a body consult never needs the face trio.
   if (isBodyTemplate(template?.id)) {
@@ -171,7 +171,7 @@ export function CanvasStep({
         </h2>
         <p className="text-ink-700 mt-3 max-w-md mx-auto leading-relaxed">
           Body treatments work from a body photo, not the face mesh. Open
-          the Body Studio to add the photo and tone the treated area — or
+          the Body Studio to add the photo and tone the treated area - or
           continue to AI Visualize for the same handoff.
         </p>
         <Link
@@ -190,7 +190,7 @@ export function CanvasStep({
       <EmptyState
         icon={<ScanFace size={30} />}
         title="No consultation photos yet"
-        body="The 3D canvas is reconstructed from three photos — front, turned-left and turned-right. The profiles are what give the nose, lips and chin their true projection. Capture all three to continue."
+        body="The 3D canvas is reconstructed from three photos - front, turned-left and turned-right. The profiles are what give the nose, lips and chin their true projection. Capture all three to continue."
         action={
           <button className="btn btn-primary btn-sm" onClick={() => setCaptureOpen(true)}>
             <Camera size={14} />
@@ -396,14 +396,14 @@ export function CanvasStep({
             </div>
           )}
         </div>
-        {/* Graceful degradation: never fake profile depth from the front —
+        {/* Graceful degradation: never fake profile depth from the front -
             say so plainly and offer the fix. */}
         {face.status === "ready" && face.depth === "single" && (
           <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-warning/10 border border-warning/30 px-3.5 py-2.5">
             <ScanFace size={16} className="text-warning mt-0.5 shrink-0" />
             <p className="caption flex-1 !text-ink-900">
               {(face.sidesProvided ?? 0) > 0
-                ? "The turned photos couldn't be fused for depth — retake the profiles with a clear ~35° turn, chin level. "
+                ? "The turned photos couldn't be fused for depth - retake the profiles with a clear ~35° turn, chin level. "
                 : "This mesh is built from the front photo alone, so nose and lip projection are estimated, not measured. Add the turned-left and turned-right photos for a true side profile. "}
               <button
                 className="underline font-medium hover:text-warning"

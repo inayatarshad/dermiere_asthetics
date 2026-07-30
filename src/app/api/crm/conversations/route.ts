@@ -1,9 +1,9 @@
 /**
- * GET /api/crm/conversations — the shared inbox list.
+ * GET /api/crm/conversations - the shared inbox list.
  *
  * Returns conversations joined to the contact they belong to, plus the
  * provider status so the UI can state plainly which messaging backend is
- * live. It never exposes provider credentials — only id, label and whether
+ * live. It never exposes provider credentials - only id, label and whether
  * a real channel is connected.
  */
 
@@ -14,7 +14,7 @@ import {
   listConversations,
   listTemplates,
 } from "@/lib/server/crmStore";
-import { listStaff, getClinicConfig } from "@/lib/server/clinicStore";
+import { listAssignableStaff, getClinicConfig } from "@/lib/server/clinicStore";
 import { providerStatus } from "@/lib/server/messaging";
 
 export const runtime = "nodejs";
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     const [conversations, contacts, staff, config, templates] = await Promise.all([
       listConversations(ctx.clinicId),
       listContacts(ctx.clinicId),
-      listStaff(ctx.clinicId),
+      listAssignableStaff(ctx.clinicId),
       getClinicConfig(ctx.clinicId),
       listTemplates(ctx.clinicId),
     ]);

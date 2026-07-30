@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * CRM settings — message templates and the messaging provider boundary.
+ * CRM settings - message templates and the messaging provider boundary.
  *
  * Templates mirror the Meta approval lifecycle (draft / pending / approved /
  * rejected) so that when a real WhatsApp Business account is connected, the
@@ -84,7 +84,7 @@ export default function CrmSettingsPage() {
             <p className="text-ink-400 text-[13px]">
               The CRM sends through a provider interface, never directly to
               Meta. Connecting the WhatsApp Cloud API later means adding one
-              provider implementation and its credentials — the screens, the
+              provider implementation and its credentials - the screens, the
               routes and the stored messages do not change. The webhook
               endpoint, delivery-receipt handling and idempotent ingestion are
               already in place and exercised by the local provider.
@@ -182,7 +182,7 @@ export default function CrmSettingsPage() {
         )}
         <p className="caption mt-3">
           Branches come from the clinic&apos;s locations, so adding one needs no
-          code change — every CRM screen and metric picks it up.
+          code change - every CRM screen and metric picks it up.
         </p>
       </GlassCard>
     </div>

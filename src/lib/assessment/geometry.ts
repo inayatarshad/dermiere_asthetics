@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Assessment geometry engine — the deterministic half of the Aesthetic
+ * Assessment geometry engine - the deterministic half of the Aesthetic
  * Assessment Report (spec: Contour-AI-Aesthetic-Report-Module-SPEC.md).
  *
  * Every proportion metric is computed as REAL geometry from the MediaPipe
- * landmarks we already fit for the 3D canvas — never asked of a generative
- * model — so the same photo always yields the same numbers, and the
+ * landmarks we already fit for the 3D canvas - never asked of a generative
+ * model - so the same photo always yields the same numbers, and the
  * numbers are defensible in front of a clinician. Ideals are gender-aware:
  * the classical/golden-ratio lens for women (lip 1:1.6, Φ face ratio,
  * tapered jaw), masculine standards for men (stronger jaw:cheek, fuller
@@ -54,7 +54,7 @@ export interface MetricResult {
   value: string;
   /** The reference ideal for this patient's standard, e.g. "1 : 1.6 (Φ)" */
   ideal: string;
-  /** 0..100 — how closely the measurement sits to the reference */
+  /** 0..100 - how closely the measurement sits to the reference */
   alignment: number;
   /** Strengths-first, single sentence */
   insight: string;
@@ -64,7 +64,7 @@ export interface MetricResult {
 
 export interface GeometryAssessment {
   sex: Sex;
-  /** Weighted composite 0..100 — the "Golden Balance" headline */
+  /** Weighted composite 0..100 - the "Golden Balance" headline */
   balanceScore: number;
   metrics: MetricResult[];
 }
@@ -150,7 +150,7 @@ export function computeGeometry(
       insight:
         alignment >= 85
           ? "Horizontal spacing follows the classical five equal segments."
-          : "One horizontal segment leads the classical five-part rhythm — mostly a framing observation, not a treatment target.",
+          : "One horizontal segment leads the classical five-part rhythm - mostly a framing observation, not a treatment target.",
       recommends: [],
     });
   }
@@ -239,7 +239,7 @@ export function computeGeometry(
       alignment,
       insight:
         avg >= ideal - 2.5
-          ? "A naturally lifted eye axis — a widely admired feature."
+          ? "A naturally lifted eye axis - a widely admired feature."
           : "A flatter eye axis; a chemical brow lift opens and lifts the outer eye area without surgery.",
       recommends: avg < ideal - 2.5 ? ["botox"] : [],
     });
@@ -289,7 +289,7 @@ export function computeGeometry(
           ? "The lip-to-chin proportion follows the classical one-to-two rhythm."
           : ratio > 0.5
             ? "The chin reads slightly short of the classical proportion; structural chin support restores the line."
-            : "A generous chin third — a strength that filler work elsewhere should respect.",
+            : "A generous chin third - a strength that filler work elsewhere should respect.",
       recommends: alignment < 85 && ratio > 0.5 ? ["chin_filler"] : [],
     });
   }
@@ -311,8 +311,8 @@ export function computeGeometry(
         alignment >= 85
           ? "Nasal base width sits in classical proportion to the eyes."
           : ratio > ideal
-            ? "The nasal base reads slightly wide of the intercanthal line — a refinement consult can review options."
-            : "A narrow nasal base — typically an asset for facial harmony.",
+            ? "The nasal base reads slightly wide of the intercanthal line - a refinement consult can review options."
+            : "A narrow nasal base - typically an asset for facial harmony.",
       recommends: alignment < 85 && ratio > ideal ? ["rhinoplasty"] : [],
     });
   }
@@ -383,7 +383,7 @@ export function computeGeometry(
 
 /**
  * Controlled-menu recommendation builder: only procedures the clinic
- * actually offers (available templates) are ever suggested — spec §7.
+ * actually offers (available templates) are ever suggested - spec §7.
  */
 export function geometryRecommendations(
   assessment: GeometryAssessment,
@@ -411,7 +411,7 @@ export function geometryRecommendations(
 }
 
 // ---------------------------------------------------------------------
-// Quantitative treatment suggestions — the doctor-support layer.
+// Quantitative treatment suggestions - the doctor-support layer.
 //
 // The owner's requirement: the report must state HOW FAR each measurement
 // deviates from the reference and translate that into a concrete starting
@@ -493,7 +493,7 @@ export function quantitativeSuggestions(
     }
   }
 
-  // ---- jaw : cheek — direction decides the treatment ----------------------
+  // ---- jaw : cheek - direction decides the treatment ----------------------
   const jaw = m.get("jaw_cheek");
   if (jaw && jaw.alignment < 85) {
     const measured = Number(jaw.value);

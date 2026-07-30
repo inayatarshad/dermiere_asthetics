@@ -1,5 +1,5 @@
 /**
- * /api/crm/messaging/webhook — the provider webhook endpoint.
+ * /api/crm/messaging/webhook - the provider webhook endpoint.
  *
  * This is the shape Meta's WhatsApp Cloud API expects: a GET handshake that
  * echoes hub.challenge, and a POST carrying inbound messages and status
@@ -8,7 +8,7 @@
  * It is WIRED but INERT: the active provider is the local mock, which has no
  * signing secret and no subscription, so nothing real can reach here. The
  * endpoint exists so that connecting Meta later is a configuration change
- * plus one provider implementation — not new routing, new parsing and new
+ * plus one provider implementation - not new routing, new parsing and new
  * ingestion logic written under time pressure.
  *
  * When a real provider is connected, `verifySignature` becomes an HMAC check
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     await applyStatus(clinic.id, s);
   }
 
-  // Always 2xx once the payload is understood — anything else makes the
+  // Always 2xx once the payload is understood - anything else makes the
   // provider redeliver, and redelivery is exactly what idempotency is for.
   return NextResponse.json({
     ok: true,

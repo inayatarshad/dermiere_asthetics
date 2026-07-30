@@ -8,7 +8,6 @@ import {
   Users,
   CalendarDays,
   ChartColumn,
-  Settings,
   LogOut,
   RadioTower,
   Check,
@@ -16,7 +15,6 @@ import {
   ShoppingBag,
   MessageSquareHeart,
   AudioLines,
-  Contact,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { crmCan } from "@/lib/crm/permissions";
@@ -82,7 +80,7 @@ export function TopNav() {
     }
   };
 
-  // A CRM account gets the CRM workspace in THIS bar — there is no second
+  // A CRM account gets the CRM workspace in THIS bar - there is no second
   // navigation strip anywhere. A Clinic OS account gets the clinic items,
   // with a single "CRM" entry into the workspace.
   const isCrmWorkspace = user?.workspace === "crm";
@@ -94,11 +92,10 @@ export function TopNav() {
     : [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/patients", label: "Patients", icon: Users },
-        // CRM: leads, follow-ups and the shared inbox. Every role that can
-        // see any part of it gets the entry.
-        ...(crmCan(user?.role, "view_crm")
-          ? [{ href: "/crm", label: "CRM", icon: Contact }]
-          : []),
+        // The CRM is its own workspace with its own account. It is
+        // deliberately NOT an entry here: a Clinic OS user signs into the
+        // CRM account to use it, so neither bar ever shows the other's
+        // sections.
         { href: "/calendar", label: "Calendar", icon: CalendarDays },
         // POS is front-of-house: front desk + admin ring up the visit
         ...(user?.role !== "doctor"
@@ -111,11 +108,10 @@ export function TopNav() {
         // The voice-agent console: every role can test Noor from here
         // (takes the slot Discovery held; /discovery stays reachable by URL)
         { href: "/vybero", label: "VYBERO", icon: AudioLines },
+        // Settings is deliberately absent from the bar: it is reachable by
+        // URL but is not part of the day-to-day navigation.
         ...(can.manageUsers(user?.role)
-          ? [
-              { href: "/analytics", label: "Analytics", icon: ChartColumn },
-              { href: "/settings", label: "Settings", icon: Settings },
-            ]
+          ? [{ href: "/analytics", label: "Analytics", icon: ChartColumn }]
           : []),
       ];
 
@@ -128,9 +124,7 @@ export function TopNav() {
           <Logo size="sm" workspace={isCrmWorkspace ? "crm" : "clinic"} />
         </Link>
 
-        {/* Wraps onto a second line rather than scrolling: every section
-            stays reachable without a scrollbar cutting across the bar. */}
-        <nav className="flex flex-wrap items-center gap-1">
+        <nav className="nav-strip flex items-center gap-1 min-w-0">
           {links.map(({ href, label, icon: Icon }) => {
             // In the CRM workspace "/crm" is the root, so it must match
             // exactly rather than prefix-match every child route.
@@ -141,7 +135,7 @@ export function TopNav() {
               <Link
                 key={href}
                 href={href}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                   active
                     ? "bg-ink-900 text-[#F6EBD3] shadow-md"
                     : "text-ink-700 hover:bg-mint-100"
@@ -157,7 +151,7 @@ export function TopNav() {
         <div className="flex-1" />
 
         {/* Booth link: poll the booth inbox for phone-registered patients.
-            Clinic-floor tooling — not part of the CRM workspace. */}
+            Clinic-floor tooling - not part of the CRM workspace. */}
         {!isCrmWorkspace && (
         <button
           onClick={() => void toggleBooth()}
@@ -202,7 +196,7 @@ export function TopNav() {
                 void (async () => {
                   await logout();
                   // ?out=1 tells the login page to skip its auto-bootstrap
-                  // check — the sign-in screen must always appear
+                  // check - the sign-in screen must always appear
                   router.replace("/?out=1");
                 })();
               }}

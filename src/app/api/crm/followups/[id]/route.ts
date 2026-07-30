@@ -1,5 +1,5 @@
 /**
- * PATCH /api/crm/followups/[id] — complete, reschedule or cancel.
+ * PATCH /api/crm/followups/[id] - complete, reschedule or cancel.
  *
  * The three transitions are explicit `action`s rather than a free-form
  * status edit, so each one records the right timestamps and the right

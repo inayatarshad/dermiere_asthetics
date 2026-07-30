@@ -1,5 +1,5 @@
 /**
- * Mock messaging provider — local, offline, and the only provider enabled.
+ * Mock messaging provider - local, offline, and the only provider enabled.
  *
  * It never opens a network connection. "Sending" records the message and
  * schedules the delivery/read transitions the real Cloud API would report

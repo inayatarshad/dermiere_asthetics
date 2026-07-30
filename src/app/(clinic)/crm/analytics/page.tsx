@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * CRM Analytics — the deeper cut.
+ * CRM Analytics - the deeper cut.
  *
  * Overview answers "what needs attention today". This answers "how is the
  * business doing": branch-versus-branch comparison, lead sources, treatment
  * demand, staff workload, rating trends.
  *
  * Same rule as everywhere else in the CRM: a rate with an empty denominator
- * arrives as null and renders as "—" with a reason, never as a confident 0%.
+ * arrives as null and renders as "-" with a reason, never as a confident 0%.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -197,10 +197,10 @@ export default function CrmAnalyticsPage() {
                       <Rating value={b.feedbackAvg} count={b.feedbackCount} size={11} />
                     </td>
                     <td className="py-2.5 px-3 text-right tabular-nums">
-                      {b.responseSupported ? hours(b.avgResponseHours) : "—"}
+                      {b.responseSupported ? hours(b.avgResponseHours) : "-"}
                     </td>
                     <td className="py-2.5 pl-3 text-right tabular-nums">
-                      {b.revenueSupported ? money(b.revenue) : "—"}
+                      {b.revenueSupported ? money(b.revenue) : "-"}
                     </td>
                   </tr>
                 ))}
@@ -209,8 +209,8 @@ export default function CrmAnalyticsPage() {
           </ScrollX>
         )}
         <p className="caption mt-3">
-          An em dash means there was nothing to measure in this range — no
-          invoices, no responses, or no appointments — rather than a zero.
+          An em dash means there was nothing to measure in this range - no
+          invoices, no responses, or no appointments - rather than a zero.
         </p>
       </GlassCard>
 
