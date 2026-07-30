@@ -21,6 +21,7 @@ import {
   str,
 } from "@/lib/server/crmApi";
 import { ingestInbound, resolveProvider } from "@/lib/server/messaging";
+import { handleInboundForBooking } from "@/lib/server/crmChatBooking";
 import { isPlausiblePhone, normalizePhone } from "@/lib/crm/phone";
 
 export const runtime = "nodejs";
@@ -68,8 +69,26 @@ export async function POST(req: Request) {
       { branchId: str(body.branch_id, { max: 64 }) }
     );
 
+    // A patient asking to be seen gets answered here, not left for a human.
+    // Best-effort: the message is already safely stored, so a booking
+    // failure must not turn into a failed webhook and a redelivery storm.
+    let booking = null;
+    if (!result.duplicate) {
+      try {
+        booking = await handleInboundForBooking(
+          ctx.clinicId,
+          result.contact,
+          result.conversation.id,
+          text
+        );
+      } catch (err) {
+        console.error("[crm] chat booking failed", err);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
+      booking,
       duplicate: result.duplicate,
       conversation_id: result.conversation.id,
       contact_id: result.contact.id,

@@ -71,7 +71,13 @@ export default function PosPage() {
   /** Explicitly picked patient record (beats name matching). */
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [locationId, setLocationId] = useState("experience-centre");
+  // Default to the clinic's own first site once config loads. A hardcoded
+  // id belonging to another clinic matched nothing and emptied the till list.
+  // Empty means "not chosen yet"; the clinic's first site is used until the
+  // user picks one. Derived rather than synced, so config arriving late needs
+  // no effect and cannot cause a cascading render.
+  const [pickedLocation, setPickedLocation] = useState("");
+  const locationId = pickedLocation || locations[0]?.id || "";
   const [codeInput, setCodeInput] = useState("");
   const [codeBusy, setCodeBusy] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -134,14 +140,14 @@ export default function PosPage() {
       .filter(
         (a) =>
           a.start.slice(0, 10) === today &&
-          (a.location_id ?? "experience-centre") === locationId &&
+          (a.location_id ?? locations[0]?.id) === locationId &&
           a.status !== "cancelled" &&
           a.status !== "no_show" &&
           a.procedure_interest &&
           findTreatment(a.procedure_interest)
       )
       .sort((a, b) => a.start.localeCompare(b.start));
-  }, [appointments, locationId]);
+  }, [appointments, locationId, locations]);
 
   const addFromAppointment = (apptId: string) => {
     const appt = todaysSessions.find((a) => a.id === apptId);
@@ -620,7 +626,7 @@ export default function PosPage() {
                 <select
                   className="input"
                   value={locationId}
-                  onChange={(e) => setLocationId(e.target.value)}
+                  onChange={(e) => setPickedLocation(e.target.value)}
                 >
                   {(locations.length > 0
                     ? locations

@@ -18,6 +18,7 @@
 
 import { NextResponse } from "next/server";
 import { applyStatus, ingestInbound, resolveProvider } from "@/lib/server/messaging";
+import { handleInboundForBooking } from "@/lib/server/crmChatBooking";
 import { pgGetClinicBySlug } from "@/lib/server/db";
 
 export const runtime = "nodejs";
@@ -82,7 +83,21 @@ export async function POST(req: Request) {
   for (const m of messages) {
     const result = await ingestInbound(clinic.id, m);
     if (result.duplicate) duplicates++;
-    else ingested++;
+    else {
+      ingested++;
+      // Answer a booking request as it arrives. Wrapped because a webhook
+      // that throws gets redelivered, and the message is already stored.
+      try {
+        await handleInboundForBooking(
+          clinic.id,
+          result.contact,
+          result.conversation.id,
+          m.body
+        );
+      } catch (err) {
+        console.error("[crm] chat booking failed", err);
+      }
+    }
   }
   for (const s of statuses) {
     await applyStatus(clinic.id, s);

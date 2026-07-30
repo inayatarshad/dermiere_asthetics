@@ -65,8 +65,11 @@ export default function ReviewsPage() {
   const [locFilter, setLocFilter] = useState<string>("all");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteName, setInviteName] = useState("");
-  const [inviteLoc, setInviteLoc] = useState("experience-centre");
+  // Empty means "not chosen"; falls back to the clinic's first site.
+  const [pickedInviteLoc, setPickedInviteLoc] = useState("");
+  const inviteLoc = pickedInviteLoc || locations[0]?.id || "";
   const [inviteBusy, setInviteBusy] = useState(false);
+
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -422,7 +425,7 @@ export default function ReviewsPage() {
             </div>
             <div>
               <span className="field-label">Location</span>
-              <select className="input" value={inviteLoc} onChange={(e) => setInviteLoc(e.target.value)}>
+              <select className="input" value={inviteLoc} onChange={(e) => setPickedInviteLoc(e.target.value)}>
                 {(locations.length ? locations : CAPTURE_LOCATIONS).map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}

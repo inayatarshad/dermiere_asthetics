@@ -215,19 +215,6 @@ export default function InboxPage() {
         }
       />
 
-      {/* --- provider boundary, stated plainly --- */}
-      {provider && (
-        <div className="glass-subtle p-3 flex items-start gap-2.5 text-sm">
-          <CircleAlert size={16} className="text-ink-400 shrink-0 mt-0.5" />
-          <p className="text-ink-700 leading-relaxed">
-            <span className="font-medium">Messaging provider: {provider.label}.</span>{" "}
-            {provider.live
-              ? "Messages are delivered through the connected provider."
-              : "No WhatsApp Business account is connected, so nothing leaves this machine. The CRM already talks to the provider interface the Meta WhatsApp Cloud API will implement - connecting it later is configuration, not a rewrite."}
-          </p>
-        </div>
-      )}
-
       <div className="grid lg:grid-cols-[320px_1fr] gap-4">
         {/* --- conversation list --- */}
         <div className="space-y-2">

@@ -147,6 +147,21 @@ export interface CrmContact {
   updated_at: string;
   /** First outbound/staff response, used for average-first-response time. */
   first_response_at?: string;
+  /**
+   * A slot offered to this contact and awaiting their "yes".
+   *
+   * The booking is NOT on the calendar yet: this is the held offer between
+   * "can I come Tuesday?" and the patient confirming. Storing it is what
+   * lets an affirmative reply book the right slot instead of guessing, and
+   * what stops a stale offer being confirmed a week later.
+   */
+  pending_slot?: {
+    /** ISO datetime of the offered appointment. */
+    start: string;
+    offered_at: string;
+    /** After this, the offer is stale and must be re-proposed. */
+    expires_at: string;
+  };
 }
 
 // ---------------------------------------------------------------------

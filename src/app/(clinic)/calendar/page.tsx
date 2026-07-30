@@ -93,7 +93,10 @@ export default function CalendarPage() {
   const [dayIdx, setDayIdx] = useState(() => (new Date().getDay() + 6) % 7);
   const [booking, setBooking] = useState<{ key: string; offset: number } | null>(null);
   const [detail, setDetail] = useState<Appointment | null>(null);
-  const [locFilter, setLocFilter] = useState<string>("experience-centre");
+  // Every location by default. This used to default to a hardcoded site id
+  // that no longer exists in every clinic, which opened the diary filtered
+  // to nothing and made a full calendar look empty.
+  const [locFilter, setLocFilter] = useState<string>("all");
 
   // per-location diary: slots and blocks belong to the selected site
   const appointments = useMemo(
@@ -101,9 +104,12 @@ export default function CalendarPage() {
       locFilter === "all"
         ? allAppointments
         : allAppointments.filter(
-            (a) => (a.location_id ?? "experience-centre") === locFilter
+            // A booking with no site recorded belongs to the clinic's first
+            // location rather than to a site id that may not exist, so it
+            // stays visible instead of disappearing from every filter.
+            (a) => (a.location_id ?? locations[0]?.id) === locFilter
           ),
-    [allAppointments, locFilter]
+    [allAppointments, locFilter, locations]
   );
 
   const days = useMemo(
@@ -317,11 +323,12 @@ export default function CalendarPage() {
           slot={booking}
           onClose={() => setBooking(null)}
           onCreate={(data) => {
-            // bookings land in the diary currently on screen
+            // Bookings land in the diary currently on screen; while showing
+            // every site there is no one diary to mean, so they go to the
+            // clinic's first location.
             const appt = addAppointment({
               ...data,
-              location_id:
-                locFilter === "all" ? "experience-centre" : locFilter,
+              location_id: locFilter === "all" ? locations[0]?.id : locFilter,
             });
             pushToServer(appt);
             setBooking(null);
