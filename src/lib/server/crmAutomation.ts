@@ -33,6 +33,10 @@ import {
   saveFollowUp,
 } from "./crmStore";
 import { sendReply, OptedOutError } from "./messaging";
+import { createInvite } from "./reviewStore";
+import { describeSlot } from "@/lib/crm/bookingIntent";
+import { pgListAppointments } from "./db";
+import type { Appointment } from "@/lib/types";
 
 /**
  * Every follow-up type reaches the patient by message, including the ones
@@ -60,47 +64,85 @@ export function isAutomatable(followUp: CrmFollowUp): boolean {
 function composeMessage(
   followUp: CrmFollowUp,
   contact: CrmContact,
-  clinicName: string
+  clinicName: string,
+  when?: string,
+  reviewUrl?: string
 ): string {
   const first = contact.name.split(/\s+/)[0] || contact.name;
+  const hello = `Assalam o alaikum ${first},`;
+  const slot = when ? describeSlot(when) : null;
+
   switch (followUp.type) {
-    case "post_treatment":
-      return (
-        `Hi ${first}, it's ${clinicName}. Just checking in after your visit ` +
-        `- how is your skin settling? If anything feels off, reply here and ` +
-        `we'll get you seen.`
-      );
-    case "review_request":
-      return (
-        `Hi ${first}, thank you for visiting ${clinicName}. If you have a ` +
-        `moment, we'd love to hear how it went - your feedback helps us look ` +
-        `after you better next time.`
-      );
-    case "consultation":
-      return (
-        `Hi ${first}, it's ${clinicName}. We're holding your consultation ` +
-        `slot - can you confirm it still suits you? Reply YES to confirm, or ` +
-        `tell us a better day and we'll move it.`
-      );
-    case "payment":
-      return (
-        `Hi ${first}, it's ${clinicName}. There's a balance outstanding on ` +
-        `your treatment. Reply here and we'll send the payment details or ` +
-        `arrange it across your next visits.`
-      );
-    case "call":
-      return (
-        `Hi ${first}, it's ${clinicName}. We wanted to check in about your ` +
-        `treatment plan. Is now a good time to talk, or would you rather we ` +
-        `answer your questions here on WhatsApp?`
-      );
-    case "whatsapp":
+    case "booking_confirmation":
+      return [
+        hello,
+        "",
+        slot
+          ? `Your appointment at ${clinicName} is confirmed for ${slot}.`
+          : `Your appointment at ${clinicName} is confirmed.`,
+        "",
+        "Please arrive about ten minutes early so we can settle you in, and " +
+          "come with clean skin if you can - no makeup is best.",
+        "",
+        "If anything changes, just reply here and we will move it for you. " +
+          "We are looking forward to seeing you.",
+        "",
+        `Warmly,\n${clinicName}`,
+      ].join("\n");
+
+    case "appointment_reminder":
+      return [
+        hello,
+        "",
+        slot
+          ? `A gentle reminder about your appointment with us ${slot}.`
+          : "A gentle reminder about your appointment with us tomorrow.",
+        "",
+        "There is nothing you need to bring. If you have started any new " +
+          "skincare or medication since we last spoke, do mention it when " +
+          "you arrive so we can take it into account.",
+        "",
+        "See you soon, and reply here if you need to reschedule.",
+        "",
+        `Warmly,\n${clinicName}`,
+      ].join("\n");
+
+    case "follow_up_consultation":
+      return [
+        hello,
+        "",
+        "We hope you have been well since your visit. At this point in your " +
+          "treatment it is a good moment to see how your skin has responded, " +
+          "so we can decide together whether to continue as planned or adjust " +
+          "anything.",
+        "",
+        "Would you like us to arrange your follow-up consultation? Tell us a " +
+          "day that suits you and we will find you a time.",
+        "",
+        `Warmly,\n${clinicName}`,
+      ].join("\n");
+
+    case "feedback_request":
     default:
-      return (
-        `Hi ${first}, it's ${clinicName}. Following up on your enquiry - ` +
-        `would you like us to go ahead and arrange it? Happy to answer ` +
-        `anything first.`
-      );
+      return [
+        hello,
+        "",
+        `Thank you for visiting ${clinicName}. It was a pleasure looking ` +
+          "after you.",
+        "",
+        "When you have a spare moment, we would love to know how you found " +
+          "your visit. It takes less than a minute:",
+        "",
+        reviewUrl ?? "(review link)",
+        "",
+        "You can also simply reply here - it is read by the team, and it " +
+          "genuinely shapes how we look after you next time.",
+        "",
+        "If anything was not right, please tell us that too. We would much " +
+          "rather hear it from you and put it right.",
+        "",
+        `Warmly,\n${clinicName}`,
+      ].join("\n");
   }
 }
 
@@ -122,11 +164,19 @@ export interface AutomationRun {
  */
 export async function runDueAutomations(
   clinicId: string,
-  opts: { clinicName?: string; actorId?: string; now?: number } = {}
+  opts: {
+    clinicName?: string;
+    actorId?: string;
+    now?: number;
+    /** Origin for review links, e.g. https://dermiere.vercel.app */
+    baseUrl?: string;
+  } = {}
 ): Promise<AutomationRun> {
   const clinicName = opts.clinicName ?? "Dermiere";
   const now = opts.now ?? Date.now();
   const run: AutomationRun = { sent: 0, needsPerson: 0, skipped: 0, errors: [] };
+
+  const appointments = await pgListAppointments<Appointment>(clinicId);
 
   const due = (await listFollowUps(clinicId)).filter(
     (f) => f.status === "pending" && Date.parse(f.due_at) <= now
@@ -174,8 +224,39 @@ export async function runDueAutomations(
         });
       }
 
+      // Name the real slot when there is one: "confirmed for Sat 1 Aug,
+      // 11:00 am" reads like a clinic, "your appointment is confirmed"
+      // reads like a robot.
+      const upcoming = appointments
+        .filter(
+          (a) =>
+            (a.patient_id && a.patient_id === contact.patient_id) ||
+            (a.phone && a.phone === contact.phone)
+        )
+        .filter((a) => a.status !== "cancelled")
+        .sort((x, y) => x.start.localeCompare(y.start))[0];
+
+      // A feedback request without a link is just a nice sentence. Mint a
+      // real single-use review link so the patient can actually leave one.
+      let reviewUrl: string | undefined;
+      if (followUp.type === "feedback_request" && opts.baseUrl) {
+        const invite = await createInvite(clinicId, {
+          patient_id: contact.patient_id,
+          patient_name: contact.name,
+          location_id: contact.branch_id ?? "",
+          treatments: contact.treatment_interest,
+        });
+        reviewUrl = `${opts.baseUrl}/review/${invite.token}`;
+      }
+
       await sendReply(clinicId, conversation.id, {
-        body: composeMessage(followUp, contact, clinicName),
+        body: composeMessage(
+          followUp,
+          contact,
+          clinicName,
+          upcoming?.start,
+          reviewUrl
+        ),
         authorId: followUp.assigned_to ?? opts.actorId ?? "automation",
         // Derived from the follow-up, so a second run is a no-op send.
         idempotencyKey: `followup_auto_${followUp.id}`,

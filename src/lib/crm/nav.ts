@@ -7,6 +7,11 @@
  *
  * Items are filtered by the same capability table the API enforces, so the
  * bar and the server agree on what a role can open.
+ *
+ * Follow-ups and Feedback are deliberately absent. The four automations run
+ * themselves and write into the Inbox, so a separate board of things to
+ * chase is a list nobody needs to work; feedback arrives as a message in
+ * the same thread as everything else. Both remain reachable by URL.
  */
 
 import {
@@ -15,8 +20,6 @@ import {
   Contact,
   Inbox,
   KanbanSquare,
-  ListChecks,
-  MessageSquareHeart,
   Settings2,
   type LucideIcon,
 } from "lucide-react";
@@ -33,9 +36,7 @@ export const CRM_NAV: CrmNavItem[] = [
   { href: "/crm", label: "Overview", icon: ChartPie, capability: "view_crm" },
   { href: "/crm/leads", label: "Leads", icon: KanbanSquare, capability: "manage_leads" },
   { href: "/crm/contacts", label: "Contacts", icon: Contact, capability: "view_crm" },
-  { href: "/crm/followups", label: "Follow-ups", icon: ListChecks, capability: "manage_followups" },
   { href: "/crm/inbox", label: "Inbox", icon: Inbox, capability: "view_conversations" },
-  { href: "/crm/feedback", label: "Feedback", icon: MessageSquareHeart, capability: "manage_feedback" },
   { href: "/crm/settings", label: "Templates", icon: Settings2, capability: "manage_templates" },
   {
     href: "/crm/analytics",

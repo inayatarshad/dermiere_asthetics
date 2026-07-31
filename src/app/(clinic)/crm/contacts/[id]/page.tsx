@@ -33,7 +33,6 @@ import {
   type CrmActivity,
 } from "@/lib/crm/types";
 import {
-  convertContact,
   createFollowUp,
   dateTime,
   fetchContact,
@@ -45,7 +44,6 @@ import {
 } from "@/lib/crm/client";
 import { formatPhone } from "@/lib/crm/phone";
 import { useSessionUser, useStore } from "@/lib/store";
-import { crmCan } from "@/lib/crm/permissions";
 import type { Patient } from "@/lib/types";
 import { EmptyState, Field, GlassCard, Modal, Spinner } from "@/components/ui";
 import { Pill, StageBadge, SubHeading } from "@/components/crm/CrmUi";
@@ -140,15 +138,6 @@ export default function ContactDetailPage() {
     await load();
     setBusy(false);
   };
-
-  const convert = async () => {
-    setBusy(true);
-    const res = await convertContact(contact.id);
-    setBusy(false);
-    if (res.ok) await load();
-  };
-
-  const canConvert = crmCan(user?.role, "convert_lead");
 
   return (
     <div className="space-y-5">
@@ -273,15 +262,6 @@ export default function ContactDetailPage() {
                     <BadgeCheck size={14} /> Open full patient record
                   </Link>
                 ) : null
-              ) : canConvert ? (
-                <button
-                  className="btn btn-primary btn-sm w-full"
-                  onClick={() => void convert()}
-                  disabled={busy}
-                >
-                  {busy ? <Spinner className="w-4 h-4" /> : <BadgeCheck size={14} />}
-                  Convert to patient
-                </button>
               ) : null}
             </div>
           </GlassCard>

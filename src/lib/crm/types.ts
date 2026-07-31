@@ -13,21 +13,39 @@
 // Pipeline - defined ONCE. Never hardcode a stage string elsewhere.
 // ---------------------------------------------------------------------
 
+/**
+ * The pipeline starts AFTER a booking exists, not before it.
+ *
+ * This clinic does no cold outreach and runs no broadcasts, so "new" and
+ * "contacted" measured nothing: an enquiry either becomes a booking or it
+ * is just a conversation in the inbox. What actually costs the clinic money
+ * is further down - people who booked and never confirmed, were seen and
+ * never came back. Those are the stages worth having.
+ *
+ * The cycle closes: a rebooked patient re-enters at Consultation booked for
+ * their next session.
+ */
 export const PIPELINE_STAGES = [
-  { id: "new", label: "New", tone: "slate" },
-  { id: "contacted", label: "Contacted", tone: "sky" },
   { id: "consult_booked", label: "Consultation booked", tone: "violet" },
+  { id: "confirmed", label: "Confirmed", tone: "sky" },
   { id: "visited", label: "Visited", tone: "amber" },
-  { id: "treatment_planned", label: "Treatment planned", tone: "teal" },
-  { id: "won", label: "Converted", tone: "green" },
+  { id: "follow_up", label: "Follow-up", tone: "teal" },
+  { id: "rebooked", label: "Rebooked", tone: "green" },
 ] as const;
 
 export type PipelineStage = (typeof PIPELINE_STAGES)[number]["id"];
 
-/** Terminal states that sit outside the forward-moving pipeline. */
+/**
+ * Outside the funnel on purpose.
+ *
+ * A no-show is not a stage of progress and neither is a cancellation. Left
+ * in the pipeline they would flatter or wreck the conversion figure
+ * depending on where they sat, so they are counted separately and the
+ * funnel cannot lie about them.
+ */
 export const TERMINAL_STAGES = [
-  { id: "lost", label: "Lost", tone: "rose" },
-  { id: "archived", label: "Archived", tone: "slate" },
+  { id: "no_show", label: "No-show", tone: "rose" },
+  { id: "cancelled", label: "Cancelled", tone: "slate" },
 ] as const;
 
 export type TerminalStage = (typeof TERMINAL_STAGES)[number]["id"];
@@ -51,14 +69,15 @@ export function isStage(v: unknown): v is ContactStage {
   return typeof v === "string" && STAGE_INDEX.has(v);
 }
 
-/** Stages that mean "this lead became a paying patient". */
-export const WON_STAGES: readonly ContactStage[] = ["won"];
+/** Stages that mean the patient actually came in and is continuing. */
+export const WON_STAGES: readonly ContactStage[] = ["visited", "follow_up", "rebooked"];
 /** Stages that count as a booked consultation (or anything past it). */
 export const BOOKED_OR_BEYOND: readonly ContactStage[] = [
   "consult_booked",
+  "confirmed",
   "visited",
-  "treatment_planned",
-  "won",
+  "follow_up",
+  "rebooked",
 ];
 
 // ---------------------------------------------------------------------
@@ -177,25 +196,28 @@ export type FollowUpStatus = (typeof FOLLOWUP_STATUSES)[number];
  */
 export type FollowUpDerivedStatus = FollowUpStatus | "overdue";
 
+/**
+ * The four automations, and nothing else.
+ *
+ * Each one is a message the clinic would otherwise send by hand, at a moment
+ * the system already knows about: a booking was made, an appointment is
+ * tomorrow, a visit happened. There is no cold outreach and no broadcast
+ * here, so there is no "call this person" chore either - if it cannot send
+ * itself, it does not belong on this list.
+ */
 export const FOLLOWUP_TYPES = [
-  "call",
-  "whatsapp",
-  "consultation",
-  "post_treatment",
-  "payment",
-  "review_request",
-  "other",
+  "booking_confirmation",
+  "appointment_reminder",
+  "follow_up_consultation",
+  "feedback_request",
 ] as const;
 export type FollowUpType = (typeof FOLLOWUP_TYPES)[number];
 
 export const FOLLOWUP_TYPE_LABELS: Record<FollowUpType, string> = {
-  call: "Call",
-  whatsapp: "WhatsApp",
-  consultation: "Consultation",
-  post_treatment: "Post-treatment check",
-  payment: "Payment",
-  review_request: "Review request",
-  other: "Other",
+  booking_confirmation: "Booking confirmation",
+  appointment_reminder: "Appointment reminder",
+  follow_up_consultation: "Follow-up consultation",
+  feedback_request: "Feedback request",
 };
 
 export const PRIORITIES = ["low", "normal", "high"] as const;

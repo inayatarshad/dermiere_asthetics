@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CircleAlert, MapPin, RefreshCw } from "lucide-react";
+import { MapPin, RefreshCw } from "lucide-react";
 import { fetchConversations, dateOnly, type ConversationsResponse } from "@/lib/crm/client";
 import { EmptyState, GlassCard, SectionTitle, Spinner } from "@/components/ui";
 import { Pill, SubHeading } from "@/components/crm/CrmUi";
@@ -53,7 +53,6 @@ export default function CrmSettingsPage() {
 
   const templates = data?.templates ?? [];
   const branches = data?.branches ?? [];
-  const provider = data?.provider;
 
   return (
     <div className="space-y-5">
@@ -66,32 +65,6 @@ export default function CrmSettingsPage() {
           </button>
         }
       />
-
-      {/* --- provider --- */}
-      <GlassCard className="p-5">
-        <SubHeading>Messaging channel</SubHeading>
-        <div className="flex items-start gap-2.5">
-          <CircleAlert size={16} className="text-ink-400 shrink-0 mt-0.5" />
-          <div className="text-sm text-ink-700 leading-relaxed space-y-2">
-            <p>
-              <span className="font-medium">
-                Active provider: {provider?.label ?? "unknown"}.
-              </span>{" "}
-              {provider?.live
-                ? "Messages are delivered through the connected provider."
-                : "No WhatsApp Business account is connected. Nothing leaves this machine."}
-            </p>
-            <p className="text-ink-400 text-[13px]">
-              The CRM sends through a provider interface, never directly to
-              Meta. Connecting the WhatsApp Cloud API later means adding one
-              provider implementation and its credentials - the screens, the
-              routes and the stored messages do not change. The webhook
-              endpoint, delivery-receipt handling and idempotent ingestion are
-              already in place and exercised by the local provider.
-            </p>
-          </div>
-        </div>
-      </GlassCard>
 
       {/* --- templates --- */}
       <GlassCard className="p-5">

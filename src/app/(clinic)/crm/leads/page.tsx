@@ -35,27 +35,23 @@ import {
   createContact,
   fetchContacts,
   money,
-  relativeTime,
   titleize,
   updateContact,
   type StaffLite,
 } from "@/lib/crm/client";
-import { formatPhone, phoneMatchesQuery } from "@/lib/crm/phone";
+import { normalizePhone, phoneMatchesQuery } from "@/lib/crm/phone";
 import {
-  EmptyState,
   Field,
   Modal,
   SectionTitle,
   Spinner,
 } from "@/components/ui";
-import { Pill, ScrollX } from "@/components/crm/CrmUi";
-import type { ClinicLocation } from "@/lib/types";
+import { ScrollX } from "@/components/crm/CrmUi";
+import { LeadCard, toneBar } from "@/components/crm/LeadCard";
+import type { Appointment, ClinicLocation } from "@/lib/types";
 
-type SortCol = "name" | "value" | "updated";
-interface SortState {
-  col: SortCol;
-  dir: "asc" | "desc";
-}
+/** Cards visible per column before "show more". */
+const PAGE = 5;
 
 export default function LeadsPage() {
   const router = useRouter();
@@ -63,17 +59,18 @@ export default function LeadsPage() {
   const [staff, setStaff] = useState<StaffLite[]>([]);
   const [branches, setBranches] = useState<ClinicLocation[]>([]);
   const [treatments, setTreatments] = useState<string[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [branch, setBranch] = useState("");
   const [owner, setOwner] = useState("");
   const [source, setSource] = useState("");
-  const [stage, setStage] = useState("");
-  const [sort, setSort] = useState<SortState>({ col: "updated", dir: "desc" });
   const [showTerminal, setShowTerminal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [lostFor, setLostFor] = useState<CrmContact | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** How many cards each column is currently showing. */
+  const [shown, setShown] = useState<Record<string, number>>({});
 
   const apply = useCallback((res: Awaited<ReturnType<typeof fetchContacts>>) => {
     if (res) {
@@ -81,6 +78,7 @@ export default function LeadsPage() {
       setStaff(res.staff);
       setBranches(res.branches ?? []);
       setTreatments(res.treatments ?? []);
+      setAppointments(res.appointments ?? []);
     }
     setLoading(false);
   }, []);
@@ -132,36 +130,47 @@ export default function LeadsPage() {
     });
   }, [contacts, query, branch, owner, source]);
 
-  /** Counts per stage, for the stage filter chips. */
-  const stageCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of filtered) m.set(c.stage, (m.get(c.stage) ?? 0) + 1);
-    return m;
-  }, [filtered]);
+  /**
+   * One column per stage.
+   *
+   * Terminal stages (no-show, cancelled) are appended only when asked for:
+   * they are outcomes, not work in progress, and leaving them on the board
+   * every day makes the funnel look worse than it is.
+   */
+  const columns = useMemo(() => {
+    const stages = showTerminal
+      ? [...PIPELINE_STAGES, ...TERMINAL_STAGES]
+      : PIPELINE_STAGES;
+    return stages.map((st) => {
+      const cards = filtered
+        .filter((c) => c.stage === st.id)
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      return {
+        id: st.id,
+        label: st.label,
+        tone: st.tone as string,
+        cards,
+        value: cards.reduce((sum, c) => sum + (c.estimated_value ?? 0), 0),
+      };
+    });
+  }, [filtered, showTerminal]);
 
-  const rows = useMemo(() => {
-    const terminal = new Set<string>(TERMINAL_STAGES.map((s) => s.id));
-    const out = filtered.filter((c) => {
-      if (stage) return c.stage === stage;
-      // Lost and archived are not work in progress: they stay out of the
-      // list unless asked for, exactly as they were off the board.
-      return showTerminal || !terminal.has(c.stage);
-    });
-    const dir = sort.dir === "asc" ? 1 : -1;
-    return [...out].sort((a, b) => {
-      switch (sort.col) {
-        case "name":
-          return dir * a.name.localeCompare(b.name);
-        case "value":
-          return dir * ((a.estimated_value ?? 0) - (b.estimated_value ?? 0));
-        default:
-          return dir * a.updated_at.localeCompare(b.updated_at);
-      }
-    });
-  }, [filtered, stage, showTerminal, sort]);
+  /** The booking behind a card, so it can show when they are coming in. */
+  const apptFor = useCallback(
+    (c: CrmContact) =>
+      appointments
+        .filter(
+          (a) =>
+            a.status !== "cancelled" &&
+            ((c.patient_id && a.patient_id === c.patient_id) ||
+              (!!a.phone && normalizePhone(a.phone) === c.phone_norm))
+        )
+        .sort((x, y) => x.start.localeCompare(y.start))[0],
+    [appointments]
+  );
 
   const move = async (contact: CrmContact, stage: ContactStage) => {
-    if (stage === "lost") {
+    if (stage === "cancelled") {
       setLostFor(contact);
       return;
     }
@@ -268,11 +277,10 @@ export default function LeadsPage() {
         <button
           className={`chip ${showTerminal ? "chip-active" : ""}`}
           onClick={() => setShowTerminal((v) => !v)}
-          disabled={!!stage}
         >
           Lost &amp; archived
         </button>
-        {(query || branch || owner || source || stage) && (
+        {(query || branch || owner || source) && (
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => {
@@ -280,7 +288,6 @@ export default function LeadsPage() {
               setBranch("");
               setOwner("");
               setSource("");
-              setStage("");
             }}
           >
             <X size={14} /> Clear
@@ -288,121 +295,76 @@ export default function LeadsPage() {
         )}
       </div>
 
-      {/* Stage filter: what the board's columns used to say, as one row
-          that also works when a stage holds sixty leads. */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          className={`chip ${stage === "" ? "chip-active" : ""}`}
-          onClick={() => setStage("")}
-        >
-          All stages
-          <span className="text-ink-400 ml-1 tabular-nums">{rows.length}</span>
-        </button>
-        {[...PIPELINE_STAGES, ...TERMINAL_STAGES].map((st) => (
-          <button
-            key={st.id}
-            className={`chip ${stage === st.id ? "chip-active" : ""}`}
-            onClick={() => setStage(stage === st.id ? "" : st.id)}
-          >
-            {st.label}
-            <span className="text-ink-400 ml-1 tabular-nums">
-              {stageCounts.get(st.id) ?? 0}
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* --- the board ------------------------------------------------
+          One column per stage, so the shape of the week is visible at a
+          glance: where people are stacking up, and where they stop. */}
+      <ScrollX>
+        <div className="flex gap-3 min-w-max pb-2 items-start">
+          {columns.map((col) => (
+            <section key={col.id} className="w-[288px] shrink-0">
+              <header className="flex items-baseline justify-between px-1.5 pb-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm font-semibold text-ink-900">
+                    {col.label}
+                  </span>
+                  <span className="text-xs text-ink-400 tabular-nums">
+                    {col.cards.length}
+                  </span>
+                </div>
+                {col.value > 0 && (
+                  <span className="text-[11px] text-ink-400 tabular-nums">
+                    {money(col.value)}
+                  </span>
+                )}
+              </header>
 
-      {/* --- pipeline rows --------------------------------------------
-          A board of cards forced every lead into a 260px column and cut
-          the detail off. Rows show the whole record at a glance, sort,
-          and stay readable however many leads there are. */}
-      {rows.length === 0 ? (
-        <EmptyState
-          title="No leads match"
-          body="Try a different search, or clear the filters."
-        />
-      ) : (
-        <div className="glass p-1">
-          <ScrollX>
-            <table className="w-full text-sm min-w-[900px]">
-              <thead>
-                <tr className="text-left text-ink-400 text-xs">
-                  <SortHeader label="Lead" col="name" sort={sort} onSort={setSort} />
-                  <th className="py-2.5 px-3 font-medium">Stage</th>
-                  <th className="py-2.5 px-3 font-medium">Interest</th>
-                  <th className="py-2.5 px-3 font-medium">Source</th>
-                  <th className="py-2.5 px-3 font-medium">Branch</th>
-                  <th className="py-2.5 px-3 font-medium">Owner</th>
-                  <SortHeader label="Value" col="value" sort={sort} onSort={setSort} align="right" />
-                  <SortHeader label="Updated" col="updated" sort={sort} onSort={setSort} align="right" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((c) => (
-                  <tr
-                    key={c.id}
-                    onClick={() => router.push(`/crm/contacts/${c.id}`)}
-                    className="border-t border-white/60 hover:bg-mint-50/50 cursor-pointer"
+              {/* The rule under the heading carries the stage colour, so a
+                  column is identifiable without reading the label. */}
+              <div className={`h-[3px] rounded-full mb-2.5 ${toneBar(col.tone)}`} />
+
+              <div className="space-y-2.5">
+                {col.cards.length === 0 ? (
+                  <p className="glass-subtle text-center py-7 text-xs text-ink-400">
+                    Nothing here
+                  </p>
+                ) : (
+                  col.cards.slice(0, shown[col.id] ?? PAGE).map((c) => (
+                    <LeadCard
+                      key={c.id}
+                      contact={c}
+                      branchShort={branchShort}
+                      staffName={staffName}
+                      appointment={apptFor(c)}
+                      busy={busyId === c.id}
+                      onOpen={() => router.push(`/crm/contacts/${c.id}`)}
+                      onMove={(next) => void move(c, next)}
+                    />
+                  ))
+                )}
+
+                {/* Columns stay short on purpose: a wall of cards is not a
+                    pipeline you can read. The rest are one click away. */}
+                {col.cards.length > (shown[col.id] ?? PAGE) && (
+                  <button
+                    className="btn btn-ghost btn-sm w-full"
+                    onClick={() =>
+                      setShown((prev) => ({
+                        ...prev,
+                        [col.id]: (prev[col.id] ?? PAGE) + PAGE,
+                      }))
+                    }
                   >
-                    <td className="py-2.5 px-3">
-                      <Link
-                        href={`/crm/contacts/${c.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-medium text-ink-900 hover:text-mint-600"
-                      >
-                        {c.name}
-                      </Link>
-                      <div className="text-xs text-ink-400">{formatPhone(c.phone)}</div>
-                    </td>
-                    <td className="py-2.5 px-3">
-                      {/* Stage stays editable inline: moving a lead was the
-                          one thing the board did well. */}
-                      <select
-                        className="input input-xs !w-auto"
-                        value={c.stage}
-                        disabled={busyId === c.id}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => void move(c, e.target.value as ContactStage)}
-                        aria-label={`Stage for ${c.name}`}
-                      >
-                        {[...PIPELINE_STAGES, ...TERMINAL_STAGES].map((st) => (
-                          <option key={st.id} value={st.id}>
-                            {st.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <div className="flex flex-wrap gap-1">
-                        {c.treatment_interest.slice(0, 2).map((t) => (
-                          <Pill key={t} tone="teal">
-                            {titleize(t)}
-                          </Pill>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-ink-700 whitespace-nowrap">
-                      {LEAD_SOURCE_LABELS[c.source] ?? c.source}
-                    </td>
-                    <td className="py-2.5 px-3 text-ink-700 whitespace-nowrap">
-                      {branchShort(c.branch_id)}
-                    </td>
-                    <td className="py-2.5 px-3 text-ink-700 whitespace-nowrap">
-                      {staffName(c.assigned_to)}
-                    </td>
-                    <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
-                      {c.estimated_value ? money(c.estimated_value) : "-"}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-ink-400 whitespace-nowrap">
-                      {relativeTime(c.updated_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </ScrollX>
+                    Show {Math.min(PAGE, col.cards.length - (shown[col.id] ?? PAGE))} more
+                    <span className="text-ink-400">
+                      of {col.cards.length}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </section>
+          ))}
         </div>
-      )}
+      </ScrollX>
 
       {/* Mounted only while open, so each one opens with fresh state and
           needs no reset effect. */}
@@ -441,43 +403,6 @@ export default function LeadsPage() {
  * Clicking the active column flips direction; clicking another switches to
  * it. Kept here rather than in CrmUi because only this table sorts so far.
  */
-function SortHeader({
-  label,
-  col,
-  sort,
-  onSort,
-  align = "left",
-}: {
-  label: string;
-  col: SortCol;
-  sort: SortState;
-  onSort: (s: SortState) => void;
-  align?: "left" | "right";
-}) {
-  const active = sort.col === col;
-  return (
-    <th
-      className={`py-2.5 px-3 font-medium ${align === "right" ? "text-right" : ""}`}
-    >
-      <button
-        className={`inline-flex items-center gap-1 hover:text-ink-700 ${
-          active ? "text-ink-900" : ""
-        }`}
-        onClick={() =>
-          onSort({
-            col,
-            dir: active && sort.dir === "desc" ? "asc" : "desc",
-          })
-        }
-        aria-label={`Sort by ${label}`}
-      >
-        {label}
-        {active && (sort.dir === "desc" ? "↓" : "↑")}
-      </button>
-    </th>
-  );
-}
-
 function NewLeadModal({
   onClose,
   staff,

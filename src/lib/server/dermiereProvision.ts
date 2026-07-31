@@ -49,7 +49,9 @@ import {
   DERMIERE_TREATMENTS,
 } from "@/lib/dermiere/clinic";
 import { buildDermiereSeed } from "@/lib/dermiere/seed";
+import { WON_STAGES } from "@/lib/crm/types";
 import { linkRegistryPatients } from "./crmRegistry";
+import { createInvite } from "./reviewStore";
 
 const uid = () => crypto.randomUUID();
 
@@ -122,6 +124,34 @@ async function reconcileSeedRows(
   await prune("contacts", seed.contacts, contacts, (id) =>
     deleteCrmRow(clinicId, "crm_contacts", id)
   );
+
+  // Contacts the registry backfill created carry a generated uuid, not a
+  // seed prefix, so prune() cannot see them: pruning a seeded patient used
+  // to leave its CRM contact behind pointing at a row that no longer
+  // exists. Sweep any contact whose patient has gone.
+  // `patients` was read before pruning, so survivors are what the seed
+  // still contains plus anything that was never generated at all.
+  const seededPatientIds = new Set(seed.patients.map((p) => p.id));
+  const livePatients = new Set(
+    patients
+      .map((p) => p.id)
+      .filter((id) => !isSeedRow(id) || seededPatientIds.has(id))
+  );
+  let orphaned = 0;
+  for (const c of contacts) {
+    if (!c.patient_id || livePatients.has(c.patient_id)) continue;
+    // Take the conversation with it. A thread whose contact is gone renders
+    // as "Unknown contact" in the inbox, which is worse than not existing.
+    for (const cv of conversations.filter((x) => x.contact_id === c.id)) {
+      for (const m of await listMessages(clinicId, cv.id)) {
+        await deleteCrmRow(clinicId, "crm_messages", m.id);
+      }
+      await deleteCrmRow(clinicId, "crm_conversations", cv.id);
+    }
+    await deleteCrmRow(clinicId, "crm_contacts", c.id);
+    orphaned++;
+  }
+  if (orphaned) removed.orphanedContacts = orphaned;
   await prune("followUps", seed.followUps, followUps, (id) =>
     deleteCrmRow(clinicId, "crm_followups", id)
   );
@@ -211,9 +241,16 @@ function isSeedRow(id: string): boolean {
  */
 export async function provisionDermiere(
   password: string,
-  opts: { withSeed?: boolean; reconcile?: boolean } = {}
+  opts: {
+    withSeed?: boolean;
+    reconcile?: boolean;
+    /** Origin for the review link in the demo feedback thread. */
+    baseUrl?: string;
+  } = {}
 ): Promise<DermiereProvisionResult> {
   const withSeed = opts.withSeed ?? true;
+  let skippedContacts = 0;
+  let skippedConversations = 0;
   const reconcile = opts.reconcile ?? false;
 
   // --- clinic row -------------------------------------------------------
@@ -344,7 +381,19 @@ export async function provisionDermiere(
     for (const a of seed.appointments) {
       await pgUpsertAppointment(clinicId, a.id, a.start, a.status, a);
     }
+    // A phone number identifies a person, and the database enforces that.
+    // If a real contact already holds a number the generator invented, the
+    // real one wins and the fabricated row is skipped: provisioning must
+    // never fail, or overwrite someone, because of a coincidence.
+    const phoneOwners = new Map(
+      (await listContacts(clinicId)).map((c) => [c.phone_norm, c.id])
+    );
     for (const c of seed.contacts) {
+      const owner = phoneOwners.get(c.phone_norm);
+      if (owner && owner !== c.id) {
+        skippedContacts++;
+        continue;
+      }
       await saveContact(c);
       await addActivity({
         id: `act_created_${c.id}`,
@@ -352,13 +401,13 @@ export async function provisionDermiere(
         contact_id: c.id,
         patient_id: c.patient_id,
         kind: "lead_created",
-        summary: `Lead captured from ${c.source.replace(/_/g, " ")}`,
+        summary: `Booked via ${c.source.replace(/_/g, " ")}`,
         actor_id: c.assigned_to,
         branch_id: c.branch_id,
         ref_id: c.id,
         created_at: c.created_at,
       });
-      if (c.stage === "won") {
+      if (WON_STAGES.includes(c.stage)) {
         await addActivity({
           id: `act_won_${c.id}`,
           clinic_id: clinicId,
@@ -391,11 +440,51 @@ export async function provisionDermiere(
         created_at: f.completed_at ?? f.created_at,
       });
     }
-    for (const c of seed.conversations) await saveConversation(c);
-    for (const m of seed.messages) {
+    // Only one conversation per contact per channel may be open, so a
+    // contact who already has a live thread (a real one, or one the chat
+    // booking opened) keeps it; the fabricated thread is skipped rather
+    // than colliding with it.
+    const skippedConvIds = new Set<string>();
+    const openThreads = new Map(
+      (await listConversations(clinicId))
+        .filter((c) => c.status === "open")
+        .map((c) => [`${c.contact_id}:${c.channel}`, c.id])
+    );
+    for (const c of seed.conversations) {
+      const holder = openThreads.get(`${c.contact_id}:${c.channel}`);
+      if (holder && holder !== c.id) {
+        skippedConversations++;
+        skippedConvIds.add(c.id);
+        continue;
+      }
+      await saveConversation(c);
+    }
+    // The demo feedback thread carries a real, openable review link. Minted
+    // here rather than in the seed because only the server can create an
+    // invite and know the origin it will be opened from.
+    let reviewUrl: string | null = null;
+    for (const seeded of seed.messages) {
+      let m = seeded;
+      if (m.body.includes("{{review_link}}")) {
+        if (!reviewUrl) {
+          const conv = seed.conversations.find(
+            (c) => c.id === m.conversation_id
+          );
+          const who = seed.contacts.find((c) => c.id === conv?.contact_id);
+          const invite = await createInvite(clinicId, {
+            patient_id: who?.patient_id,
+            patient_name: who?.name ?? "Patient",
+            location_id: who?.branch_id ?? "",
+            treatments: who?.treatment_interest ?? [],
+          });
+          reviewUrl = `${opts.baseUrl ?? ""}/review/${invite.token}`;
+        }
+        m = { ...m, body: m.body.replace(/{{review_link}}/g, reviewUrl) };
+      }
       await saveMessage(m);
       if (!m.internal) {
         const conv = seed.conversations.find((c) => c.id === m.conversation_id);
+        if (conv && skippedConvIds.has(conv.id)) continue;
         await addActivity({
           id: `act_msg_${m.id}`,
           clinic_id: clinicId,
@@ -437,9 +526,10 @@ export async function provisionDermiere(
     counts.reports = seed.reports.length;
     counts.appointments = seed.appointments.length;
     counts.invoices = seed.invoices.length;
-    counts.contacts = seed.contacts.length;
+    counts.contacts = seed.contacts.length - skippedContacts;
+    if (skippedContacts) counts.contactsSkipped = skippedContacts;
     counts.followUps = seed.followUps.length;
-    counts.conversations = seed.conversations.length;
+    counts.conversations = seed.conversations.length - skippedConversations;
     counts.messages = seed.messages.length;
     counts.feedback = seed.feedback.length;
     counts.templates = seed.templates.length;

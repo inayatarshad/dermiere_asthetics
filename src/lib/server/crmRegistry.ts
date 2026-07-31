@@ -69,10 +69,12 @@ export async function ensureContactForPatient(
       const linked = await saveContact({
         ...existing,
         patient_id: patient.id,
-        // Registering someone is the clinic saying "this is a patient now".
-        stage: existing.stage === "lost" || existing.stage === "archived"
-          ? existing.stage
-          : "won",
+        // Registering someone means they came in. A cancelled or missed
+        // booking keeps its stage; anything else becomes a visit.
+        stage:
+          existing.stage === "cancelled" || existing.stage === "no_show"
+            ? existing.stage
+            : "visited",
         email: existing.email ?? patient.email,
         city: existing.city ?? patient.city,
         gender: existing.gender ?? patient.gender,
@@ -106,7 +108,7 @@ export async function ensureContactForPatient(
     email: patient.email,
     city: patient.city,
     gender: patient.gender,
-    stage: "won",
+    stage: "visited",
     source: leadSourceFor(patient),
     treatment_interest: [],
     branch_id: opts.branchId,

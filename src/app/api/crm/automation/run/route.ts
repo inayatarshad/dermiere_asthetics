@@ -26,6 +26,9 @@ export async function POST(req: Request) {
     const result = await runDueAutomations(ctx.clinicId, {
       clinicName: config?.name ?? "Dermiere",
       actorId: ctx.userId,
+      // Review links must be openable from the patients phone, so they
+      // carry the origin this request arrived on.
+      baseUrl: new URL(req.url).origin,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {

@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       withSeed: body.withSeed ?? true,
       // Opt-in only. Without it this call never deletes anything.
       reconcile: body.reconcile === true,
+      baseUrl: new URL(req.url).origin,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {

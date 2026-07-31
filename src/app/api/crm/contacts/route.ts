@@ -28,6 +28,8 @@ import {
   saveContact,
 } from "@/lib/server/crmStore";
 import { getClinicConfig, listAssignableStaff } from "@/lib/server/clinicStore";
+import { pgListAppointments } from "@/lib/server/db";
+import type { Appointment } from "@/lib/types";
 import { isPlausiblePhone, normalizePhone } from "@/lib/crm/phone";
 import { LEAD_SOURCES, isStage, type ContactStage } from "@/lib/crm/types";
 
@@ -36,10 +38,13 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   try {
     const ctx = await requireCrm(req, "view_crm");
-    const [contacts, staff, config] = await Promise.all([
+    const [contacts, staff, config, appointments] = await Promise.all([
       listContacts(ctx.clinicId),
       listAssignableStaff(ctx.clinicId),
       getClinicConfig(ctx.clinicId),
+      // The board shows when each person is actually coming in, which lives
+      // on the appointment, not the contact.
+      pgListAppointments<Appointment>(ctx.clinicId),
     ]);
     return NextResponse.json({
       ok: true,
@@ -53,6 +58,7 @@ export async function GET(req: Request) {
       })),
       branches: config?.locations ?? [],
       treatments: config?.menu ?? [],
+      appointments,
     });
   } catch (err) {
     return crmError(err);

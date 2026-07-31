@@ -22,6 +22,7 @@ import type {
 import {
   BOOKED_OR_BEYOND,
   LOW_RATING_THRESHOLD,
+  WON_STAGES,
   followUpState,
 } from "./types";
 
@@ -268,13 +269,15 @@ export function computeAnalytics(input: AnalyticsInput): CrmAnalytics {
   // --- leads ------------------------------------------------------------
   const leadsInRange = s.contacts.filter((c) => inRange(c.created_at, r));
   const awaiting = s.contacts.filter(
-    (c) => !c.first_response_at && c.stage === "new"
+    (c) => c.stage === "consult_booked"
   ).length;
   const booked = leadsInRange.filter((c) =>
     BOOKED_OR_BEYOND.includes(c.stage)
   ).length;
-  const won = leadsInRange.filter((c) => c.stage === "won").length;
-  const lost = leadsInRange.filter((c) => c.stage === "lost").length;
+  const won = leadsInRange.filter((c) => WON_STAGES.includes(c.stage)).length;
+  const lost = leadsInRange.filter(
+    (c) => c.stage === "cancelled" || c.stage === "no_show"
+  ).length;
 
   const sourceCounts = new Map<string, number>();
   const treatmentCounts = new Map<string, number>();
@@ -445,7 +448,7 @@ export function computeAnalytics(input: AnalyticsInput): CrmAnalytics {
     const bLeads = input.contacts.filter(
       (c) => c.branch_id === bid && inRange(c.created_at, r)
     );
-    const bWon = bLeads.filter((c) => c.stage === "won").length;
+    const bWon = bLeads.filter((c) => WON_STAGES.includes(c.stage)).length;
     const bAppts = input.appointments.filter(
       (a) => a.location_id === bid && inRange(a.start, r)
     );

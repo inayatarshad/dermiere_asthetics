@@ -225,7 +225,7 @@ export async function PATCH(
     // --- stage move (its own operation so it is always logged) ----------
     if (body.stage !== undefined) {
       if (!isStage(body.stage)) return badRequest("Unknown pipeline stage.");
-      if (body.stage === "won" && !crmCan(ctx.role, "convert_lead")) {
+      if (body.stage === "visited" && !crmCan(ctx.role, "convert_lead")) {
         throw new AuthError(403, "Your role cannot convert leads.");
       }
       const moved = await moveContactStage(
@@ -381,7 +381,7 @@ export async function POST(
     const updated = await saveContact({
       ...contact,
       patient_id: patientId,
-      stage: "won",
+      stage: "visited",
     });
     await addActivity({
       clinic_id: ctx.clinicId,

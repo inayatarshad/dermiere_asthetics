@@ -29,6 +29,7 @@ import type {
 } from "@/lib/crm/types";
 import { normalizePhone } from "@/lib/crm/phone";
 import { cancelCrmBooking, ensureConsultationBooked } from "./crmBooking";
+import { ensurePatientForVisit } from "./crmVisit";
 
 export const CRM_TABLES = [
   "crm_contacts",
@@ -415,6 +416,10 @@ export async function saveMessage(m: CrmMessage): Promise<CrmMessage> {
      ON CONFLICT (id) DO UPDATE SET
        state = EXCLUDED.state,
        provider_message_id = EXCLUDED.provider_message_id,
+       -- The column is what threads are ORDERed by, so it has to follow the
+       -- payload. Leaving it behind on re-seed sorted a conversation into
+       -- nonsense: a reply appearing before the message it answered.
+       created_at = EXCLUDED.created_at,
        payload = EXCLUDED.payload
      WHERE crm_messages.clinic_id = $2`,
     [
@@ -587,14 +592,14 @@ export async function moveContactStage(
   const updated = await saveContact({
     ...contact,
     stage,
-    lost_reason: stage === "lost" ? extra?.lost_reason : undefined,
-    lost_note: stage === "lost" ? extra?.lost_note : undefined,
+    lost_reason: stage === "cancelled" ? extra?.lost_reason : undefined,
+    lost_note: stage === "cancelled" ? extra?.lost_note : undefined,
   });
   await addActivity({
     clinic_id: clinicId,
     contact_id: contactId,
     patient_id: contact.patient_id,
-    kind: stage === "won" ? "converted" : "stage_change",
+    kind: stage === "visited" ? "converted" : "stage_change",
     summary: `Stage moved to ${stage.replace(/_/g, " ")}`,
     detail: `From ${from.replace(/_/g, " ")}`,
     actor_id: actorId,
@@ -607,7 +612,11 @@ export async function moveContactStage(
   try {
     if (stage === "consult_booked") {
       await ensureConsultationBooked(clinicId, updated, { actorId });
-    } else if (stage === "lost" || stage === "archived") {
+    } else if (stage === "visited") {
+      // They came in, so they belong in the registry. No one should have to
+      // press a button to make that true.
+      await ensurePatientForVisit(clinicId, updated, { actorId });
+    } else if (stage === "cancelled" || stage === "no_show") {
       await cancelCrmBooking(clinicId, contactId);
     }
   } catch (err) {

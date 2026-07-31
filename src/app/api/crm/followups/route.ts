@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       patient_id: str(body.patient_id, { max: 64 }) ?? contact?.patient_id,
       title,
       description: str(body.description, { max: 2000 }),
-      type: oneOf(body.type, FOLLOWUP_TYPES) ?? "call",
+      type: oneOf(body.type, FOLLOWUP_TYPES) ?? "booking_confirmation",
       priority: oneOf(body.priority, PRIORITIES) ?? "normal",
       status: "pending",
       assigned_to: str(body.assigned_to, { max: 64 }) ?? ctx.userId,

@@ -25,21 +25,17 @@ import {
   MessageSquarePlus,
   RefreshCw,
   Send,
-  StickyNote,
-  UserPlus,
 } from "lucide-react";
 import type { CrmMessage, MessageState } from "@/lib/crm/types";
 import {
   dateTime,
   fetchConversations,
   fetchThread,
-  patchConversation,
   postMessage,
   relativeTime,
   simulateInbound,
   type ConversationListItem,
   type ConversationsResponse,
-  type StaffLite,
   type ThreadResponse,
 } from "@/lib/crm/client";
 import { formatPhone } from "@/lib/crm/phone";
@@ -53,12 +49,10 @@ type Filter = "all" | "unassigned" | "mine" | "unread";
 export default function InboxPage() {
   const user = useSessionUser();
   const canSend = crmCan(user?.role, "send_messages");
-  const canAssignOthers = crmCan(user?.role, "assign_conversations");
   const searchParams = useSearchParams();
   const preselect = searchParams.get("c");
 
   const [list, setList] = useState<ConversationListItem[]>([]);
-  const [staff, setStaff] = useState<StaffLite[]>([]);
   const [provider, setProvider] = useState<ConversationsResponse["provider"] | null>(null);
   const [me, setMe] = useState("");
   const [loading, setLoading] = useState(true);
@@ -68,7 +62,6 @@ export default function InboxPage() {
   const [thread, setThread] = useState<ThreadResponse | null>(null);
 
   const [draft, setDraft] = useState("");
-  const [internal, setInternal] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [simulateOpen, setSimulateOpen] = useState(false);
@@ -79,7 +72,6 @@ export default function InboxPage() {
     (res: Awaited<ReturnType<typeof fetchConversations>>) => {
       if (res) {
         setList(res.conversations);
-        setStaff(res.staff);
         setProvider(res.provider);
         setMe(res.me);
         setActiveId((cur) => cur ?? res.conversations[0]?.id ?? null);
@@ -126,9 +118,6 @@ export default function InboxPage() {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [thread]);
 
-  const staffName = (id?: string) =>
-    staff.find((s) => s.id === id)?.name ?? (id ? "Unknown" : "Unassigned");
-
   const filtered = useMemo(() => {
     switch (filter) {
       case "unassigned":
@@ -150,7 +139,6 @@ export default function InboxPage() {
     setSendError(null);
     const res = await postMessage(activeId, {
       body: draft.trim(),
-      internal,
       // Stable per attempt, so a double-click cannot double-send.
       idempotency_key: `${activeId}_${Date.now()}`,
     });
@@ -160,20 +148,6 @@ export default function InboxPage() {
       return;
     }
     setDraft("");
-    setThread(await fetchThread(activeId));
-    await reloadList();
-  };
-
-  const assign = async (userId: string) => {
-    if (!activeId) return;
-    await patchConversation(activeId, { assigned_to: userId || null });
-    setThread(await fetchThread(activeId));
-    await reloadList();
-  };
-
-  const setStatus = async (status: string) => {
-    if (!activeId) return;
-    await patchConversation(activeId, { status });
     setThread(await fetchThread(activeId));
     await reloadList();
   };
@@ -190,7 +164,13 @@ export default function InboxPage() {
     <div className="space-y-4">
       <SectionTitle
         title="Shared inbox"
-        sub={`${list.length} conversations${totalUnread ? ` · ${totalUnread} unread` : ""}`}
+        // One line of truth about the channel, and no more: the plumbing
+        // does not need explaining to the clinic every time they open it.
+        sub={
+          provider?.live
+            ? `${list.length} conversations${totalUnread ? ` · ${totalUnread} unread` : ""}`
+            : "WhatsApp Business API not connected"
+        }
         action={
           <div className="flex items-center gap-2">
             <button
@@ -265,27 +245,11 @@ export default function InboxPage() {
                       {c.last_message_preview}
                     </p>
                   )}
-                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    {c.unread_count > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-mint-500 text-white text-[10px] font-semibold">
-                        {c.unread_count}
-                      </span>
-                    )}
-                    <Pill
-                      tone={
-                        c.status === "open"
-                          ? "sky"
-                          : c.status === "pending"
-                          ? "amber"
-                          : "slate"
-                      }
-                    >
-                      {c.status}
-                    </Pill>
-                    <span className="text-[10px] text-ink-400 truncate">
-                      {staffName(c.assigned_to)}
+                  {c.unread_count > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] mt-1.5 px-1 rounded-full bg-mint-500 text-white text-[10px] font-semibold">
+                      {c.unread_count}
                     </span>
-                  </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -328,102 +292,35 @@ export default function InboxPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <div className="w-40">
-                    <select
-                      className="input input-sm text-xs"
-                      value={thread.conversation.assigned_to ?? ""}
-                      onChange={(e) => void assign(e.target.value)}
-                      aria-label="Assign conversation"
-                    >
-                      <option value="">Unassigned</option>
-                      {staff.map((s) => (
-                        <option
-                          key={s.id}
-                          value={s.id}
-                          // Claiming it yourself is always allowed; handing it
-                          // to someone else needs the capability.
-                          disabled={!canAssignOthers && s.id !== me}
-                        >
-                          {s.name}
-                          {s.id === me ? " (me)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-28">
-                    <select
-                      className="input input-sm text-xs"
-                      value={thread.conversation.status}
-                      onChange={(e) => void setStatus(e.target.value)}
-                      aria-label="Conversation status"
-                    >
-                      <option value="open">Open</option>
-                      <option value="pending">Pending</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </div>
-                  {!thread.conversation.assigned_to && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => void assign(me)}
-                      title="Assign to me"
-                    >
-                      <UserPlus size={14} />
-                    </button>
-                  )}
-                </div>
               </div>
 
               {/* messages */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 max-h-[52vh]">
-                {thread.messages.length === 0 ? (
+                {thread.messages.filter((m) => !m.internal).length === 0 ? (
                   <p className="text-sm text-ink-400 text-center py-8">
                     No messages yet.
                   </p>
                 ) : (
-                  thread.messages.map((m) => <Bubble key={m.id} message={m} staffName={staffName} />)
+                  thread.messages
+                    .filter((m) => !m.internal)
+                    .map((m) => (
+                      <Bubble key={m.id} message={m} />
+                    ))
                 )}
                 <div ref={bottomRef} />
               </div>
 
               {/* composer */}
               <div className="border-t border-white/60 p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    className={`chip ${!internal ? "chip-active" : ""}`}
-                    onClick={() => setInternal(false)}
-                    disabled={!canSend}
-                    title={canSend ? undefined : "Your role cannot message patients"}
-                  >
-                    <Send size={12} /> Reply
-                  </button>
-                  <button
-                    className={`chip ${internal ? "chip-active" : ""}`}
-                    onClick={() => setInternal(true)}
-                  >
-                    <StickyNote size={12} /> Internal note
-                  </button>
-                  {internal && (
-                    <span className="text-[11px] text-ink-400">
-                      Staff only - never sent to the patient.
-                    </span>
-                  )}
-                </div>
-
                 <div className="flex items-end gap-2">
                   <textarea
                     className="input min-h-[44px] max-h-32 text-sm"
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     placeholder={
-                      internal
-                        ? "Add a note for the team…"
-                        : canSend
-                        ? "Type a reply…"
-                        : "Your role can add internal notes only"
+                      canSend ? "Type a reply…" : "Your role cannot message patients"
                     }
-                    disabled={!internal && !canSend}
+                    disabled={!canSend}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                         e.preventDefault();
@@ -434,17 +331,9 @@ export default function InboxPage() {
                   <button
                     className="btn btn-primary shrink-0"
                     onClick={() => void send()}
-                    disabled={
-                      sending || !draft.trim() || (!internal && !canSend)
-                    }
+                    disabled={sending || !draft.trim() || !canSend}
                   >
-                    {sending ? (
-                      <Spinner className="w-4 h-4" />
-                    ) : internal ? (
-                      <StickyNote size={15} />
-                    ) : (
-                      <Send size={15} />
-                    )}
+                    {sending ? <Spinner className="w-4 h-4" /> : <Send size={15} />}
                   </button>
                 </div>
                 {sendError && <p className="text-xs text-rose-700">{sendError}</p>}
@@ -479,31 +368,9 @@ const STATE_ICON: Partial<Record<MessageState, typeof Check>> = {
   failed: CircleAlert,
 };
 
-function Bubble({
-  message,
-  staffName,
-}: {
-  message: CrmMessage;
-  staffName: (id?: string) => string;
-}) {
+function Bubble({ message }: { message: CrmMessage }) {
   const inbound = message.direction === "inbound";
   const StateIcon = STATE_ICON[message.state];
-
-  if (message.internal) {
-    return (
-      <div className="flex justify-center">
-        <div className="max-w-[85%] rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
-          <div className="flex items-center gap-1.5 text-[10px] font-medium text-amber-800 mb-0.5">
-            <StickyNote size={11} /> Internal note · {staffName(message.author_id)}
-          </div>
-          <p className="text-sm text-ink-900 whitespace-pre-wrap">{message.body}</p>
-          <div className="text-[10px] text-amber-700/70 mt-1">
-            {relativeTime(message.created_at)}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`flex ${inbound ? "justify-start" : "justify-end"}`}>

@@ -22,6 +22,7 @@ import type {
   TreatmentPlan,
 } from "@/lib/types";
 import { getTemplate } from "@/lib/templates";
+import { WON_STAGES } from "@/lib/crm/types";
 import type {
   ContactStage,
   CrmContact,
@@ -34,6 +35,8 @@ import type {
 } from "@/lib/crm/types";
 import { normalizePhone } from "@/lib/crm/phone";
 import { DERMIERE_TREATMENTS } from "./clinic";
+import { DEMO_THREADS } from "./threads";
+import { dermiereTemplates } from "./templates";
 
 // ---------------------------------------------------------------------
 // Deterministic pseudo-randomness (mulberry32) - same demo every run
@@ -90,16 +93,21 @@ const SOURCES: LeadSource[] = [
   "facebook", "phone", "website",
 ];
 
-/** Weighted so the pipeline looks like a real funnel, not a flat spread. */
+/**
+ * Weighted so the board looks like a real week, not a flat spread.
+ *
+ * Every one of these has a booking behind it: the pipeline begins at
+ * "consultation booked", so there is no such thing as a lead here who was
+ * never going to come in.
+ */
 const STAGE_WEIGHTS: Array<[ContactStage, number]> = [
-  ["new", 14],
-  ["contacted", 12],
-  ["consult_booked", 10],
-  ["visited", 8],
-  ["treatment_planned", 6],
-  ["won", 16],
-  ["lost", 9],
-  ["archived", 3],
+  ["consult_booked", 16],
+  ["confirmed", 14],
+  ["visited", 18],
+  ["follow_up", 12],
+  ["rebooked", 10],
+  ["no_show", 5],
+  ["cancelled", 4],
 ];
 
 const LEAD_NOTES = [
@@ -121,6 +129,20 @@ const INBOUND_OPENERS = [
   "Hi, I did a peel last month. Skin is a bit dry, is that normal?",
   "Do you have a branch in Islamabad? I'm in F-11.",
 ];
+
+/**
+ * Put a timestamp on a real appointment slot.
+ *
+ * Times were inherited from whenever the lead happened to be created, so
+ * the board could show a consultation at 10:23 pm. The clinic opens 11:00
+ * to 20:00, so bookings land on the half hour inside that window.
+ */
+function atClinicHour(ms: number, r: () => number): number {
+  const d = new Date(ms);
+  const slot = Math.floor(r() * 17); // 11:00 .. 19:30 in half hours
+  d.setHours(11 + Math.floor(slot / 2), (slot % 2) * 30, 0, 0);
+  return d.getTime();
+}
 
 function pick<T>(r: () => number, arr: readonly T[]): T {
   return arr[Math.floor(r() * arr.length)];
@@ -168,7 +190,9 @@ export function buildDermiereSeed(
   opts: { leads?: number; seed?: number } = {}
 ): DermiereSeed {
   const r = rng(opts.seed ?? 20260729);
-  const leadCount = opts.leads ?? 64;
+  // Enough to look like a working week, few enough that a column reads at a
+  // glance. A board nobody can take in at once is not a board.
+  const leadCount = opts.leads ?? 26;
   const now = Date.now();
   const iso = (ms: number) => new Date(ms).toISOString();
 
@@ -197,6 +221,7 @@ export function buildDermiereSeed(
 
   const usedPhones = new Set<string>();
   let invoiceSeq = 1;
+  let convCount = 0;
 
   for (let i = 0; i < leadCount; i++) {
     const { name, gender } = nameFor(r);
@@ -213,12 +238,12 @@ export function buildDermiereSeed(
     const interest = [pick(r, DERMIERE_TREATMENTS).id];
     if (r() < 0.25) interest.push(pick(r, DERMIERE_TREATMENTS).id);
 
-    const isWon = stage === "won";
+    const isWon = WON_STAGES.includes(stage);
     const patientId = isWon ? `derm_patient_${i}` : undefined;
     const assigned = r() < 0.85 ? deskFor(branch) : undefined;
 
-    // First response: most leads get one, some (the interesting ones) don't.
-    const responded = stage !== "new" || r() < 0.35;
+    // Everyone here booked, so everyone was answered at least once.
+    const responded = true;
     const firstResponseMs = responded
       ? createdMs + Math.floor((0.2 + r() * 20) * 3600_000)
       : undefined;
@@ -249,10 +274,11 @@ export function buildDermiereSeed(
           0
         ) || undefined,
       lost_reason:
-        stage === "lost"
+        stage === "cancelled"
           ? pick(r, ["price", "went_elsewhere", "not_ready", "unreachable", "distance"] as const)
           : undefined,
-      lost_note: stage === "lost" ? "Noted at the desk during the callback." : undefined,
+      lost_note:
+        stage === "cancelled" ? "Cancelled when we called to confirm." : undefined,
       marketing_opt_in: r() < 0.72,
       created_at: iso(createdMs),
       updated_at: iso(createdMs + Math.floor(r() * 5 * DAY)),
@@ -295,7 +321,7 @@ export function buildDermiereSeed(
       }));
 
       for (const [v, plan] of visitPlans.entries()) {
-        const visitMs = createdMs + plan.offsetDays * DAY;
+        const visitMs = atClinicHour(createdMs + plan.offsetDays * DAY, r);
         // `continue`, not `break`: the draws are already made, and skipping
         // a future visit must not change anything for the later ones.
         if (visitMs > now) continue;
@@ -359,7 +385,7 @@ export function buildDermiereSeed(
 
     // --- upcoming appointments for booked consultations ------------------
     if (stage === "consult_booked") {
-      const whenMs = now + Math.floor(r() * 10 * DAY);
+      const whenMs = atClinicHour(now + (1 + Math.floor(r() * 10)) * DAY, r);
       appointments.push({
         id: `derm_appt_up_${i}`,
         patient_name: name,
@@ -378,7 +404,7 @@ export function buildDermiereSeed(
 
     // --- no-shows, so branch comparison has a real no-show rate ----------
     if (r() < 0.08) {
-      const missedMs = now - Math.floor(r() * 40 * DAY);
+      const missedMs = atClinicHour(now - (1 + Math.floor(r() * 40)) * DAY, r);
       appointments.push({
         id: `derm_appt_ns_${i}`,
         patient_id: patientId,
@@ -397,50 +423,52 @@ export function buildDermiereSeed(
     }
 
     // --- follow-ups -------------------------------------------------------
-    // Deliberate mix: some due today, some overdue, plenty completed.
-    if (!["archived"].includes(stage) && r() < 0.72) {
+    //
+    // These are the automation's schedule, not a to-do list, and they are
+    // never left due in the past: anything already due would fire the moment
+    // the CRM is opened and bury the demonstration threads under a pile of
+    // one-line sends. Scheduled ahead, or already done.
+    if (r() < 0.72) {
       const roll = r();
       let dueMs: number;
       let status: CrmFollowUp["status"] = "pending";
       let completedMs: number | undefined;
 
-      if (roll < 0.18) {
-        // due today
-        dueMs = now + Math.floor((r() * 8 - 2) * 3600_000);
-      } else if (roll < 0.36) {
-        // overdue
-        dueMs = now - (1 + Math.floor(r() * 9)) * DAY;
-      } else if (roll < 0.62) {
-        // upcoming
-        dueMs = now + (1 + Math.floor(r() * 12)) * DAY;
+      if (roll < 0.45) {
+        // scheduled, still to come
+        dueMs = now + (1 + Math.floor(r() * 14)) * DAY;
       } else {
-        // completed in the past
+        // already sent, in the past
         dueMs = now - (2 + Math.floor(r() * 45)) * DAY;
         status = "completed";
-        completedMs = dueMs + Math.floor(r() * 2 * DAY);
+        completedMs = dueMs + Math.floor(r() * 2 * 3600_000);
       }
-      if (r() < 0.05) status = "cancelled";
 
-      const type = pick(r, ["call", "whatsapp", "consultation", "post_treatment", "review_request"] as const);
+      // The automation follows the stage: a booking gets confirmed, a
+      // confirmed booking gets reminded, a visit gets feedback and then a
+      // follow-up consultation. Nothing here is a chore for a person.
+      const type: CrmFollowUp["type"] =
+        stage === "consult_booked" || stage === "rebooked"
+          ? "booking_confirmation"
+          : stage === "confirmed"
+          ? "appointment_reminder"
+          : stage === "follow_up"
+          ? "follow_up_consultation"
+          : "feedback_request";
       followUps.push({
         id: `derm_fu_${i}`,
         clinic_id: clinicId,
         contact_id: contactId,
         patient_id: patientId,
         title:
-          type === "call"
-            ? `Call ${name.split(" ")[0]} about the consultation`
-            : type === "whatsapp"
-            ? `WhatsApp the quote to ${name.split(" ")[0]}`
-            : type === "post_treatment"
-            ? `Post-treatment check - ${name.split(" ")[0]}`
-            : type === "review_request"
-            ? `Ask ${name.split(" ")[0]} for feedback`
-            : `Confirm consultation slot - ${name.split(" ")[0]}`,
-        description:
-          r() < 0.5
-            ? "Confirm they are still interested and offer the next available slot."
-            : undefined,
+          type === "booking_confirmation"
+            ? `Booking confirmation - ${name.split(" ")[0]}`
+            : type === "appointment_reminder"
+            ? `Appointment reminder - ${name.split(" ")[0]}`
+            : type === "follow_up_consultation"
+            ? `Follow-up consultation - ${name.split(" ")[0]}`
+            : `Feedback request - ${name.split(" ")[0]}`,
+        description: undefined,
         type,
         priority: weighted(r, [
           ["normal", 6],
@@ -452,9 +480,7 @@ export function buildDermiereSeed(
         branch_id: branch,
         due_at: iso(dueMs),
         completed_at: completedMs ? iso(completedMs) : undefined,
-        completion_note: completedMs ? "Spoke to the patient; noted on file." : undefined,
-        cancelled_at: status === "cancelled" ? iso(dueMs) : undefined,
-        cancel_reason: status === "cancelled" ? "Patient asked to be removed from callbacks." : undefined,
+        completion_note: completedMs ? "Sent automatically." : undefined,
         rescheduled_from: r() < 0.15 ? [iso(dueMs - 3 * DAY)] : [],
         created_at: contact.created_at,
         created_by: deskFor(branch),
@@ -463,80 +489,102 @@ export function buildDermiereSeed(
     }
 
     // --- conversations ----------------------------------------------------
-    if (r() < 0.42) {
+    //
+    // The first four contacts always carry the scripted automation threads,
+    // dated most-recent-first so the inbox opens on them in the order they
+    // should be shown: confirmation, reminder, follow-up, feedback.
+    const scriptIndex = convCount < DEMO_THREADS.length ? convCount : -1;
+    if (scriptIndex >= 0 || r() < 0.42) {
       const convId = `derm_conv_${i}`;
-      const startMs = createdMs + Math.floor(r() * DAY);
+      const startMs =
+        scriptIndex >= 0
+          ? now - (scriptIndex + 1) * 5 * 3600_000
+          : createdMs + Math.floor(r() * DAY);
+      // The first few conversations follow a scripted exchange, so the
+      // inbox shows what the system actually does rather than a single
+      // unanswered line. The rest stay short.
+      const script = scriptIndex >= 0 ? DEMO_THREADS[scriptIndex].turns : null;
       const thread: CrmMessage[] = [];
-      const openerMs = startMs;
 
-      thread.push({
-        id: `derm_msg_${i}_0`,
-        clinic_id: clinicId,
-        conversation_id: convId,
-        direction: "inbound",
-        internal: false,
-        body: pick(r, INBOUND_OPENERS),
-        attachments: [],
-        state: "read",
-        provider: "mock",
-        provider_message_id: `mock_in_${i}_0`,
-        created_at: iso(openerMs),
-        read_at: iso(openerMs + 600_000),
-      });
-
-      if (responded) {
-        const replyMs = openerMs + Math.floor((0.3 + r() * 6) * 3600_000);
+      if (script) {
+        let t = startMs;
+        script.forEach((turn, k) => {
+          t += turn.gapMins * 60_000;
+          const outbound = turn.from === "clinic";
+          thread.push({
+            id: `derm_msg_${i}_${k}`,
+            clinic_id: clinicId,
+            conversation_id: convId,
+            direction: outbound ? "outbound" : "inbound",
+            internal: false,
+            // Substituted here so a scripted thread can never be addressed
+            // to a name other than the contact it belongs to.
+            body: turn.body.replace(/{{name}}/g, name.split(" ")[0]),
+            attachments: [],
+            state: outbound ? "read" : "read",
+            provider: "mock",
+            provider_message_id: `mock_${outbound ? "out" : "in"}_${i}_${k}`,
+            author_id: outbound ? (assigned ?? deskFor(branch)) : undefined,
+            created_at: iso(t),
+            sent_at: outbound ? iso(t) : undefined,
+            delivered_at: outbound ? iso(t + 30_000) : undefined,
+            read_at: iso(t + 600_000),
+          });
+        });
+      } else {
+        const openerMs = startMs;
         thread.push({
-          id: `derm_msg_${i}_1`,
+          id: `derm_msg_${i}_0`,
           clinic_id: clinicId,
           conversation_id: convId,
-          direction: "outbound",
+          direction: "inbound",
           internal: false,
-          body:
-            "Walaikum assalam! Thank you for reaching out to Dermiere. " +
-            "I've shared our current pricing below - would you like me to hold a slot for you this week?",
+          body: pick(r, INBOUND_OPENERS),
           attachments: [],
-          state: pick(r, ["delivered", "read", "read", "sent"] as const),
+          state: "read",
           provider: "mock",
-          provider_message_id: `mock_out_${i}_1`,
-          author_id: assigned ?? deskFor(branch),
-          created_at: iso(replyMs),
-          sent_at: iso(replyMs),
-          delivered_at: iso(replyMs + 30_000),
-          read_at: r() < 0.7 ? iso(replyMs + 900_000) : undefined,
+          provider_message_id: `mock_in_${i}_0`,
+          created_at: iso(openerMs),
+          read_at: iso(openerMs + 600_000),
         });
 
-        if (r() < 0.35) {
-          const noteMs = replyMs + 300_000;
+        if (responded) {
+          const replyMs = openerMs + Math.floor((0.3 + r() * 6) * 3600_000);
           thread.push({
-            id: `derm_msg_${i}_2`,
+            id: `derm_msg_${i}_1`,
             clinic_id: clinicId,
             conversation_id: convId,
             direction: "outbound",
-            internal: true,
-            body: "Internal: price-sensitive, offered the two-session package. Passing to Dr. for suitability.",
+            internal: false,
+            body:
+              "Walaikum assalam! Thank you for reaching out to Dermiere. " +
+              "I have shared our pricing below - would you like me to hold a slot for you this week?",
             attachments: [],
-            state: "sent",
+            state: pick(r, ["delivered", "read", "read", "sent"] as const),
             provider: "mock",
+            provider_message_id: `mock_out_${i}_1`,
             author_id: assigned ?? deskFor(branch),
-            created_at: iso(noteMs),
-            sent_at: iso(noteMs),
+            created_at: iso(replyMs),
+            sent_at: iso(replyMs),
+            delivered_at: iso(replyMs + 30_000),
+            read_at: r() < 0.7 ? iso(replyMs + 900_000) : undefined,
           });
         }
       }
+      convCount++;
 
       const last = thread[thread.length - 1];
-      const unread = responded ? 0 : 1;
+      const unread = scriptIndex >= 0 ? 0 : responded ? 0 : 1;
       conversations.push({
         id: convId,
         clinic_id: clinicId,
         contact_id: contactId,
         channel: "whatsapp",
-        status: unread ? "open" : pick(r, ["open", "pending", "closed"] as const),
+        status: "open",
         assigned_to: assigned,
         branch_id: branch,
         last_message_at: last.created_at,
-        last_message_preview: last.internal ? "Internal note" : last.body.slice(0, 90),
+        last_message_preview: last.body.slice(0, 90),
         unread_count: unread,
         created_at: iso(startMs),
         updated_at: last.created_at,
@@ -651,42 +699,7 @@ export function buildDermiereSeed(
     });
   }
 
-  // --- message templates (mirrors the Meta approval lifecycle) -----------
-  const templates: MessageTemplate[] = [
-    {
-      id: "tpl_appointment_reminder",
-      clinic_id: clinicId,
-      name: "appointment_reminder",
-      status: "approved",
-      language: "en",
-      category: "utility",
-      body: "Hello {{1}}, this is a reminder of your appointment at Dermiere {{2}} on {{3}}. Reply STOP to opt out.",
-      variables: ["patient_name", "branch", "datetime"],
-      created_at: new Date(now - 40 * DAY).toISOString(),
-    },
-    {
-      id: "tpl_consult_followup",
-      clinic_id: clinicId,
-      name: "consultation_followup",
-      status: "approved",
-      language: "en",
-      category: "utility",
-      body: "Hi {{1}}, thank you for visiting Dermiere. Would you like us to hold a slot for your {{2}}?",
-      variables: ["patient_name", "treatment"],
-      created_at: new Date(now - 30 * DAY).toISOString(),
-    },
-    {
-      id: "tpl_feedback_request",
-      clinic_id: clinicId,
-      name: "feedback_request",
-      status: "pending",
-      language: "en",
-      category: "utility",
-      body: "Hi {{1}}, how was your visit to Dermiere {{2}}? Your feedback helps us improve: {{3}}",
-      variables: ["patient_name", "branch", "link"],
-      created_at: new Date(now - 6 * DAY).toISOString(),
-    },
-  ];
+  const templates = dermiereTemplates(clinicId, now);
 
   // -------------------------------------------------------------------
   // Worked-up clinical records

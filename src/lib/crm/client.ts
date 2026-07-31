@@ -16,7 +16,7 @@ import type {
   MessageTemplate,
 } from "./types";
 import type { CrmAnalytics } from "./analytics";
-import type { ClinicLocation, Patient } from "@/lib/types";
+import type { Appointment, ClinicLocation, Patient } from "@/lib/types";
 
 export interface StaffLite {
   id: string;
@@ -85,6 +85,8 @@ export interface ContactsResponse {
   staff: StaffLite[];
   branches: ClinicLocation[];
   treatments: string[];
+  /** Bookings, so the board can show when each person is coming in. */
+  appointments: Appointment[];
 }
 
 export const fetchContacts = () => get<ContactsResponse>("/api/crm/contacts");
