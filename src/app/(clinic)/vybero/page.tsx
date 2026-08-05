@@ -131,7 +131,7 @@ export default function VyberoAgentPage() {
       widget.setAttribute("variant", "expanded");
       widget.setAttribute(
         "avatar-image-url",
-        `${window.location.origin}/brand/dermiere-mark.png`
+        `${window.location.origin}/avatar%20dermiere.png`
       );
       widgetHost.current.replaceChildren(widget);
       setWidgetReady(true);
