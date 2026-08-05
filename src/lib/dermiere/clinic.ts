@@ -32,11 +32,11 @@ export const DERMIERE_DEMO_PASSWORD = "dermiere-dev-2026";
 export const DERMIERE_BRAND = {
   name: "Dermiére Aesthetics",
   tagline: "Skin, considered.",
-  phone: "+92 51 2298 4410",
+  phone: "0304 6571349",
   email: "hello@dermiere.pk",
   brandColor: "#8E7A66",
   city: "Islamabad",
-  hours: { open: "11:00", close: "20:00", slot_min: 30, days: [1, 2, 3, 4, 5, 6] },
+  hours: { open: "12:00", close: "20:00", slot_min: 30, days: [1, 2, 3, 4, 5, 6] },
 };
 
 /**
@@ -45,8 +45,8 @@ export const DERMIERE_BRAND = {
  *
  * Order is meaningful: the first entry is the clinic's main site and leads
  * the sign-in screen, the branch filters and anything that falls back to
- * "the default branch". F-10 in Islamabad is the main clinic; Gulberg is
- * the Lahore branch, a different city rather than a second Islamabad site.
+ * "the default branch". F-10 in Islamabad is the main clinic; Bahria Town
+ * Phase 7 is the Rawalpindi branch.
  */
 export const DERMIERE_BRANCHES: ClinicLocation[] = [
   {
@@ -54,24 +54,24 @@ export const DERMIERE_BRANCHES: ClinicLocation[] = [
     name: "Dermiére F-10",
     short: "F-10",
     kind: "experience_centre",
-    doctor: "Dr. Omar Sheikh",
+    doctor: "Dr. Anusha Liaqat",
     address: "Ahmed Faraz Road, Sector F-10/1",
     area: "F-10",
     city: "Islamabad",
-    phone: "+92 51 2298 4410",
+    phone: "0304 6571349",
     invoicePrefix: "F10",
   },
   {
-    id: "branch_gulberg",
-    name: "Dermiére Gulberg",
-    short: "Gulberg",
+    id: "branch_bahria_phase_7",
+    name: "Dermiére Bahria Town Phase 7",
+    short: "Bahria Phase 7",
     kind: "experience_centre",
-    doctor: "Dr. Sana Bukhari",
-    address: "First Floor, 71-A Main Boulevard, Gulberg II",
-    area: "Gulberg II",
-    city: "Lahore",
-    phone: "+92 42 3577 8800",
-    invoicePrefix: "GLB",
+    doctor: "Dr. Anusha Liaqat",
+    address: "Bahria Town Phase 7",
+    area: "Bahria Town Phase 7",
+    city: "Rawalpindi",
+    phone: "0323 6062601",
+    invoicePrefix: "BHR",
   },
 ];
 

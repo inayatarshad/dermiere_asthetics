@@ -306,6 +306,14 @@ export async function provisionDermiere(
   const existing = await pgGetClinicBySlug<ClinicConfig>(DERMIERE_SLUG);
   const clinicId = existing?.id ?? `clinic_${DERMIERE_SLUG}`;
   const created = !existing;
+  const storedHours = existing?.payload?.hours;
+  const hoursAreLegacySeed =
+    storedHours?.open === "11:00" &&
+    storedHours.close === "20:00" &&
+    storedHours.slot_min === 30;
+  const storedLocations = existing?.payload?.locations;
+  const locationsAreLegacySeed =
+    storedLocations?.some((location) => location.id === "branch_gulberg") ?? false;
 
   const config: ClinicConfig = {
     ...defaultConfig({
@@ -328,7 +336,9 @@ export async function provisionDermiere(
       address: `${DERMIERE_BRANCHES[0].address}, ${DERMIERE_BRANCHES[0].city}`,
       ...(existing?.payload?.branding ?? {}),
     },
-    hours: existing?.payload?.hours ?? DERMIERE_BRAND.hours,
+    // Migrate the exact old demo seed (11:00-20:00) to Dermiére's confirmed
+    // hours while preserving any genuinely customized schedule.
+    hours: hoursAreLegacySeed ? DERMIERE_BRAND.hours : storedHours ?? DERMIERE_BRAND.hours,
     menu: DERMIERE_TREATMENTS.map((t) => t.id),
     prices: Object.fromEntries(DERMIERE_TREATMENTS.map((t) => [t.id, t.price])),
     // Branches live here - configurable in Settings, not in CRM code - so a
@@ -339,8 +349,8 @@ export async function provisionDermiere(
     // branch in code (a wrong city, a renamed site) could never reach the
     // database, because the stale row always won.
     locations:
-      !reconcile && existing?.payload?.locations?.length
-        ? existing.payload.locations
+      !reconcile && storedLocations?.length && !locationsAreLegacySeed
+        ? storedLocations
         : DERMIERE_BRANCHES,
     taxRate: existing?.payload?.taxRate ?? 16,
   };

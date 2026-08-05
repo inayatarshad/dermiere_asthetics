@@ -21,7 +21,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import type { Appointment } from "@/lib/types";
+import type { Appointment, ClinicLocation } from "@/lib/types";
 import { getSession } from "@/lib/server/auth";
 import {
   agentKeyValid,
@@ -37,12 +37,19 @@ import {
   VyberoStoreError,
 } from "@/lib/server/vyberoStore";
 import { clinicLocalToISO, slotLabel } from "@/lib/server/clinicTime";
-import { CAPTURE_TREATMENTS, CAPTURE_LOCATIONS } from "@/lib/capture/kb";
+import { CAPTURE_TREATMENTS } from "@/lib/capture/kb";
+import { DERMIERE_TREATMENTS } from "@/lib/dermiere/clinic";
 
 export const maxDuration = 30;
 
 const TYPES = new Set(["consultation", "treatment", "follow_up"]);
 const STATUSES = new Set(["booked", "confirmed", "completed", "cancelled", "no_show"]);
+const DERMIERE_VOICE_ONLY_SERVICES = [
+  { id: "iv_signature", name: "Dermiére Signature IV", short: "signature iv", durationMin: 30 },
+  { id: "iv_quicky", name: "Quicky IV", short: "quicky", durationMin: 30 },
+  { id: "iv_hangover", name: "The Hangover IV", short: "hangover", durationMin: 30 },
+  { id: "iv_recovery", name: "Recovery IV", short: "recovery iv", durationMin: 30 },
+];
 
 interface FlatBooking {
   customer_name?: string;
@@ -56,7 +63,7 @@ interface FlatBooking {
 }
 
 /** Map a spoken treatment name to the catalogue (or consultation). */
-function matchTreatmentByName(name: string | undefined): {
+function matchTreatmentByName(name: string | undefined, clinicSlug?: string): {
   /** Always set - "consultation" when nothing matched, so the calendar
    *  never shows a blank treatment (the bug behind label-less bookings). */
   id: string;
@@ -69,9 +76,15 @@ function matchTreatmentByName(name: string | undefined): {
   if (!t || /consult/.test(t)) {
     return { id: "consultation", durationMin: 30, type: "consultation", label: "Consultation", matched: true };
   }
+  const catalogue = clinicSlug === "dermiere"
+    ? [
+        ...DERMIERE_TREATMENTS.map((x) => ({ ...x, short: x.name, durationMin: 30 })),
+        ...DERMIERE_VOICE_ONLY_SERVICES,
+      ]
+    : CAPTURE_TREATMENTS;
   const hit =
-    CAPTURE_TREATMENTS.find((x) => x.name.toLowerCase() === t) ??
-    CAPTURE_TREATMENTS.find(
+    catalogue.find((x) => x.name.toLowerCase() === t) ??
+    catalogue.find(
       (x) =>
         t.includes(x.short.toLowerCase()) ||
         x.name.toLowerCase().includes(t) ||
@@ -85,13 +98,21 @@ function matchTreatmentByName(name: string | undefined): {
 }
 
 /** Map a spoken location to a location id (defaults to the Experience Centre). */
-function matchLocationByName(name: string | undefined): string {
+function matchLocationByName(
+  name: string | undefined,
+  locations: ClinicLocation[] | undefined
+): string {
   const t = (name ?? "").toLowerCase();
-  if (/haroon|skin clinic|ghalib/.test(t)) return "skin-clinic-haroon";
-  if (/nazia|alta/.test(t)) return "alta-derm-nazia";
-  if (/ashba|experts|dha|broadway/.test(t)) return "experts-ashba";
-  const hit = CAPTURE_LOCATIONS.find((l) => t && l.name.toLowerCase().includes(t));
-  return hit?.id ?? "experience-centre";
+  const available = locations ?? [];
+  const hit = available.find((location) =>
+    t && [location.name, location.short, location.area, location.city]
+      .filter(Boolean)
+      .some((value) => {
+        const normalized = value!.toLowerCase();
+        return t.includes(normalized) || normalized.includes(t);
+      })
+  );
+  return hit?.id ?? available[0]?.id ?? "experience-centre";
 }
 
 export async function POST(req: NextRequest) {
@@ -118,6 +139,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "unauthorized", message: "Missing clinic context or credentials." },
       { status: 401 }
+    );
+  }
+
+  const config = await getClinicConfig(clinicId);
+  if (!config) {
+    return NextResponse.json(
+      { error: "not_configured", message: "Clinic configuration was not found." },
+      { status: 501 }
     );
   }
 
@@ -150,12 +179,12 @@ export async function POST(req: NextRequest) {
       );
     }
     startISO = iso;
-    const tr = matchTreatmentByName(flat.treatment?.toString());
+    const tr = matchTreatmentByName(flat.treatment?.toString(), config.slug);
     durationMin = tr.durationMin;
     type = tr.type;
     procedure = tr.id;
     phone = flat.phone?.toString();
-    locationId = matchLocationByName(flat.location?.toString());
+    locationId = matchLocationByName(flat.location?.toString(), config.locations);
     const extra = [
       flat.notes?.toString().trim(),
       flat.email ? `Email: ${flat.email}` : "",
@@ -183,7 +212,6 @@ export async function POST(req: NextRequest) {
     locationId = body.location_id?.toString();
   }
 
-  const config = await getClinicConfig(clinicId);
   const slotMin = config?.hours.slot_min ?? 30;
   const duration =
     typeof durationMin === "number" && durationMin >= 15
@@ -250,8 +278,8 @@ export async function POST(req: NextRequest) {
       })}`;
       return NextResponse.json({
         status: "confirmed",
-        booking_id: `CAP-${appt.id.slice(0, 8).toUpperCase()}`,
-        message: `Booked ${matchTreatmentByName(flat.treatment?.toString()).label} for ${appt.patient_name}, ${spoken}, at the ${CAPTURE_LOCATIONS.find((l) => l.id === appt.location_id)?.short ?? "Experience Centre"}.`,
+        booking_id: `${config.slug === "dermiere" ? "DER" : "CAP"}-${appt.id.slice(0, 8).toUpperCase()}`,
+        message: `Booked ${matchTreatmentByName(flat.treatment?.toString(), config.slug).label} for ${appt.patient_name}, ${spoken}, at ${config.locations?.find((l) => l.id === appt.location_id)?.name ?? config.name}.`,
         appointment: appt,
       });
     }
