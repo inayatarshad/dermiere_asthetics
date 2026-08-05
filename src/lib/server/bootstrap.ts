@@ -44,6 +44,9 @@ export interface BootstrapPayload {
     role: string;
     title?: string;
     clinic_id: string;
+    /** The site this person works at, when they work at one. Presentation
+        only: it never limits what they may open. */
+    branch_id?: string;
     /** Which product surface this login sees. */
     workspace: Workspace;
   };
@@ -100,9 +103,12 @@ export async function buildBootstrap(
     vyberoCalls,
     usage,
   ] = await Promise.all([
-    pgListUsers<{ name?: string; title?: string; workspace?: Workspace }>(
-      clinicId
-    ),
+    pgListUsers<{
+      name?: string;
+      title?: string;
+      workspace?: Workspace;
+      branch_id?: string;
+    }>(clinicId),
     pgListRecords<Patient>(clinicId, "patients"),
     pgListRecords<Consent>(clinicId, "consents"),
     pgListRecords<Asset>(clinicId, "assets"),
@@ -126,6 +132,7 @@ export async function buildBootstrap(
     role: r.role as User["role"],
     password: "",
     title: r.payload?.title,
+    branch_id: r.payload?.branch_id,
     active: r.active,
     workspace: r.payload?.workspace === "crm" ? "crm" : "clinic",
   }));
@@ -143,6 +150,7 @@ export async function buildBootstrap(
       email: me.email,
       role: me.role,
       title: me.title,
+      branch_id: me.branch_id,
       clinic_id: clinicId,
       workspace: me.workspace ?? "clinic",
     },

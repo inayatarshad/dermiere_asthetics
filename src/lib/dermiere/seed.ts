@@ -126,7 +126,7 @@ const LEAD_NOTES = [
   "Wedding in three months - asked what a full plan would look like.",
   "Comparing us with another clinic. Price-sensitive but keen.",
   "Called about a consultation slot. Works late, evenings only.",
-  "Follow-up from the F-11 launch event. Collected details at the desk.",
+  "Follow-up from the F-10 launch event. Collected details at the desk.",
 ];
 
 const INBOUND_OPENERS = [
@@ -135,7 +135,7 @@ const INBOUND_OPENERS = [
   "Hello, I saw your page. How much for laser hair reduction full legs?",
   "Salam, is Dr. Sana available next week for a consultation?",
   "Hi, I did a peel last month. Skin is a bit dry, is that normal?",
-  "Do you have a branch in Islamabad? I'm in F-11.",
+  "Do you have a branch in Lahore? I am in Gulberg.",
 ];
 
 /**
@@ -267,8 +267,9 @@ export function buildDermiereSeed(
         r() < 0.45
           ? `${name.toLowerCase().replace(/[^a-z]/g, ".")}@example.com`
           : undefined,
-      // Both branches are in Islamabad; the area is what tells them apart.
-      city: "Islamabad",
+      // The branches sit in different cities: F-10 is the Islamabad main
+      // clinic, Gulberg is Lahore. branchIds[0] is always the main branch.
+      city: branch === branchIds[0] ? "Islamabad" : "Lahore",
       gender,
       stage,
       source: pick(r, SOURCES),
@@ -853,10 +854,10 @@ export function buildDermiereSeed(
   // Reviews come last: every one belongs to a patient built above.
   const { reviews, invites: reviewInvites, rewards } = buildDermiereReviews(
     patients,
-    { gulberg: branchIds[0], f11: branchIds[1] ?? branchIds[0] },
+    { f10: branchIds[0], gulberg: branchIds[1] ?? branchIds[0] },
     {
       gulberg: "Dr. Sana Bukhari",
-      f11: "Dr. Omar Sheikh",
+      f10: "Dr. Omar Sheikh",
     },
     r,
     now

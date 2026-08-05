@@ -32,7 +32,7 @@ export const DERMIERE_DEMO_PASSWORD = "dermiere-dev-2026";
 export const DERMIERE_BRAND = {
   name: "Dermiére Aesthetics",
   tagline: "Skin, considered.",
-  phone: "+92 51 2298 4408",
+  phone: "+92 51 2298 4410",
   email: "hello@dermiere.pk",
   brandColor: "#8E7A66",
   city: "Islamabad",
@@ -40,33 +40,38 @@ export const DERMIERE_BRAND = {
 };
 
 /**
- * The two launch branches. Seeded into the clinic config, never referenced
- * by CRM logic - see the module note above.
+ * The two branches, main first. Seeded into the clinic config, never
+ * referenced by CRM logic - see the module note above.
+ *
+ * Order is meaningful: the first entry is the clinic's main site and leads
+ * the sign-in screen, the branch filters and anything that falls back to
+ * "the default branch". F-10 in Islamabad is the main clinic; Gulberg is
+ * the Lahore branch, a different city rather than a second Islamabad site.
  */
 export const DERMIERE_BRANCHES: ClinicLocation[] = [
+  {
+    id: "branch_f10",
+    name: "Dermiére F-10",
+    short: "F-10",
+    kind: "experience_centre",
+    doctor: "Dr. Omar Sheikh",
+    address: "Ahmed Faraz Road, Sector F-10/1",
+    area: "F-10",
+    city: "Islamabad",
+    phone: "+92 51 2298 4410",
+    invoicePrefix: "F10",
+  },
   {
     id: "branch_gulberg",
     name: "Dermiére Gulberg",
     short: "Gulberg",
     kind: "experience_centre",
     doctor: "Dr. Sana Bukhari",
-    address: "Gulberg Greens, Block C",
-    area: "Gulberg Greens",
-    city: "Islamabad",
-    phone: "+92 51 2298 4408",
+    address: "First Floor, 71-A Main Boulevard, Gulberg II",
+    area: "Gulberg II",
+    city: "Lahore",
+    phone: "+92 42 3577 8800",
     invoicePrefix: "GLB",
-  },
-  {
-    id: "branch_f11",
-    name: "Dermiére F-11",
-    short: "F-11",
-    kind: "experience_centre",
-    doctor: "Dr. Omar Sheikh",
-    address: "Select Centre, F-11 Markaz",
-    area: "F-11",
-    city: "Islamabad",
-    phone: "+92 51 2298 4410",
-    invoicePrefix: "F11",
   },
 ];
 
@@ -147,11 +152,11 @@ export const DERMIERE_STAFF = [
     workspace: "clinic" as const,
   },
   {
-    key: "doctor_f11",
+    key: "doctor_f10",
     name: "Dr. Omar Sheikh",
     email: "omar@dermiere.pk",
     role: "doctor" as const,
-    title: "Consultant Dermatologist · F-11",
+    title: "Consultant Dermatologist · F-10",
     workspace: "clinic" as const,
   },
   {
@@ -163,11 +168,11 @@ export const DERMIERE_STAFF = [
     workspace: "clinic" as const,
   },
   {
-    key: "frontdesk_f11",
+    key: "frontdesk_f10",
     name: "Faraz Siddiqui",
     email: "bilal@dermiere.pk",
     role: "front_desk" as const,
-    title: "Front Desk · F-11",
+    title: "Front Desk · F-10",
     workspace: "clinic" as const,
   },
 ];

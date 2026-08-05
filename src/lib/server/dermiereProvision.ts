@@ -330,10 +330,17 @@ export async function provisionDermiere(
     hours: existing?.payload?.hours ?? DERMIERE_BRAND.hours,
     menu: DERMIERE_TREATMENTS.map((t) => t.id),
     prices: Object.fromEntries(DERMIERE_TREATMENTS.map((t) => [t.id, t.price])),
-    // Branches live here - configurable in Settings, not in CRM code.
-    locations: existing?.payload?.locations?.length
-      ? existing.payload.locations
-      : DERMIERE_BRANCHES,
+    // Branches live here - configurable in Settings, not in CRM code - so a
+    // normal run never overwrites what the clinic has edited.
+    //
+    // reconcile means "the seed is the truth, make the data match it", and
+    // without this that promise stopped at the branch list: correcting a
+    // branch in code (a wrong city, a renamed site) could never reach the
+    // database, because the stale row always won.
+    locations:
+      !reconcile && existing?.payload?.locations?.length
+        ? existing.payload.locations
+        : DERMIERE_BRANCHES,
     taxRate: existing?.payload?.taxRate ?? 16,
   };
   await saveClinicConfig(config);
@@ -345,9 +352,21 @@ export async function provisionDermiere(
     name?: string;
     title?: string;
     workspace?: "clinic" | "crm";
+    branch_id?: string;
   }>(clinicId);
   const byEmail = new Map(existingUsers.map((u) => [u.email.toLowerCase(), u]));
   const idsByKey: Record<string, string> = {};
+
+  // Where each person works, for screens that open filtered to their own
+  // site. Clinic-wide accounts (founder, operations, marketing, CRM) get
+  // nothing and therefore see everything. The branch ids come from the
+  // config, so this is derived here rather than hardcoded in the staff list.
+  const seedBranches = config.locations ?? DERMIERE_BRANCHES;
+  const branchForKey = (key: string): string | undefined => {
+    if (key.endsWith("_f10")) return seedBranches[0]?.id;
+    if (key.endsWith("_gulberg")) return seedBranches[1]?.id;
+    return undefined;
+  };
 
   for (const s of DERMIERE_STAFF) {
     const found = byEmail.get(s.email.toLowerCase());
@@ -363,7 +382,12 @@ export async function provisionDermiere(
         s.role,
         found.password_hash,
         found.active,
-        { name: s.name, title: s.title, workspace: s.workspace }
+        {
+          name: s.name,
+          title: s.title,
+          workspace: s.workspace,
+          branch_id: branchForKey(s.key),
+        }
       );
       continue;
     }
@@ -379,6 +403,7 @@ export async function provisionDermiere(
       name: s.name,
       title: s.title,
       workspace: s.workspace,
+      branch_id: branchForKey(s.key),
     });
   }
 
@@ -387,20 +412,20 @@ export async function provisionDermiere(
   let removed: Record<string, number> | undefined;
 
   if (withSeed) {
-    const gulberg = branches[0]?.id ?? "branch_gulberg";
-    const f11 = branches[1]?.id ?? gulberg;
+    const f10 = branches[0]?.id ?? "branch_f10";
+    const gulberg = branches[1]?.id ?? f10;
 
     const seed = buildDermiereSeed(clinicId, branches, {
       ownerId: idsByKey.owner,
       doctorByBranch: {
         [gulberg]: idsByKey.doctor_gulberg,
-        [f11]: idsByKey.doctor_f11,
+        [f10]: idsByKey.doctor_f10,
       },
       frontDeskByBranch: {
         [gulberg]: idsByKey.frontdesk_gulberg,
-        [f11]: idsByKey.frontdesk_f11,
+        [f10]: idsByKey.frontdesk_f10,
       },
-      allFrontDesk: [idsByKey.frontdesk_gulberg, idsByKey.frontdesk_f11],
+      allFrontDesk: [idsByKey.frontdesk_f10, idsByKey.frontdesk_gulberg],
     });
 
     for (const p of seed.patients) {

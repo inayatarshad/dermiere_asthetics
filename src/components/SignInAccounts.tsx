@@ -77,32 +77,12 @@ const HEAD_OFFICE: AccountCard[] = [
   },
 ];
 
+/** Main clinic first, matching DERMIERE_BRANCHES. */
 const BRANCHES: BranchGroup[] = [
   {
-    id: "gulberg",
-    label: "Gulberg Clinic",
-    sub: "Main branch, Gulberg Greens",
-    accounts: [
-      {
-        email: "hina@dermiere.pk",
-        label: "Dermatologist",
-        name: "Dr. Sana Bukhari",
-        desc: "Consultations, patient timelines, treatment plans",
-        icon: Stethoscope,
-      },
-      {
-        email: "ayesha@dermiere.pk",
-        label: "Front Desk",
-        name: "Nimra Sajid",
-        desc: "Check-in, appointments, point of sale, review links",
-        icon: ClipboardList,
-      },
-    ],
-  },
-  {
-    id: "f11",
-    label: "F-11 Clinic",
-    sub: "Second branch, F-11 Markaz",
+    id: "f10",
+    label: "F-10 Clinic",
+    sub: "Main clinic, Sector F-10/1, Islamabad",
     accounts: [
       {
         email: "omar@dermiere.pk",
@@ -115,6 +95,27 @@ const BRANCHES: BranchGroup[] = [
         email: "bilal@dermiere.pk",
         label: "Front Desk",
         name: "Faraz Siddiqui",
+        desc: "Check-in, appointments, point of sale, review links",
+        icon: ClipboardList,
+      },
+    ],
+  },
+  {
+    id: "gulberg",
+    label: "Gulberg Clinic",
+    sub: "Lahore branch, Gulberg II",
+    accounts: [
+      {
+        email: "hina@dermiere.pk",
+        label: "Dermatologist",
+        name: "Dr. Sana Bukhari",
+        desc: "Consultations, patient timelines, treatment plans",
+        icon: Stethoscope,
+      },
+      {
+        email: "ayesha@dermiere.pk",
+        label: "Front Desk",
+        name: "Nimra Sajid",
         desc: "Check-in, appointments, point of sale, review links",
         icon: ClipboardList,
       },

@@ -10,8 +10,9 @@ import {
   Megaphone,
   ArrowDownAZ,
   Clock,
+  Building2,
 } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore, useSessionUser } from "@/lib/store";
 import { relativeDay, SOURCE_LABELS } from "@/lib/format";
 import { getTemplate } from "@/lib/templates";
 import { GlassCard, EmptyState, StatusChip, Chip } from "@/components/ui";
@@ -33,12 +34,52 @@ export default function PatientsPage() {
   const consultations = useStore((s) => s.consultations);
   const consents = useStore((s) => s.consents);
   const newArrivals = useStore((s) => s.newArrivals);
+  const appointments = useStore((s) => s.appointments);
+  const invoices = useStore((s) => s.invoices);
+  const locations = useStore((s) => s.locations);
+  const me = useSessionUser();
 
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<PatientSource | "all">("all");
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [onlyMarketing, setOnlyMarketing] = useState(false);
   const [sort, setSort] = useState<SortKey>("newest");
+  /**
+   * Which site's patients to show. Opens on the viewer's own branch so a
+   * clinician sees their own list first, with "All branches" one click
+   * away: this is a lens, not a permission. A patient belongs to the
+   * clinic, and anyone here can open anyone.
+   */
+  const [branch, setBranch] = useState<string>(() => me?.branch_id ?? "all");
+
+  /**
+   * A patient's home branch, derived from where they actually go.
+   *
+   * Deliberately not stored on the patient. A stored branch would be a
+   * second source of truth that can disagree with their bookings, and then
+   * it needs reconciling; derived, it just follows them when they start
+   * attending the other site. Most recent activity wins.
+   *
+   * Appointments first, then invoices: someone can be billed at a site they
+   * walked into without a booking. A patient with neither has no branch and
+   * shows under every one rather than none - a filter that silently loses
+   * people is worse than one that is generous.
+   */
+  const branchOf = useMemo(() => {
+    const latest = new Map<string, string>();
+    const at = new Map<string, string>();
+    const note = (pid: string | undefined, when: string, where?: string) => {
+      if (!pid || !where) return;
+      const seen = at.get(pid);
+      if (!seen || when > seen) {
+        at.set(pid, when);
+        latest.set(pid, where);
+      }
+    };
+    for (const a of appointments) note(a.patient_id, a.start, a.location_id);
+    for (const inv of invoices) note(inv.patient_id, inv.created_at, inv.location_id);
+    return latest;
+  }, [appointments, invoices]);
 
   // attribute lookups, derived once per data change (stable selectors above)
   const openConsultIds = useMemo(
@@ -66,6 +107,11 @@ export default function PatientsPage() {
     const q = query.trim().toLowerCase();
     const digits = q.replace(/\D/g, "");
     const list = patients.filter((p) => {
+      if (branch !== "all") {
+        // No known branch means "not yet placed", not "belongs elsewhere".
+        const home = branchOf.get(p.id);
+        if (home && home !== branch) return false;
+      }
       if (source !== "all" && p.source !== source) return false;
       if (onlyOpen && !openConsultIds.has(p.id)) return false;
       if (onlyMarketing && !marketingIds.has(p.id)) return false;
@@ -82,10 +128,10 @@ export default function PatientsPage() {
         ? a.name.localeCompare(b.name)
         : b.created_at.localeCompare(a.created_at)
     );
-  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds]);
+  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds, branch, branchOf]);
 
   const filtersActive =
-    source !== "all" || onlyOpen || onlyMarketing || !!query.trim();
+    source !== "all" || onlyOpen || onlyMarketing || !!query.trim() || branch !== "all";
 
   return (
     <div className="space-y-5">
@@ -143,6 +189,26 @@ export default function PatientsPage() {
 
       {/* filter chips */}
       <div className="fade-up-1 flex flex-wrap items-center gap-1.5">
+        {/* Branch leads: it is the widest cut, and for a clinician it is
+            the one already applied when the screen opens. Only shown when
+            there is more than one site to choose between. */}
+        {locations.length > 1 && (
+          <>
+            <Chip active={branch === "all"} onClick={() => setBranch("all")}>
+              <Building2 size={12} /> All branches
+            </Chip>
+            {locations.map((l) => (
+              <Chip
+                key={l.id}
+                active={branch === l.id}
+                onClick={() => setBranch(branch === l.id ? "all" : l.id)}
+              >
+                {l.short ?? l.name}
+              </Chip>
+            ))}
+            <span className="w-px h-5 bg-[rgba(28,26,22,0.12)] mx-1.5 hidden sm:inline-block" />
+          </>
+        )}
         <Chip active={source === "all"} onClick={() => setSource("all")}>
           All sources
         </Chip>

@@ -94,6 +94,18 @@ export interface User {
   /** Demo build: plain credential check against seeded users. Replace with real auth for production. */
   password: string;
   title?: string; // e.g. "Consultant Plastic Surgeon"
+  /**
+   * The site this person works at, when they work at one.
+   *
+   * Presentation only: it decides which branch a screen opens filtered to,
+   * never what they are permitted to see. The security boundary is
+   * clinic_id, and it stays that way - a patient belongs to the clinic, not
+   * to a building, and hiding half a history from the clinician treating
+   * someone today would be worse than showing too much.
+   *
+   * Absent for clinic-wide accounts (founder, operations, marketing, CRM).
+   */
+  branch_id?: string;
   active: boolean;
   /** Defaults to "clinic" when absent. */
   workspace?: Workspace;

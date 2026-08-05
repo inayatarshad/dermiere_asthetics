@@ -147,8 +147,8 @@ export interface SeededReviews {
  */
 export function buildDermiereReviews(
   patients: Patient[],
-  branchIds: { gulberg: string; f11: string },
-  doctorNames: { gulberg: string; f11: string },
+  branchIds: { gulberg: string; f10: string },
+  doctorNames: { gulberg: string; f10: string },
   r: () => number,
   now: number
 ): SeededReviews {
@@ -173,9 +173,9 @@ export function buildDermiereReviews(
     // Both branches are in Islamabad, so the city no longer tells them
     // apart. Alternating keeps each branch's rating built from its own
     // reviews rather than piling every one onto a single site.
-    const atF11 = i % 2 === 1;
-    const locationId = atF11 ? branchIds.f11 : branchIds.gulberg;
-    const staffName = atF11 ? doctorNames.f11 : doctorNames.gulberg;
+    const atF10 = i % 2 === 0;
+    const locationId = atF10 ? branchIds.f10 : branchIds.gulberg;
+    const staffName = atF10 ? doctorNames.f10 : doctorNames.gulberg;
 
     const when = new Date(now - script.daysAgo * 86400000);
     when.setHours(18 + Math.floor(r() * 3), Math.floor(r() * 60), 0, 0);
@@ -247,7 +247,7 @@ export function buildDermiereReviews(
       token: token(),
       patient_id: patient.id,
       patient_name: patient.name,
-      location_id: i % 2 === 1 ? branchIds.f11 : branchIds.gulberg,
+      location_id: i % 2 === 0 ? branchIds.f10 : branchIds.gulberg,
       treatments: ["consult"],
       status: i < 2 ? "OPENED" : "PENDING",
       created_at: sent.toISOString(),
