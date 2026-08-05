@@ -75,7 +75,7 @@ export function BrandSplash() {
         <span className="brand-splash-mark">
           {/* Set as text, not an image: the clinic wordmark matches the Logo
               lockup exactly and stays sharp at any size. */}
-          <span className="brand-splash-word">Dermiere</span>
+          <span className="brand-splash-word">Dermiére</span>
           <span className="brand-splash-shine" />
         </span>
         <span className="brand-splash-tag">Clinic&nbsp;OS</span>

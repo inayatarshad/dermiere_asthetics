@@ -36,6 +36,7 @@ import {
   listFeedback,
   listFollowUps,
   listMessages,
+  listTemplates,
   saveContact,
   saveConversation,
   saveFeedback,
@@ -82,6 +83,12 @@ async function reconcileSeedRows(
     conversations: { id: string }[];
     messages: { id: string }[];
     feedback: { id: string }[];
+    assets: { id: string }[];
+    consultations: { id: string }[];
+    plans: { id: string }[];
+    planItems: { id: string }[];
+    reports: { id: string }[];
+    templates: { id: string }[];
   }
 ): Promise<Record<string, number>> {
   const removed: Record<string, number> = {};
@@ -114,6 +121,41 @@ async function reconcileSeedRows(
   );
   await prune("appointments", seed.appointments, appointments, (id) =>
     pgDeleteAppointment(clinicId, id)
+  );
+
+  // The clinical record was never swept, so a portrait or a consultation
+  // from an earlier run outlived the patient it was built for and stayed
+  // attached to whoever now held that id: a man's record wearing a woman's
+  // photograph. Reports first, then plan items, plans, consultations and
+  // finally the assets they all hang off, so nothing is left pointing at a
+  // row that has already gone.
+  const [cAssets, cConsults, cPlans, cPlanItems, cReports] = await Promise.all([
+    pgListRecords<{ id: string }>(clinicId, "assets"),
+    pgListRecords<{ id: string }>(clinicId, "consultations"),
+    pgListRecords<{ id: string }>(clinicId, "plans"),
+    pgListRecords<{ id: string }>(clinicId, "plan_items"),
+    pgListRecords<{ id: string }>(clinicId, "reports"),
+  ]);
+  await prune("reports", seed.reports, cReports, (id) =>
+    pgDeleteRecord(clinicId, "reports", id)
+  );
+  await prune("planItems", seed.planItems, cPlanItems, (id) =>
+    pgDeleteRecord(clinicId, "plan_items", id)
+  );
+  await prune("plans", seed.plans, cPlans, (id) =>
+    pgDeleteRecord(clinicId, "plans", id)
+  );
+  await prune("consultations", seed.consultations, cConsults, (id) =>
+    pgDeleteRecord(clinicId, "consultations", id)
+  );
+  await prune("assets", seed.assets, cAssets, (id) =>
+    pgDeleteRecord(clinicId, "assets", id)
+  );
+
+  // A renamed template leaves its old row behind, and the Templates screen
+  // then shows an automation that nothing fires any more.
+  await prune("templates", seed.templates, await listTemplates(clinicId), (id) =>
+    deleteCrmRow(clinicId, "crm_templates", id)
   );
 
   const [followUps, conversations, feedback, contacts] = await Promise.all([
@@ -231,7 +273,11 @@ export interface DermiereProvisionResult {
  * told apart from anything a user created. Reconciliation (below) only ever
  * considers rows matching these prefixes.
  */
-const SEED_ID_PREFIXES = ["derm_", "act_"];
+// Every id this generator writes carries one of these. "tpl_" belongs here
+// too: the four templates are generated, so a renamed one left its old row
+// behind and the Templates screen kept listing an automation that nothing
+// fires any more.
+const SEED_ID_PREFIXES = ["derm_", "act_", "tpl_"];
 
 function isSeedRow(id: string): boolean {
   return SEED_ID_PREFIXES.some((p) => id.startsWith(p));

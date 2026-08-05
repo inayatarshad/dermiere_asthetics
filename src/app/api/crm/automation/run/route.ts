@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const ctx = await requireCrm(req, "manage_followups");
     const config = await getClinicConfig(ctx.clinicId);
     const result = await runDueAutomations(ctx.clinicId, {
-      clinicName: config?.name ?? "Dermiere",
+      clinicName: config?.name ?? "Dermiére",
       actorId: ctx.userId,
       // Review links must be openable from the patients phone, so they
       // carry the origin this request arrived on.

@@ -7,7 +7,7 @@
  *
  * Every review here belongs to a real seeded patient, at a real branch, for
  * a treatment that is actually on the Dermiere menu, and is written in the
- * voice a patient in Lahore or Islamabad would use. A five-star review
+ * voice a patient in Islamabad would use. A five-star review
  * issues a discount code, exactly as the live flow does.
  */
 
@@ -142,8 +142,8 @@ export interface SeededReviews {
  * Build the review history.
  *
  * Patients are assigned round-robin so every review belongs to a real
- * person on file, and the branch follows the patient's own city so a Lahore
- * patient never reviews the Islamabad clinic.
+ * person on file, and the two branches alternate so each builds a rating
+ * out of its own reviews.
  */
 export function buildDermiereReviews(
   patients: Patient[],
@@ -170,9 +170,12 @@ export function buildDermiereReviews(
 
   SCRIPTS.forEach((script, i) => {
     const patient = patients[i % patients.length];
-    const inIslamabad = (patient.city ?? "").toLowerCase().includes("islamabad");
-    const locationId = inIslamabad ? branchIds.f11 : branchIds.gulberg;
-    const staffName = inIslamabad ? doctorNames.f11 : doctorNames.gulberg;
+    // Both branches are in Islamabad, so the city no longer tells them
+    // apart. Alternating keeps each branch's rating built from its own
+    // reviews rather than piling every one onto a single site.
+    const atF11 = i % 2 === 1;
+    const locationId = atF11 ? branchIds.f11 : branchIds.gulberg;
+    const staffName = atF11 ? doctorNames.f11 : doctorNames.gulberg;
 
     const when = new Date(now - script.daysAgo * 86400000);
     when.setHours(18 + Math.floor(r() * 3), Math.floor(r() * 60), 0, 0);
@@ -238,14 +241,13 @@ export function buildDermiereReviews(
   // on the dashboard shows a real drop-off rather than a perfect 100%.
   for (let i = 0; i < 4; i++) {
     const patient = patients[(SCRIPTS.length + i) % patients.length];
-    const inIslamabad = (patient.city ?? "").toLowerCase().includes("islamabad");
     const sent = new Date(now - (1 + i * 2) * 86400000);
     invites.push({
       id: `derm_invite_open_${i}`,
       token: token(),
       patient_id: patient.id,
       patient_name: patient.name,
-      location_id: inIslamabad ? branchIds.f11 : branchIds.gulberg,
+      location_id: i % 2 === 1 ? branchIds.f11 : branchIds.gulberg,
       treatments: ["consult"],
       status: i < 2 ? "OPENED" : "PENDING",
       created_at: sent.toISOString(),

@@ -89,7 +89,7 @@ export async function handleInboundForBooking(
 ): Promise<ChatBookingOutcome> {
   const now = opts.now ?? new Date();
   const config = await getClinicConfig(clinicId);
-  const clinicName = config?.name ?? "Dermiere";
+  const clinicName = config?.name ?? "Dermiére";
   const hours = config?.hours;
 
   const reply = (text: string) =>

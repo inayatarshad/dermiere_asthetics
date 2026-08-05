@@ -133,7 +133,7 @@ const INBOUND_OPENERS = [
   "Assalam o alaikum, I wanted to ask about hydrafacial pricing please",
   "Hi! Do you have any appointment available this Saturday?",
   "Hello, I saw your page. How much for laser hair reduction full legs?",
-  "Salam, is Dr. Hina available next week for a consultation?",
+  "Salam, is Dr. Sana available next week for a consultation?",
   "Hi, I did a peel last month. Skin is a bit dry, is that normal?",
   "Do you have a branch in Islamabad? I'm in F-11.",
 ];
@@ -267,7 +267,8 @@ export function buildDermiereSeed(
         r() < 0.45
           ? `${name.toLowerCase().replace(/[^a-z]/g, ".")}@example.com`
           : undefined,
-      city: branch === branchIds[0] ? "Lahore" : "Islamabad",
+      // Both branches are in Islamabad; the area is what tells them apart.
+      city: "Islamabad",
       gender,
       stage,
       source: pick(r, SOURCES),
@@ -303,7 +304,7 @@ export function buildDermiereSeed(
         phone,
         email: contact.email,
         gender,
-        city: contact.city ?? "Lahore",
+        city: contact.city ?? "Islamabad",
         language: r() < 0.5 ? "urdu" : "english",
         source: contact.source === "walk_in" ? "walk_in" : "social",
         clinical_flags: {},
@@ -854,7 +855,7 @@ export function buildDermiereSeed(
     patients,
     { gulberg: branchIds[0], f11: branchIds[1] ?? branchIds[0] },
     {
-      gulberg: "Dr. Hina Raza",
+      gulberg: "Dr. Sana Bukhari",
       f11: "Dr. Omar Sheikh",
     },
     r,

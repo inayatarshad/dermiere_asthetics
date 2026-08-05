@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -13,6 +13,7 @@ import {
   Check,
   ExternalLink,
   ShoppingBag,
+  MessageSquare,
   MessageSquareHeart,
   AudioLines,
   Settings,
@@ -90,6 +91,29 @@ export function TopNav() {
   // floor across both branches, so it keeps the till and the settings.
   const isOperations = /operations/i.test(user?.title ?? "");
 
+  // null until asked, so the chip never flashes "not connected" on a
+  // workspace that turns out to have a live provider.
+  const [waLive, setWaLive] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!isCrmWorkspace) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/crm/messaging/status", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const d = (await res.json()) as { provider?: { live?: boolean } };
+        if (!cancelled) setWaLive(d.provider?.live ?? false);
+      } catch {
+        // A nav chip is not worth surfacing an error for; stay silent.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isCrmWorkspace]);
+
   const links = isCrmWorkspace
     ? CRM_NAV.filter((item) => crmCan(user?.role, item.capability)).map(
         ({ href, label, icon }) => ({ href, label, icon })
@@ -160,6 +184,19 @@ export function TopNav() {
         </nav>
 
         <div className="flex-1" />
+
+        {/* The CRM sends through a messaging provider, and every screen in
+            it depends on whether one is connected. Saying so once in the
+            bar means no screen has to explain it again. */}
+        {isCrmWorkspace && waLive === false && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/70 px-3 py-1.5 text-xs font-medium text-ink-700"
+            title="Messages are recorded in the conversation, not delivered, until a WhatsApp Business account is connected."
+          >
+            <MessageSquare size={13} className="shrink-0" />
+            <span className="hidden sm:inline">WhatsApp not connected</span>
+          </span>
+        )}
 
         {/* Booth link: poll the booth inbox for phone-registered patients.
             Clinic-floor tooling - not part of the CRM workspace. */}

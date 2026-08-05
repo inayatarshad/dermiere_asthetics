@@ -30,12 +30,12 @@ export const DERMIERE_SLUG = "dermiere";
 export const DERMIERE_DEMO_PASSWORD = "dermiere-dev-2026";
 
 export const DERMIERE_BRAND = {
-  name: "Dermiere Aesthetics",
+  name: "Dermiére Aesthetics",
   tagline: "Skin, considered.",
-  phone: "+92 42 3577 8800",
+  phone: "+92 51 2298 4408",
   email: "hello@dermiere.pk",
   brandColor: "#8E7A66",
-  city: "Lahore",
+  city: "Islamabad",
   hours: { open: "11:00", close: "20:00", slot_min: 30, days: [1, 2, 3, 4, 5, 6] },
 };
 
@@ -46,19 +46,19 @@ export const DERMIERE_BRAND = {
 export const DERMIERE_BRANCHES: ClinicLocation[] = [
   {
     id: "branch_gulberg",
-    name: "Dermiere Gulberg",
+    name: "Dermiére Gulberg",
     short: "Gulberg",
     kind: "experience_centre",
-    doctor: "Dr. Hina Raza",
-    address: "12-C, MM Alam Road, Gulberg III",
-    area: "Gulberg",
-    city: "Lahore",
-    phone: "+92 42 3577 8800",
+    doctor: "Dr. Sana Bukhari",
+    address: "Gulberg Greens, Block C",
+    area: "Gulberg Greens",
+    city: "Islamabad",
+    phone: "+92 51 2298 4408",
     invoicePrefix: "GLB",
   },
   {
     id: "branch_f11",
-    name: "Dermiere F-11",
+    name: "Dermiére F-11",
     short: "F-11",
     kind: "experience_centre",
     doctor: "Dr. Omar Sheikh",
@@ -105,7 +105,7 @@ export const DERMIERE_STAFF = [
   },
   {
     key: "marketing",
-    name: "Rameez Hasan",
+    name: "Saad Kamal",
     email: "rameez@dermiere.pk",
     role: "admin" as const,
     title: "Marketing Lead",
@@ -124,7 +124,7 @@ export const DERMIERE_STAFF = [
   // own permission table, not the clinic role, decides what they can do.
   {
     key: "crm",
-    name: "Zoya Rehman",
+    name: "Mehreen Alvi",
     email: "crm@dermiere.pk",
     role: "admin" as const,
     title: "CRM Manager",
@@ -132,7 +132,7 @@ export const DERMIERE_STAFF = [
   },
   {
     key: "crm_agent",
-    name: "Bilal Nasir",
+    name: "Taimoor Abbas",
     email: "crm.agent@dermiere.pk",
     role: "admin" as const,
     title: "CRM Agent",
@@ -140,7 +140,7 @@ export const DERMIERE_STAFF = [
   },
   {
     key: "doctor_gulberg",
-    name: "Dr. Hina Raza",
+    name: "Dr. Sana Bukhari",
     email: "hina@dermiere.pk",
     role: "doctor" as const,
     title: "Consultant Dermatologist · Gulberg",
@@ -156,7 +156,7 @@ export const DERMIERE_STAFF = [
   },
   {
     key: "frontdesk_gulberg",
-    name: "Ayesha Tariq",
+    name: "Nimra Sajid",
     email: "ayesha@dermiere.pk",
     role: "front_desk" as const,
     title: "Front Desk · Gulberg",
@@ -164,7 +164,7 @@ export const DERMIERE_STAFF = [
   },
   {
     key: "frontdesk_f11",
-    name: "Bilal Khan",
+    name: "Faraz Siddiqui",
     email: "bilal@dermiere.pk",
     role: "front_desk" as const,
     title: "Front Desk · F-11",

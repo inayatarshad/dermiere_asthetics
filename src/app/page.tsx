@@ -35,7 +35,6 @@ function LoginInner() {
   };
 
   const passwordRef = useRef<HTMLInputElement>(null);
-  const submitRef = useRef<HTMLButtonElement>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -89,18 +88,22 @@ function LoginInner() {
   };
 
   /**
-   * Fill in a seeded account and arm the form so a single Enter signs in.
+   * Pick a seeded account and go straight in.
    *
-   * Both fields are filled - this is the demonstration clinic, whose shared
-   * password is not a secret (see DERMIERE_DEMO_PASSWORD). Focus lands on
-   * the submit button rather than an input, so Enter or Space completes the
-   * sign-in without anything further to type.
+   * Choosing a person IS the decision, so there is nothing to confirm: the
+   * click signs in rather than arming the form and waiting for Enter. The
+   * fields are still filled so the form shows who is being signed in while
+   * the request is in flight.
+   *
+   * This is the demonstration clinic, whose shared password is not a secret
+   * (see DERMIERE_DEMO_PASSWORD); a live deployment has no such list.
    */
   const quick = (qEmail: string) => {
+    if (busy) return;
     setError(null);
     setEmail(qEmail);
     setPassword(DERMIERE_DEMO_PASSWORD);
-    submitRef.current?.focus();
+    void doLogin(qEmail, DERMIERE_DEMO_PASSWORD);
   };
 
   if (!mounted || checking) {
@@ -148,7 +151,7 @@ function LoginInner() {
         {/* Sign-in panel */}
         <div className="glass-strong p-8 sm:p-10 fade-up-1">
           <h2 className="h1 text-ink-900">Sign in</h2>
-          <p className="caption mt-1">Sign in to the Dermiere workspace.</p>
+          <p className="caption mt-1">Sign in to the Dermiére workspace.</p>
 
           {locked && (
             <div className="mt-4 flex items-center gap-2 rounded-xl bg-mint-100 px-4 py-3 text-sm text-ink-700">
@@ -185,7 +188,6 @@ function LoginInner() {
             {error && <p className="text-sm text-danger">{error}</p>}
             <button
               type="submit"
-              ref={submitRef}
               disabled={busy}
               className="btn btn-primary w-full btn-lg"
             >

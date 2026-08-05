@@ -319,7 +319,7 @@ export function Logo({
       <span
         className={`${word} font-light uppercase tracking-[0.24em] text-ink-900 whitespace-nowrap`}
       >
-        Dermiere
+        Dermiére
       </span>
       <span
         className={`${tag} font-medium uppercase tracking-[0.3em] text-[color:var(--mint-500)]`}

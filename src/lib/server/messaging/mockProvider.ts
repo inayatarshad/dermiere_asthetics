@@ -51,14 +51,14 @@ export const mockProvider: MessagingProvider = {
         language: "en",
         status: "approved",
         category: "utility",
-        body: "Hello {{1}}, this is a reminder of your appointment at Dermiere {{2}} on {{3}}.",
+        body: "Hello {{1}}, this is a reminder of your appointment at Dermiére {{2}} on {{3}}.",
       },
       {
         name: "consultation_followup",
         language: "en",
         status: "approved",
         category: "utility",
-        body: "Hi {{1}}, thank you for visiting Dermiere. Would you like us to hold a slot for your {{2}}?",
+        body: "Hi {{1}}, thank you for visiting Dermiére. Would you like us to hold a slot for your {{2}}?",
       },
     ];
   },

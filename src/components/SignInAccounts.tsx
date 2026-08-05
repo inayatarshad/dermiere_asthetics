@@ -42,15 +42,25 @@ interface BranchGroup {
   accounts: AccountCard[];
 }
 
-/** Accounts that are not tied to one branch. */
-const CLINIC_WIDE: AccountCard[] = [
-  {
-    email: "anusha@dermiere.pk",
-    label: "Founder & Director",
-    name: "Dr. Anusha Liaqat",
-    desc: "Full Clinic OS: patients, calendar, reviews and analytics",
-    icon: ShieldCheck,
-  },
+/**
+ * The founder sits above everything: hers is the account most people
+ * opening this want, so it is the first thing on the screen.
+ */
+const FOUNDER: AccountCard = {
+  email: "anusha@dermiere.pk",
+  label: "Founder & Director",
+  name: "Dr. Anusha Liaqat",
+  desc: "Full Clinic OS: patients, calendar, reviews and analytics",
+  icon: ShieldCheck,
+};
+
+/**
+ * Head-office accounts, listed after the branches.
+ *
+ * They support the clinics rather than run them, so they read better below
+ * the two places where the work actually happens.
+ */
+const HEAD_OFFICE: AccountCard[] = [
   {
     email: "shahrukh@dermiere.pk",
     label: "Operations",
@@ -61,7 +71,7 @@ const CLINIC_WIDE: AccountCard[] = [
   {
     email: "rameez@dermiere.pk",
     label: "Marketing",
-    name: "Rameez Hasan",
+    name: "Saad Kamal",
     desc: "Review scores, VYBERO call insights, campaign performance",
     icon: Megaphone,
   },
@@ -71,19 +81,19 @@ const BRANCHES: BranchGroup[] = [
   {
     id: "gulberg",
     label: "Gulberg Clinic",
-    sub: "Main branch, Lahore",
+    sub: "Main branch, Gulberg Greens",
     accounts: [
       {
         email: "hina@dermiere.pk",
         label: "Dermatologist",
-        name: "Dr. Hina Raza",
+        name: "Dr. Sana Bukhari",
         desc: "Consultations, patient timelines, treatment plans",
         icon: Stethoscope,
       },
       {
         email: "ayesha@dermiere.pk",
         label: "Front Desk",
-        name: "Ayesha Tariq",
+        name: "Nimra Sajid",
         desc: "Check-in, appointments, point of sale, review links",
         icon: ClipboardList,
       },
@@ -92,7 +102,7 @@ const BRANCHES: BranchGroup[] = [
   {
     id: "f11",
     label: "F-11 Clinic",
-    sub: "Islamabad branch",
+    sub: "Second branch, F-11 Markaz",
     accounts: [
       {
         email: "omar@dermiere.pk",
@@ -104,7 +114,7 @@ const BRANCHES: BranchGroup[] = [
       {
         email: "bilal@dermiere.pk",
         label: "Front Desk",
-        name: "Bilal Khan",
+        name: "Faraz Siddiqui",
         desc: "Check-in, appointments, point of sale, review links",
         icon: ClipboardList,
       },
@@ -116,14 +126,14 @@ export const CRM_ACCOUNTS: AccountCard[] = [
   {
     email: "crm@dermiere.pk",
     label: "CRM Manager",
-    name: "Zoya Rehman",
+    name: "Mehreen Alvi",
     desc: "Owns the pipeline: every consultation booked, confirmed, visited, rebooked",
     icon: KanbanSquare,
   },
   {
     email: "crm.agent@dermiere.pk",
     label: "CRM Agent",
-    name: "Bilal Nasir",
+    name: "Taimoor Abbas",
     desc: "Works the WhatsApp inbox, chases confirmations and next sessions",
     icon: Headset,
   },
@@ -175,13 +185,11 @@ export function ClinicAccounts({
   return (
     <div className="mt-7">
       <div className="caption mb-2.5">
-        The Dermiere team. Pick a person, then press Enter to sign in.
+        The Dermiére team. Pick a person to sign in.
       </div>
 
       <div className="space-y-2">
-        {CLINIC_WIDE.map((a) => (
-          <AccountRow key={a.email} account={a} disabled={busy} onPick={onPick} />
-        ))}
+        <AccountRow account={FOUNDER} disabled={busy} onPick={onPick} />
 
         {BRANCHES.map((b) => {
           const open = openBranch === b.id;
@@ -226,6 +234,10 @@ export function ClinicAccounts({
             </div>
           );
         })}
+
+        {HEAD_OFFICE.map((a) => (
+          <AccountRow key={a.email} account={a} disabled={busy} onPick={onPick} />
+        ))}
       </div>
 
       <button

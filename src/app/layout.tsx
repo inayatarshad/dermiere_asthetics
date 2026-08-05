@@ -21,14 +21,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.PUBLIC_BASE_URL || "https://dermiere.vercel.app"
   ),
-  title: "Dermiere · Clinic OS",
+  title: "Dermiére · Clinic OS",
   description:
-    "Dermiere Clinic OS - patients, calendar, point of sale, reviews, and a CRM for leads, follow-ups, shared conversations and feedback. Gulberg and F-11.",
+    "Dermiére Clinic OS - patients, calendar, point of sale, reviews, and a CRM for leads, follow-ups, shared conversations and feedback. Gulberg and F-11.",
   openGraph: {
-    title: "Dermiere · Clinic OS",
+    title: "Dermiére · Clinic OS",
     description:
       "Skin, considered. Patients, bookings and point of sale, with a CRM for leads, follow-ups, conversations and feedback.",
-    siteName: "Dermiere",
+    siteName: "Dermiére",
     type: "website",
     images: [
       {
@@ -37,13 +37,13 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         type: "image/jpeg",
-        alt: "Dermiere - skin, considered.",
+        alt: "Dermiére - skin, considered.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dermiere · Clinic OS",
+    title: "Dermiére · Clinic OS",
     description: "Skin, considered.",
     images: ["/og-card.jpg"],
   },

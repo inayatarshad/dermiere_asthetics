@@ -318,11 +318,18 @@ export default function InboxPage() {
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     placeholder={
-                      canSend ? "Type a reply…" : "Your role cannot message patients"
+                      canSend
+                        ? provider?.live
+                          ? "Write a reply…"
+                          : "Write a reply (logged until WhatsApp is connected)…"
+                        : "Your role cannot message patients"
                     }
                     disabled={!canSend}
+                    // Enter sends, Shift+Enter breaks the line. This is a
+                    // chat box, and every messaging app the clinic already
+                    // uses behaves this way.
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         void send();
                       }
@@ -336,6 +343,11 @@ export default function InboxPage() {
                     {sending ? <Spinner className="w-4 h-4" /> : <Send size={15} />}
                   </button>
                 </div>
+                {canSend && (
+                  <p className="text-[11px] text-ink-400">
+                    Enter sends · Shift+Enter for a new line
+                  </p>
+                )}
                 {sendError && <p className="text-xs text-rose-700">{sendError}</p>}
               </div>
             </>

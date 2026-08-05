@@ -172,7 +172,7 @@ export async function runDueAutomations(
     baseUrl?: string;
   } = {}
 ): Promise<AutomationRun> {
-  const clinicName = opts.clinicName ?? "Dermiere";
+  const clinicName = opts.clinicName ?? "Dermiére";
   const now = opts.now ?? Date.now();
   const run: AutomationRun = { sent: 0, needsPerson: 0, skipped: 0, errors: [] };
 
