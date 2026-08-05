@@ -111,7 +111,7 @@ export const DERMIERE_STAFF = [
   {
     key: "marketing",
     name: "Saad Kamal",
-    email: "rameez@dermiere.pk",
+    email: "saad@dermiere.pk",
     role: "admin" as const,
     title: "Marketing Lead",
     workspace: "clinic" as const,
@@ -130,7 +130,7 @@ export const DERMIERE_STAFF = [
   {
     key: "crm",
     name: "Mehreen Alvi",
-    email: "crm@dermiere.pk",
+    email: "mehreen@dermiere.pk",
     role: "admin" as const,
     title: "CRM Manager",
     workspace: "crm" as const,
@@ -138,7 +138,7 @@ export const DERMIERE_STAFF = [
   {
     key: "crm_agent",
     name: "Taimoor Abbas",
-    email: "crm.agent@dermiere.pk",
+    email: "taimoor@dermiere.pk",
     role: "admin" as const,
     title: "CRM Agent",
     workspace: "crm" as const,
@@ -146,7 +146,7 @@ export const DERMIERE_STAFF = [
   {
     key: "doctor_gulberg",
     name: "Dr. Sana Bukhari",
-    email: "hina@dermiere.pk",
+    email: "sana@dermiere.pk",
     role: "doctor" as const,
     title: "Consultant Dermatologist · Gulberg",
     workspace: "clinic" as const,
@@ -162,7 +162,7 @@ export const DERMIERE_STAFF = [
   {
     key: "frontdesk_gulberg",
     name: "Nimra Sajid",
-    email: "ayesha@dermiere.pk",
+    email: "nimra@dermiere.pk",
     role: "front_desk" as const,
     title: "Front Desk · Gulberg",
     workspace: "clinic" as const,
@@ -170,7 +170,7 @@ export const DERMIERE_STAFF = [
   {
     key: "frontdesk_f10",
     name: "Faraz Siddiqui",
-    email: "bilal@dermiere.pk",
+    email: "faraz@dermiere.pk",
     role: "front_desk" as const,
     title: "Front Desk · F-10",
     workspace: "clinic" as const,

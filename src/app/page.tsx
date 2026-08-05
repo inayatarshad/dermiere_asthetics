@@ -119,28 +119,47 @@ function LoginInner() {
       <div className="w-full max-w-5xl grid lg:grid-cols-[1.1fr_1fr] gap-6 items-stretch">
         {/* Brand panel */}
         <div className="glass p-8 sm:p-12 flex flex-col justify-between fade-up min-h-[420px]">
-          <Logo size="lg" />
+          <Logo size="lg" workspace={mode === "crm" ? "crm" : "clinic"} />
           <div className="my-10">
             <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-[color:var(--mint-500)]">
-              Skin, considered
+              {mode === "crm"
+                ? "After the booking, not before it"
+                : "The intimate science of beauty"}
             </p>
             <h1 className="display text-4xl sm:text-5xl text-ink-900 max-w-md mt-3">
-              Every enquiry, followed
-              <span className="text-[color:var(--mint-500)] font-normal"> through</span>.
+              {mode === "crm" ? (
+                <>
+                  Every booked client, all the way
+                  <span className="text-[color:var(--mint-500)] font-normal"> round</span>.
+                </>
+              ) : (
+                <>
+                  One journey, from hello to
+                  <span className="text-[color:var(--mint-500)] font-normal"> glow</span>.
+                </>
+              )}
             </h1>
             <p className="mt-5 text-ink-700 max-w-md leading-relaxed">
-              Leads arrive and land with a name. Follow-ups come due and get
-              done. Conversations stay in one shared inbox. Feedback closes the
-              loop. Gulberg and F-11, one screen.
+              {mode === "crm"
+                ? "A consultation is booked here or at the front desk, and the pipeline takes over. WhatsApp confirms it. The visit is logged. The review link and the next session go out on their own. Then the same client comes back round as a fresh booking."
+                : "VYBERO answers and books. The studio previews the outcome. The visit closes with a printed invoice, a review link and a Dermiére Circle reward. Every location, one screen."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {[
-              "Leads pipeline",
-              "Follow-ups",
-              "Shared inbox",
-              "Feedback & recovery",
-            ].map((f) => (
+            {(mode === "crm"
+              ? [
+                  "Lead pipeline",
+                  "WhatsApp Business",
+                  "Shared patient database",
+                  "Message templates",
+                ]
+              : [
+                  "VYBERO Booking Agent",
+                  "Before / After Studio",
+                  "Point of Sale",
+                  "Reviews & Dermiére Circle",
+                ]
+            ).map((f) => (
               <span key={f} className="chip chip-static">
                 {f}
               </span>

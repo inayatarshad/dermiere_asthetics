@@ -69,7 +69,7 @@ const HEAD_OFFICE: AccountCard[] = [
     icon: Users,
   },
   {
-    email: "rameez@dermiere.pk",
+    email: "saad@dermiere.pk",
     label: "Marketing",
     name: "Saad Kamal",
     desc: "Review scores, VYBERO call insights, campaign performance",
@@ -92,7 +92,7 @@ const BRANCHES: BranchGroup[] = [
         icon: Stethoscope,
       },
       {
-        email: "bilal@dermiere.pk",
+        email: "faraz@dermiere.pk",
         label: "Front Desk",
         name: "Faraz Siddiqui",
         desc: "Check-in, appointments, point of sale, review links",
@@ -106,14 +106,14 @@ const BRANCHES: BranchGroup[] = [
     sub: "Lahore branch, Gulberg II",
     accounts: [
       {
-        email: "hina@dermiere.pk",
+        email: "sana@dermiere.pk",
         label: "Dermatologist",
         name: "Dr. Sana Bukhari",
         desc: "Consultations, patient timelines, treatment plans",
         icon: Stethoscope,
       },
       {
-        email: "ayesha@dermiere.pk",
+        email: "nimra@dermiere.pk",
         label: "Front Desk",
         name: "Nimra Sajid",
         desc: "Check-in, appointments, point of sale, review links",
@@ -125,14 +125,14 @@ const BRANCHES: BranchGroup[] = [
 
 export const CRM_ACCOUNTS: AccountCard[] = [
   {
-    email: "crm@dermiere.pk",
+    email: "mehreen@dermiere.pk",
     label: "CRM Manager",
     name: "Mehreen Alvi",
     desc: "Owns the pipeline: every consultation booked, confirmed, visited, rebooked",
     icon: KanbanSquare,
   },
   {
-    email: "crm.agent@dermiere.pk",
+    email: "taimoor@dermiere.pk",
     label: "CRM Agent",
     name: "Taimoor Abbas",
     desc: "Works the WhatsApp inbox, chases confirmations and next sessions",

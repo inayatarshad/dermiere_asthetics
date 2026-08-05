@@ -21,6 +21,7 @@ import {
   pgListAppointments,
   pgListRecords,
   pgListUsers,
+  pgDeleteUser,
   pgUpsertAppointment,
   pgUpsertRecord,
   pgUpsertReview,
@@ -357,6 +358,18 @@ export async function provisionDermiere(
   const byEmail = new Map(existingUsers.map((u) => [u.email.toLowerCase(), u]));
   const idsByKey: Record<string, string> = {};
 
+  // Addresses used by the first Dermiére demo seed. When a person's email
+  // is corrected, reconcile the existing row by id so their password,
+  // enabled state, assignments and history survive the rename.
+  const legacyEmailByKey: Record<string, string> = {
+    marketing: "rameez@dermiere.pk",
+    crm: "crm@dermiere.pk",
+    crm_agent: "crm.agent@dermiere.pk",
+    doctor_gulberg: "hina@dermiere.pk",
+    frontdesk_gulberg: "ayesha@dermiere.pk",
+    frontdesk_f10: "bilal@dermiere.pk",
+  };
+
   // Where each person works, for screens that open filtered to their own
   // site. Clinic-wide accounts (founder, operations, marketing, CRM) get
   // nothing and therefore see everything. The branch ids come from the
@@ -369,7 +382,11 @@ export async function provisionDermiere(
   };
 
   for (const s of DERMIERE_STAFF) {
-    const found = byEmail.get(s.email.toLowerCase());
+    const found =
+      byEmail.get(s.email.toLowerCase()) ??
+      (legacyEmailByKey[s.key]
+        ? byEmail.get(legacyEmailByKey[s.key].toLowerCase())
+        : undefined);
     if (found) {
       idsByKey[s.key] = found.id;
       // Keep the account's password and id, but let name/title/workspace
@@ -378,7 +395,7 @@ export async function provisionDermiere(
       await pgUpsertUser(
         found.id,
         clinicId,
-        found.email,
+        s.email,
         s.role,
         found.password_hash,
         found.active,
@@ -405,6 +422,20 @@ export async function provisionDermiere(
       workspace: s.workspace,
       branch_id: branchForKey(s.key),
     });
+  }
+
+
+  // Remove the disabled founder placeholder used by an early demo build
+  // once the canonical founder exists. The exact email/status guard keeps
+  // this migration from touching any user-created staff account.
+  const canonicalFounder = existingUsers.find(
+    (u) => u.email.toLowerCase() === "anusha@dermiere.pk"
+  );
+  const obsoleteFounder = existingUsers.find(
+    (u) => u.email.toLowerCase() === "zara@dermiere.pk" && !u.active
+  );
+  if (canonicalFounder && obsoleteFounder) {
+    await pgDeleteUser(clinicId, obsoleteFounder.id);
   }
 
   const branches = config.locations ?? DERMIERE_BRANCHES;

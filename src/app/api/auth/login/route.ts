@@ -12,6 +12,18 @@ import { buildBootstrap } from "@/lib/server/bootstrap";
 
 export const runtime = "nodejs";
 
+// Existing demo databases may still contain the earlier placeholder
+// addresses. Keep those databases sign-in compatible while all new seeds
+// and every visible account use the person's real first name.
+const LEGACY_DERMIERE_EMAILS: Record<string, string> = {
+  "saad@dermiere.pk": "rameez@dermiere.pk",
+  "sana@dermiere.pk": "hina@dermiere.pk",
+  "faraz@dermiere.pk": "bilal@dermiere.pk",
+  "nimra@dermiere.pk": "ayesha@dermiere.pk",
+  "mehreen@dermiere.pk": "crm@dermiere.pk",
+  "taimoor@dermiere.pk": "crm.agent@dermiere.pk",
+};
+
 export async function POST(req: NextRequest) {
   let body: { email?: string; password?: string };
   try {
@@ -30,7 +42,12 @@ export async function POST(req: NextRequest) {
 
   try {
     await ensureSeedClinic();
-    const result = await authenticate(email, password);
+    const normalizedEmail = email.toLowerCase();
+    const result =
+      (await authenticate(normalizedEmail, password)) ??
+      (LEGACY_DERMIERE_EMAILS[normalizedEmail]
+        ? await authenticate(LEGACY_DERMIERE_EMAILS[normalizedEmail], password)
+        : null);
     if (!result) {
       return NextResponse.json(
         { error: "invalid_credentials", message: "Those credentials did not match." },

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import {
   Users,
   CalendarClock,
@@ -10,7 +11,6 @@ import {
   ArrowRight,
   Play,
   ReceiptText,
-  LineChart,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { firstName, formatDateTime, isToday, SOURCE_LABELS } from "@/lib/format";
@@ -25,21 +25,69 @@ export default function DashboardPage() {
   const consultations = useStore((s) => s.consultations);
   const plans = useStore((s) => s.plans);
   const invoices = useStore((s) => s.invoices);
+  const appointments = useStore((s) => s.appointments);
+  const locations = useStore((s) => s.locations);
   const createConsultation = useStore((s) => s.createConsultation);
   const users = useStore((s) => s.users);
   const newArrivals = useStore((s) => s.newArrivals);
+  const branchId = user?.branch_id;
 
-  const revenueToday = invoices
+  // Branch staff get their own operating picture. Clinic-wide accounts
+  // (founder, operations and marketing) have no branch_id and keep the
+  // whole-clinic dashboard. Existing visit/billing location wins; patients
+  // without either use the branch city, matching the Patients screen.
+  const branchPatients = useMemo(() => {
+    if (!branchId) return patients;
+    const latestBranch = new Map<string, string>();
+    const latestAt = new Map<string, string>();
+    const note = (patientId: string | undefined, at: string, branchId?: string) => {
+      if (!patientId || !branchId) return;
+      const seen = latestAt.get(patientId);
+      if (!seen || at > seen) {
+        latestAt.set(patientId, at);
+        latestBranch.set(patientId, branchId);
+      }
+    };
+    for (const appointment of appointments) {
+      note(appointment.patient_id, appointment.start, appointment.location_id);
+    }
+    for (const invoice of invoices) {
+      note(invoice.patient_id, invoice.created_at, invoice.location_id);
+    }
+    const location = locations.find((item) => item.id === branchId);
+    return patients.filter((patient) => {
+      const known = latestBranch.get(patient.id);
+      if (known) return known === branchId;
+      return !!location && patient.city.trim().toLowerCase() === location.city.trim().toLowerCase();
+    });
+  }, [appointments, branchId, invoices, locations, patients]);
+
+  const branchPatientIds = useMemo(
+    () => new Set(branchPatients.map((patient) => patient.id)),
+    [branchPatients]
+  );
+  const branchConsultations = branchId
+    ? consultations.filter((consultation) => branchPatientIds.has(consultation.patient_id))
+    : consultations;
+  const branchConsultationIds = new Set(branchConsultations.map((consultation) => consultation.id));
+  const branchPlans = branchId
+    ? plans.filter((plan) => branchConsultationIds.has(plan.consultation_id))
+    : plans;
+  const branchInvoices = branchId
+    ? invoices.filter((invoice) => invoice.location_id === branchId)
+    : invoices;
+
+  const revenueToday = branchInvoices
     .filter((i) => isToday(i.created_at) && i.status === "paid")
     .reduce((s, i) => s + i.total, 0);
 
-  const openConsults = consultations.filter((c) => c.status === "open");
-  const waiting = patients.filter(
+  const openConsults = branchConsultations.filter((c) => c.status === "open");
+  const waiting = branchPatients.filter(
     (p) =>
       isToday(p.created_at) &&
-      !consultations.some((c) => c.patient_id === p.id)
+      !branchConsultations.some((c) => c.patient_id === p.id)
   );
-  const inProgressPlans = plans.filter((p) => p.status === "in_progress");
+  const inProgressPlans = branchPlans.filter((p) => p.status === "in_progress");
 
   const hour = new Date().getHours();
   const greeting =
@@ -81,7 +129,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 fade-up-1">
         <StatCard
           label="Patients"
-          value={patients.length}
+          value={branchPatients.length}
           icon={<Users size={20} />}
         />
         <StatCard
@@ -122,7 +170,7 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-2.5">
             {openConsults.map((c) => {
-              const patient = patients.find((p) => p.id === c.patient_id);
+              const patient = branchPatients.find((p) => p.id === c.patient_id);
               if (!patient) return null;
               const template = getTemplate(c.brief.primary_interest);
               return (
@@ -225,8 +273,8 @@ export default function DashboardPage() {
           className="mb-4"
         />
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {patients.slice(0, 6).map((p) => {
-            const latest = latestConsultFor(consultations, p.id);
+          {branchPatients.slice(0, 6).map((p) => {
+            const latest = latestConsultFor(branchConsultations, p.id);
             const template = getTemplate(latest?.brief.primary_interest);
             return (
               <Link key={p.id} href={`/patients/${p.id}`}>

@@ -19,6 +19,7 @@ import {
 import { pgListAppointments, pgListRecords } from "@/lib/server/db";
 import { getClinicConfig } from "@/lib/server/clinicStore";
 import { computeAnalytics } from "@/lib/crm/analytics";
+import { computeDashboard } from "@/lib/crm/dashboard";
 import type { Appointment, Invoice, Patient } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -66,9 +67,23 @@ export async function GET(req: Request) {
       branchId,
     });
 
+    // The dashboard's own windows (next 7 days, last 14, last 30) do not
+    // follow the range picker, so it is computed separately rather than
+    // bent out of the ranged analytics above.
+    const dashboard = computeDashboard({
+      contacts,
+      conversations,
+      messages,
+      appointments,
+      invoices,
+      prices: config?.prices ?? {},
+      branchId,
+    });
+
     return NextResponse.json({
       ok: true,
       analytics,
+      dashboard,
       // Branches come from the clinic config, so a new branch appears here
       // the moment it is added in Settings.
       branches: config?.locations ?? [],

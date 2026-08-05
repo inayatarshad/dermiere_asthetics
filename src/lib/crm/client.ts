@@ -16,6 +16,7 @@ import type {
   MessageTemplate,
 } from "./types";
 import type { CrmAnalytics } from "./analytics";
+import type { CrmDashboard } from "./dashboard";
 import type { Appointment, ClinicLocation, Patient } from "@/lib/types";
 
 export interface StaffLite {
@@ -62,6 +63,8 @@ async function send<T>(
 export interface OverviewResponse {
   ok: true;
   analytics: CrmAnalytics;
+  /** Today's picture, on its own windows rather than the range picker. */
+  dashboard: CrmDashboard;
   branches: ClinicLocation[];
 }
 

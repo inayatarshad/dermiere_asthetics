@@ -187,6 +187,12 @@ export function setUserActive(clinicId: string, id: string, active: boolean): vo
   }
 }
 
+export function deleteUser(clinicId: string, id: string): void {
+  const d = load();
+  d.users = d.users.filter((u) => !(u.clinic_id === clinicId && u.id === id));
+  save();
+}
+
 // =====================================================================
 // Generic clinic-scoped record collections
 // =====================================================================

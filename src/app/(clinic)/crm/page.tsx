@@ -1,115 +1,86 @@
 "use client";
 
-/**
- * CRM Overview - "what needs attention today".
- *
- * Deliberately kept to the operational picture: what came in, what is owed
- * to someone, what went wrong. The business analysis - branch comparison,
- * lead sources, treatment demand, trends - lives on /crm/analytics so the
- * two screens do not say the same thing twice.
- *
- * Every figure comes from /api/crm/overview, computed server-side from the
- * caller's clinic. Rates arrive as `number | null`; null means the
- * denominator was empty and renders as "-" with a reason, never as 0%.
- */
+/** CRM Overview: the operational picture for today. */
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
-  ArrowRight,
-  CalendarClock,
-  CircleCheck,
-  Clock,
+  CalendarDays,
   Inbox,
   RefreshCw,
-  TrendingUp,
-  UserPlus,
+  UserRoundCheck,
   Users,
+  WalletCards,
 } from "lucide-react";
 import { useSessionUser } from "@/lib/store";
 import { crmCan } from "@/lib/crm/permissions";
-import {
-  avg,
-  daysAgoISO,
-  fetchOverview,
-  hours,
-  pct,
-  titleize,
-  todayISO,
-} from "@/lib/crm/client";
-import type { CrmAnalytics } from "@/lib/crm/analytics";
-import { RETURNING_VISIT_THRESHOLD } from "@/lib/crm/analytics";
-import { GlassCard, EmptyState, SectionTitle, Spinner } from "@/components/ui";
-import { Metric, Rating, SubHeading } from "@/components/crm/CrmUi";
-import { CrmFilters } from "@/components/crm/OverviewFilters";
+import { fetchOverview, titleize, todayISO, daysAgoISO } from "@/lib/crm/client";
+import type { CrmDashboard } from "@/lib/crm/dashboard";
 import type { ClinicLocation } from "@/lib/types";
+import { EmptyState, GlassCard, SectionTitle, Spinner } from "@/components/ui";
+import { SubHeading } from "@/components/crm/CrmUi";
+import { ActivityChart, Breakdown, Funnel, Ring } from "@/components/crm/Charts";
+
+const money = new Intl.NumberFormat("en-PK", {
+  style: "currency",
+  currency: "PKR",
+  maximumFractionDigits: 0,
+});
 
 export default function CrmOverviewPage() {
   const user = useSessionUser();
   const canOwner = crmCan(user?.role, "view_owner_analytics");
-
-  const [days, setDays] = useState(30);
   const [branch, setBranch] = useState("");
-  const [data, setData] = useState<CrmAnalytics | null>(null);
+  const [data, setData] = useState<CrmDashboard | null>(null);
   const [branches, setBranches] = useState<ClinicLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const apply = useCallback((res: Awaited<ReturnType<typeof fetchOverview>>) => {
+  const load = useCallback(async () => {
+    const res = await fetchOverview({
+      from: daysAgoISO(30),
+      to: todayISO(),
+      branch: branch || undefined,
+    });
     if (!res) {
       setError("Could not load the dashboard.");
       setData(null);
     } else {
       setError(null);
-      setData(res.analytics);
+      setData(res.dashboard);
       setBranches(res.branches ?? []);
     }
     setLoading(false);
-  }, []);
+  }, [branch]);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      if (!canOwner) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
-      const res = await fetchOverview({
-        from: daysAgoISO(days),
-        to: todayISO(),
-        branch: branch || undefined,
-      });
-      if (!cancelled) apply(res);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [canOwner, days, branch, apply]);
-
-  const refresh = () => {
-    setLoading(true);
-    void (async () =>
-      apply(
-        await fetchOverview({
-          from: daysAgoISO(days),
+    if (canOwner) {
+      void (async () => {
+        const res = await fetchOverview({
+          from: daysAgoISO(30),
           to: todayISO(),
           branch: branch || undefined,
-        })
-      ))();
-  };
-
-  const branchName = (id: string | undefined) =>
-    branches.find((b) => b.id === id)?.short ?? (id ? titleize(id) : "No branch");
+        });
+        if (cancelled) return;
+        if (!res) {
+          setError("Could not load the dashboard.");
+          setData(null);
+        } else {
+          setError(null);
+          setData(res.dashboard);
+          setBranches(res.branches ?? []);
+        }
+        setLoading(false);
+      })();
+    }
+    return () => { cancelled = true; };
+  }, [canOwner, branch]);
 
   if (!canOwner) return <NonOwnerOverview />;
 
   if (loading && !data) {
-    return (
-      <div className="flex justify-center py-20">
-        <Spinner className="w-8 h-8" />
-      </div>
-    );
+    return <div className="flex justify-center py-20"><Spinner className="w-8 h-8" /></div>;
   }
 
   if (error || !data) {
@@ -117,345 +88,137 @@ export default function CrmOverviewPage() {
       <EmptyState
         title="Dashboard unavailable"
         body={error ?? "No data was returned."}
-        action={
-          <button className="btn btn-secondary btn-sm" onClick={refresh}>
-            Try again
-          </button>
-        }
+        action={<button className="btn btn-secondary btn-sm" onClick={() => void load()}>Try again</button>}
       />
     );
   }
 
-  const { patients, leads, followUps, feedback } = data;
+  const branchName = (id: string) =>
+    branches.find((item) => item.id === id)?.short ?? titleize(id);
+  const series = data.series.map((point) => ({
+    label: new Date(point.date).toLocaleDateString("en-PK", { day: "numeric", month: "short" }),
+    booked: point.booked,
+    visited: point.visited,
+    messages: point.messages,
+  }));
 
   return (
     <div className="space-y-6">
       <SectionTitle
         title="Overview"
-        sub={`Last ${days} days${branch ? ` · ${branchName(branch)}` : " · all branches"}`}
+        sub={branch ? `${branchName(branch)} · live operating picture` : "All branches · live operating picture"}
         action={
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={refresh}
-            disabled={loading}
-            aria-label="Refresh"
-          >
+          <button className="btn btn-ghost btn-sm" onClick={() => { setLoading(true); void load(); }} disabled={loading} aria-label="Refresh">
             {loading ? <Spinner className="w-4 h-4" /> : <RefreshCw size={15} />}
           </button>
         }
       />
 
-      <CrmFilters
-        days={days}
-        branch={branch}
-        branches={branches}
-        onDays={(d) => {
-          setLoading(true);
-          setDays(d);
-        }}
-        onBranch={(b) => {
-          setLoading(true);
-          setBranch(b);
-        }}
-      />
+      <div className="flex flex-wrap items-center gap-1">
+        <button onClick={() => { setLoading(true); setBranch(""); }} className={`chip ${branch === "" ? "chip-active" : ""}`}>All branches</button>
+        {branches.map((item) => (
+          <button key={item.id} onClick={() => { setLoading(true); setBranch(item.id); }} className={`chip ${branch === item.id ? "chip-active" : ""}`}>
+            {item.short}
+          </button>
+        ))}
+      </div>
 
-      {/* --- headline --- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Metric
-          label="New leads"
-          value={leads.newLeads}
-          icon={<UserPlus size={16} />}
-          hint={`${leads.awaitingResponse} awaiting a first response`}
-          tone={leads.awaitingResponse > 0 ? "warn" : "neutral"}
-        />
-        <Metric
-          label="Lead → patient"
-          value={pct(leads.leadToPatientRate)}
-          icon={<TrendingUp size={16} />}
-          hint={
-            leads.newLeads === 0
-              ? "No leads in this range"
-              : `${leads.won} converted of ${leads.newLeads}`
-          }
-        />
-        <Metric
-          label="Follow-ups due today"
-          value={followUps.dueToday}
-          icon={<CalendarClock size={16} />}
-          hint={`${followUps.overdue} overdue`}
-          tone={followUps.overdue > 0 ? "bad" : "good"}
-          emphasis={followUps.overdue > 0}
-        />
-        <Metric
-          label="Average rating"
-          value={avg(feedback.avgOverall)}
-          icon={<CircleCheck size={16} />}
-          hint={
-            feedback.count === 0
-              ? "No feedback in this range"
-              : `${feedback.count} responses · ${feedback.lowRatingCount} low`
-          }
-          tone={
-            feedback.avgOverall === null
-              ? "neutral"
-              : feedback.avgOverall >= 4
-              ? "good"
-              : "warn"
-          }
-        />
+        <OverviewMetric label="Open leads" value={data.openLeads} icon={<Users size={20} />} />
+        <OverviewMetric label="Booked in next 7 days" value={data.bookedNext7} icon={<CalendarDays size={20} />} />
+        <OverviewMetric label="Visited (30 days)" value={data.visited30} icon={<UserRoundCheck size={20} />} />
+        <OverviewMetric label="Pipeline value" value={money.format(data.pipelineValue)} icon={<WalletCards size={20} />} />
       </div>
 
-      {/* --- needs attention --- */}
+      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-4">
+        <GlassCard className="p-5">
+          <SubHeading action={<span className="text-[11px] text-ink-400">Last 14 days</span>}>Bookings, visits and messages</SubHeading>
+          <ActivityChart data={series} />
+        </GlassCard>
+        <GlassCard className="p-5">
+          <SubHeading action={<Link href="/crm/leads" className="text-xs text-mint-600 font-medium">Open →</Link>}>Funnel</SubHeading>
+          <Funnel steps={data.funnel} />
+        </GlassCard>
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-4">
-        <ActionCard
-          href="/crm/leads"
-          icon={<UserPlus size={18} />}
-          title="Leads awaiting a reply"
-          value={leads.awaitingResponse}
-          tone={leads.awaitingResponse > 0 ? "warn" : "good"}
-          body={
-            leads.awaitingResponse > 0
-              ? "New leads nobody has responded to yet."
-              : "Every new lead has had a first response."
-          }
-        />
-        <ActionCard
-          href="/crm/followups"
-          icon={<AlertTriangle size={18} />}
-          title="Overdue follow-ups"
-          value={followUps.overdue}
-          tone={followUps.overdue > 0 ? "bad" : "good"}
-          body={
-            followUps.overdue > 0
-              ? "Past their due date and still open."
-              : "Nothing is past its due date."
-          }
-        />
-        <ActionCard
-          href="/crm/feedback"
-          icon={<AlertTriangle size={18} />}
-          title="Open recovery cases"
-          value={feedback.openRecovery}
-          tone={feedback.openRecovery > 0 ? "warn" : "good"}
-          body={
-            feedback.openRecovery > 0
-              ? "Low ratings still waiting to be put right."
-              : "No unresolved complaints."
-          }
-        />
-      </div>
-
-      {/* --- the day's numbers --- */}
-      <div className="grid lg:grid-cols-2 gap-4">
         <GlassCard className="p-5">
-          <SubHeading
-            action={
-              <Link href="/crm/followups" className="text-xs text-mint-600 font-medium">
-                Open follow-ups →
-              </Link>
-            }
-          >
-            Follow-ups
-          </SubHeading>
-          <div className="grid grid-cols-2 gap-3">
-            <Metric label="Due today" value={followUps.dueToday} icon={<CalendarClock size={16} />} />
-            <Metric label="Pending" value={followUps.pending} icon={<Clock size={16} />} />
-            <Metric label="Completed" value={followUps.completed} tone="good" />
-            <Metric
-              label="Completion rate"
-              value={pct(followUps.completionRate)}
-              hint={
-                followUps.completionRate === null
-                  ? "Nothing due in this range"
-                  : "Cancelled excluded"
-              }
-            />
+          <SubHeading>Booked → visited</SubHeading>
+          <Ring value={data.attendance.rate} caption="of booked consultations attended" sub={`${data.attendance.noShows} no-show in the last 90 days`} />
+        </GlassCard>
+        <GlassCard className="p-5">
+          <SubHeading>The loop</SubHeading>
+          <p className="caption -mt-2 mb-4">Visits that came back round</p>
+          <div className="flex items-center gap-4">
+            <span className="w-12 h-12 rounded-xl bg-mint-100 text-mint-500 grid place-items-center"><RefreshCw size={22} /></span>
+            <div><div className="text-3xl font-medium text-ink-900 tabular-nums">{data.rebooked30}</div><div className="caption">rebooked in the last 30 days</div></div>
           </div>
         </GlassCard>
-
         <GlassCard className="p-5">
-          <SubHeading
-            action={
-              <Link href="/crm/leads" className="text-xs text-mint-600 font-medium">
-                Open pipeline →
-              </Link>
-            }
-          >
-            Pipeline
-          </SubHeading>
-          <div className="grid grid-cols-2 gap-3">
-            <Metric
-              label="Consultations booked"
-              value={leads.consultationBookings}
-              hint={`${pct(leads.leadToBookingRate)} of new leads`}
-            />
-            <Metric
-              label="Avg first response"
-              value={hours(leads.avgFirstResponseHours)}
-              hint={
-                leads.respondedCount === 0
-                  ? "No responses recorded yet"
-                  : `across ${leads.respondedCount} leads`
-              }
-              tone={
-                leads.avgFirstResponseHours !== null &&
-                leads.avgFirstResponseHours > 24
-                  ? "warn"
-                  : "neutral"
-              }
-            />
-            <Metric label="Won" value={leads.won} tone="good" />
-            <Metric
-              label="Lost"
-              value={leads.lost}
-              tone={leads.lost > 0 ? "bad" : "neutral"}
-            />
+          <SubHeading>WhatsApp</SubHeading>
+          <p className="caption -mt-2 mb-4">Messages are composed and logged</p>
+          <div className="flex items-center gap-4">
+            <span className="w-12 h-12 rounded-xl bg-mint-100 text-ink-700 grid place-items-center"><Inbox size={22} /></span>
+            <div><div className="text-3xl font-medium text-ink-900 tabular-nums">{data.messagesSent30}</div><div className="caption">messages sent in 30 days</div></div>
           </div>
         </GlassCard>
       </div>
 
-      {/* --- patients + satisfaction, at a glance --- */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        <GlassCard className="p-5">
-          <SubHeading>Patients</SubHeading>
-          <div className="grid grid-cols-2 gap-3">
-            <Metric label="Total" value={patients.total} icon={<Users size={16} />} />
-            <Metric label="New in range" value={patients.newInRange} />
-            <Metric
-              label="Returning"
-              value={patients.returning}
-              hint={`${RETURNING_VISIT_THRESHOLD}+ completed visits`}
-            />
-            <Metric
-              label="Retention"
-              value={pct(patients.retentionRate)}
-              hint={patients.total === 0 ? "No patients yet" : "Returning ÷ total"}
-            />
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-5">
-          <SubHeading
-            action={
-              <Link href="/crm/analytics" className="text-xs text-mint-600 font-medium">
-                Full analytics →
-              </Link>
-            }
-          >
-            Satisfaction
-          </SubHeading>
-          {feedback.count === 0 ? (
-            <EmptyState
-              title="No feedback in this range"
-              body="Ratings appear once patients respond. Nothing is averaged until then."
-            />
-          ) : (
-            <div className="space-y-2.5">
-              <RatingLine label="Overall" value={feedback.avgOverall} />
-              <RatingLine label="Branch experience" value={feedback.avgBranch} />
-              <RatingLine label="Doctor" value={feedback.avgDoctor} />
-              <RatingLine label="Treatment" value={feedback.avgTreatment} />
-            </div>
-          )}
-        </GlassCard>
+      <div className="grid lg:grid-cols-3 gap-4">
+        <GlassCard className="p-5"><SubHeading>Lead sources</SubHeading><Breakdown rows={data.bySource.map((row) => ({ label: titleize(row.id), value: row.count }))} empty="No lead sources yet." /></GlassCard>
+        <GlassCard className="p-5"><SubHeading>By branch</SubHeading><Breakdown rows={data.byBranch.map((row) => ({ label: branchName(row.id), value: row.count }))} empty="No branch data yet." /></GlassCard>
+        <GlassCard className="p-5"><SubHeading>Treatment interest</SubHeading><Breakdown rows={data.byTreatment.map((row) => ({ label: titleize(row.id), value: row.count }))} empty="No treatment interests yet." /></GlassCard>
       </div>
 
-      <Link
-        href="/crm/analytics"
-        className="glass card-hover p-5 flex items-center justify-between gap-3"
-      >
-        <div>
-          <div className="font-medium text-ink-900">Branch comparison and trends</div>
-          <p className="caption mt-0.5">
-            Gulberg versus F-11 on leads, conversion, no-shows, revenue and
-            satisfaction - plus lead sources and treatment demand.
-          </p>
-        </div>
-        <ArrowRight size={18} className="text-ink-400 shrink-0" />
-      </Link>
+      <GlassCard className="p-5">
+        <SubHeading action={<Link href="/crm/inbox" className="text-xs text-mint-600 font-medium">Open inbox →</Link>}>Recent messages</SubHeading>
+        {data.recentMessages.length === 0 ? <p className="caption">No messages yet.</p> : (
+          <div className="divide-y divide-ink-100">
+            {data.recentMessages.slice(0, 5).map((message) => (
+              <Link key={message.id} href="/crm/inbox" className="flex items-start gap-3 py-3 first:pt-0 last:pb-0 group">
+                <span className="mt-0.5 w-8 h-8 rounded-full bg-mint-50 text-mint-700 flex items-center justify-center shrink-0"><Inbox size={14} /></span>
+                <span className="min-w-0 flex-1"><span className="flex justify-between gap-3"><span className="text-sm font-medium text-ink-900 group-hover:text-mint-700">{message.name}</span><span className="text-[11px] text-ink-400 whitespace-nowrap">{relativeTime(message.at)}</span></span><span className="caption block truncate mt-0.5">{message.body}</span></span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </GlassCard>
     </div>
   );
 }
 
-function RatingLine({ label, value }: { label: string; value: number | null }) {
+function relativeTime(iso: string) {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function OverviewMetric({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-sm text-ink-700">{label}</span>
-      {value === null ? (
-        <span className="text-xs text-ink-400">Not rated</span>
-      ) : (
-        <Rating value={value} />
-      )}
-    </div>
+    <GlassCard className="p-5 flex items-center gap-4">
+      <span className="w-11 h-11 rounded-xl bg-mint-100 text-mint-500 grid place-items-center shrink-0">{icon}</span>
+      <span><span className="block text-2xl font-medium leading-none text-ink-900 tabular-nums">{value}</span><span className="caption block mt-1.5">{label}</span></span>
+    </GlassCard>
   );
 }
 
-function ActionCard({
-  href,
-  icon,
-  title,
-  value,
-  body,
-  tone,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  title: string;
-  value: number;
-  body: string;
-  tone: "good" | "warn" | "bad";
-}) {
-  const toneClass =
-    tone === "bad"
-      ? "text-rose-700"
-      : tone === "warn"
-      ? "text-amber-700"
-      : "text-emerald-700";
-  return (
-    <Link
-      href={href}
-      className={`glass card-hover p-5 block ${
-        value > 0 && tone !== "good" ? "ring-1 ring-amber-200" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-ink-400">{icon}</span>
-        <span className={`text-2xl font-medium ${toneClass}`}>{value}</span>
-      </div>
-      <div className="font-medium text-ink-900 mt-2">{title}</div>
-      <p className="caption mt-0.5">{body}</p>
-    </Link>
-  );
-}
-
-/**
- * What front desk and doctors see: their own work, not the owner's numbers.
- * A role-appropriate landing page beats a 403.
- */
 function NonOwnerOverview() {
   return (
     <div className="space-y-4">
       <SectionTitle title="CRM" sub="Your leads, follow-ups and conversations" />
       <div className="grid sm:grid-cols-3 gap-3">
-        <Link href="/crm/followups" className="glass card-hover p-5 block">
-          <CalendarClock size={20} className="text-mint-600 mb-2" />
-          <div className="font-medium text-ink-900">Follow-ups</div>
-          <p className="caption mt-1">What is due today, and what is overdue.</p>
-        </Link>
-        <Link href="/crm/inbox" className="glass card-hover p-5 block">
-          <Inbox size={20} className="text-mint-600 mb-2" />
-          <div className="font-medium text-ink-900">Shared inbox</div>
-          <p className="caption mt-1">Patient conversations assigned to the team.</p>
-        </Link>
-        <Link href="/crm/patients" className="glass card-hover p-5 block">
-          <Users size={20} className="text-mint-600 mb-2" />
-          <div className="font-medium text-ink-900">Contacts</div>
-          <p className="caption mt-1">Search leads and patients, and their history.</p>
-        </Link>
+        <NavCard href="/crm/followups" title="Follow-ups" body="What is due today, and what is overdue." />
+        <NavCard href="/crm/inbox" title="Shared inbox" body="Patient conversations assigned to the team." />
+        <NavCard href="/crm/patients" title="Contacts" body="Search leads and patients, and their history." />
       </div>
-      <p className="caption">
-        Clinic-wide analytics are limited to the owner and administrators.
-      </p>
+      <p className="caption">Clinic-wide analytics are limited to the owner and administrators.</p>
     </div>
   );
+}
+
+function NavCard({ href, title, body }: { href: string; title: string; body: string }) {
+  return <Link href={href} className="glass card-hover p-5 block"><div className="font-medium text-ink-900">{title}</div><p className="caption mt-1">{body}</p></Link>;
 }

@@ -851,6 +851,108 @@ export function buildDermiereSeed(
     });
   }
 
+  // Give each branch a small, genuine "today" story. These are ordinary
+  // appointments, consultations, plans and invoices with stable ids, so the
+  // dashboard derives its figures from stored records exactly as it does for
+  // every other patient. Re-provisioning updates these rows in place rather
+  // than multiplying them, and the founder naturally sees the branch sums.
+  for (const branch of branchIds) {
+    // Prefer the last converted patient at the branch. Earlier demo builds
+    // used the first few converted patients for portrait consultations, and
+    // those persisted records may still be present in an additive database.
+    const branchPatients = converted.filter((item) => item.branch === branch);
+    const match =
+      [...branchPatients]
+        .reverse()
+        .find(
+          (item) =>
+            !consultations.some(
+              (consultation) => consultation.patient_id === item.patient.id
+            )
+        ) ?? branchPatients.at(-1);
+    if (!match) continue;
+    const { patient, interest } = match;
+    const suffix = branch.replace(/[^a-z0-9]/gi, "_");
+    const treatment =
+      DERMIERE_TREATMENTS.find((item) => item.id === interest) ??
+      DERMIERE_TREATMENTS[0];
+    const consultId = `derm_live_consult_${suffix}`;
+    const planId = `derm_live_plan_${suffix}`;
+    const visitMs = atClinicHour(now, r);
+    const startedMs = Math.min(now - 20 * 60_000, visitMs);
+    const subtotal = treatment.price;
+    const taxRate = 16;
+    const taxAmount = Math.round((subtotal * taxRate) / 100);
+    const prefix = branches.find((item) => item.id === branch)?.invoicePrefix ?? "INV";
+
+    appointments.push({
+      id: `derm_live_appt_${suffix}`,
+      patient_id: patient.id,
+      patient_name: patient.name,
+      phone: patient.phone,
+      start: iso(visitMs),
+      duration_min: 45,
+      type: "consultation",
+      procedure_interest: treatment.id,
+      source: "front_desk",
+      status: "confirmed",
+      location_id: branch,
+      created_at: iso(now - DAY),
+      updated_at: iso(now - 20 * 60_000),
+    });
+    consultations.push({
+      id: consultId,
+      patient_id: patient.id,
+      doctor_id: docFor(branch),
+      clinic_id: clinicId,
+      date: iso(startedMs),
+      brief: {
+        primary_interest: treatment.id,
+        interests: [treatment.id],
+        concerns: ["skin"],
+        goal_text: "Review progress and confirm the next treatment step.",
+        flags: { first_treatment: false, timeline: "ready_now" },
+      },
+      canvas_state: { morphs: {}, annotations: [] },
+      doctor_note: "Consultation in progress; treatment plan under review.",
+      status: "open",
+    });
+    plans.push({
+      id: planId,
+      consultation_id: consultId,
+      template_id: treatment.id,
+      summary: `${treatment.name} course currently in progress.`,
+      status: "in_progress",
+      created_at: iso(startedMs),
+    });
+    invoices.push({
+      id: `derm_live_inv_${suffix}`,
+      number: `${prefix}-${new Date(now).toISOString().slice(0, 10).replace(/-/g, "")}-LIVE`,
+      patient_id: patient.id,
+      patient_name: patient.name,
+      location_id: branch,
+      items: [{
+        id: `derm_live_item_${suffix}`,
+        ref: treatment.id,
+        kind: "treatment",
+        name: treatment.name,
+        qty: 1,
+        unitPrice: subtotal,
+        total: subtotal,
+      }],
+      subtotal,
+      tax_rate: taxRate,
+      tax_amount: taxAmount,
+      discount_amount: 0,
+      total: subtotal + taxAmount,
+      payment_method: "card",
+      status: "paid",
+      cashier_id: deskFor(branch),
+      consultation_id: consultId,
+      created_at: iso(now - 10 * 60_000),
+    });
+  }
+
   // Reviews come last: every one belongs to a patient built above.
   const { reviews, invites: reviewInvites, rewards } = buildDermiereReviews(
     patients,

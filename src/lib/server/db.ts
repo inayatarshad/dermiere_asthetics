@@ -423,6 +423,12 @@ export async function pgSetUserActive(
   );
 }
 
+export async function pgDeleteUser(clinicId: string, id: string): Promise<void> {
+  if (devDbActive()) return devDb.deleteUser(clinicId, id);
+  await ensureSchema();
+  await sql().query(`DELETE FROM users WHERE clinic_id = $1 AND id = $2`, [clinicId, id]);
+}
+
 // =====================================================================
 // Generic clinic-scoped record collections
 // =====================================================================

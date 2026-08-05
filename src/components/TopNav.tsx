@@ -153,9 +153,9 @@ export function TopNav() {
   const homeHref = isCrmWorkspace ? "/crm" : "/dashboard";
 
   return (
-    <header className="sticky top-0 z-40 px-4 pt-4 no-print">
-      <div className="glass-strong mx-auto max-w-7xl flex items-center gap-2 px-4 py-2.5">
-        <Link href={homeHref} className="mr-2">
+    <header className="sticky top-0 z-40 px-2.5 sm:px-4 pt-4 no-print">
+      <div className="glass-strong mx-auto max-w-7xl flex items-center gap-1 2xl:gap-2 px-3 2xl:px-4 py-2.5">
+        <Link href={homeHref} className="mr-1 2xl:mr-2 shrink-0">
           <Logo size="sm" workspace={isCrmWorkspace ? "crm" : "clinic"} />
         </Link>
 
@@ -170,7 +170,7 @@ export function TopNav() {
               <Link
                 key={href}
                 href={href}
-                className={`inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-full px-2.5 2xl:px-3.5 py-1.5 text-xs 2xl:text-sm font-medium transition-colors ${
                   active
                     ? "bg-ink-900 text-[#F6EBD3] shadow-md"
                     : "text-ink-700 hover:bg-mint-100"
@@ -221,7 +221,7 @@ export function TopNav() {
           ) : (
             <RadioTower size={13} className={boothLink ? "animate-pulse" : ""} />
           )}
-          <span className="hidden sm:inline">
+          <span className="hidden 2xl:inline">
             Booth link{boothLink ? ": ON" : ""}
           </span>
         </button>

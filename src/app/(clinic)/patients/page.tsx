@@ -61,9 +61,9 @@ export default function PatientsPage() {
    * attending the other site. Most recent activity wins.
    *
    * Appointments first, then invoices: someone can be billed at a site they
-   * walked into without a booking. A patient with neither has no branch and
-   * shows under every one rather than none - a filter that silently loses
-   * people is worse than one that is generous.
+   * walked into without a booking. For a patient with neither, the selected
+   * branch's city is the fallback. This keeps F-10 strictly Islamabad and
+   * Gulberg strictly Lahore instead of leaking unplaced patients into both.
    */
   const branchOf = useMemo(() => {
     const latest = new Map<string, string>();
@@ -108,9 +108,15 @@ export default function PatientsPage() {
     const digits = q.replace(/\D/g, "");
     const list = patients.filter((p) => {
       if (branch !== "all") {
-        // No known branch means "not yet placed", not "belongs elsewhere".
         const home = branchOf.get(p.id);
-        if (home && home !== branch) return false;
+        if (home) {
+          if (home !== branch) return false;
+        } else {
+          const selected = locations.find((location) => location.id === branch);
+          if (!selected || p.city.trim().toLowerCase() !== selected.city.trim().toLowerCase()) {
+            return false;
+          }
+        }
       }
       if (source !== "all" && p.source !== source) return false;
       if (onlyOpen && !openConsultIds.has(p.id)) return false;
@@ -128,7 +134,7 @@ export default function PatientsPage() {
         ? a.name.localeCompare(b.name)
         : b.created_at.localeCompare(a.created_at)
     );
-  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds, branch, branchOf]);
+  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds, branch, branchOf, locations]);
 
   const filtersActive =
     source !== "all" || onlyOpen || onlyMarketing || !!query.trim() || branch !== "all";
