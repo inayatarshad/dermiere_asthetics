@@ -26,6 +26,7 @@ import { useMounted } from "@/lib/hooks";
 import { GlassCard, SectionTitle, EmptyState, Spinner } from "@/components/ui";
 
 const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+const MEHEK_AGENT_ID = "agent_2401kz9jefqde28vzj70wq5vxq39";
 
 /** ElevenLabs agent ids are url-safe tokens; refuse anything else. */
 const cleanAgentId = (id: string) => id.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
@@ -59,7 +60,10 @@ export default function VyberoAgentPage() {
   const widgetHost = useRef<HTMLDivElement>(null);
   const mergeVyberoCalls = useStore((s) => s.mergeVyberoCalls);
 
-  const agentId = cleanAgentId(vyberoAgentId ?? "");
+  const savedAgentId = cleanAgentId(vyberoAgentId ?? "");
+  const agentId = savedAgentId.startsWith("agent_")
+    ? savedAgentId
+    : MEHEK_AGENT_ID;
 
   /** Pull Mehek's call history from ElevenLabs into the analytics log. */
   const syncCalls = async () => {
@@ -124,7 +128,9 @@ export default function VyberoAgentPage() {
       return true;
     };
 
-    const mountEl = () => {
+    const mountEl = async () => {
+      if (cancelled || !widgetHost.current) return;
+      await customElements.whenDefined("elevenlabs-convai");
       if (cancelled || !widgetHost.current) return;
       const widget = document.createElement("elevenlabs-convai");
       widget.setAttribute("agent-id", agentId);
@@ -143,7 +149,7 @@ export default function VyberoAgentPage() {
       }, 100);
     };
     if (existing) {
-      mountEl();
+      void mountEl();
       return () => {
         cancelled = true;
       };
@@ -151,7 +157,7 @@ export default function VyberoAgentPage() {
     const script = document.createElement("script");
     script.src = WIDGET_SRC;
     script.async = true;
-    script.onload = mountEl;
+    script.onload = () => void mountEl();
     script.onerror = () => setWidgetReady(false);
     document.body.appendChild(script);
     return () => {
