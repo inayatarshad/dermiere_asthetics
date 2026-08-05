@@ -137,7 +137,7 @@ export function TopNav() {
         ...(user?.role !== "front_desk"
           ? [{ href: "/reviews", label: "Reviews", icon: MessageSquareHeart }]
           : []),
-        // The voice-agent console: every role can test Noor from here
+        // The voice-agent console: every role can test Mehek from here
         // (takes the slot Discovery held; /discovery stays reachable by URL)
         { href: "/vybero", label: "VYBERO", icon: AudioLines },
         ...(can.manageUsers(user?.role)

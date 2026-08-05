@@ -2,12 +2,12 @@
 
 /**
  * VYBERO Voice Agent console - the in-app home of the ElevenLabs phone
- * agent (Noor). Hosts the call widget so the CAPTURE team can talk to
+ * agent (Mehek). Hosts the call widget so the Dermiére team can talk to
  * the agent right here, plus the admin webhook configuration and the
  * on-demand call-history sync. Bookings live on the Calendar; call
  * history and recordings live on Analytics - no duplicate feeds here.
  *
- * Replaces the Discovery slot in the nav for the CAPTURE deployment -
+ * Replaces the Discovery slot in the nav for the Dermiére deployment -
  * open to every staff role so the whole team can test the agent.
  */
 
@@ -61,7 +61,7 @@ export default function VyberoAgentPage() {
 
   const agentId = cleanAgentId(vyberoAgentId ?? "");
 
-  /** Pull Noor's call history from ElevenLabs into the analytics log. */
+  /** Pull Mehek's call history from ElevenLabs into the analytics log. */
   const syncCalls = async () => {
     if (syncBusy) return;
     setSyncBusy(true);
@@ -160,10 +160,10 @@ export default function VyberoAgentPage() {
         <div>
           <h1 className="h1 text-ink-900 flex items-center gap-2.5">
             <AudioLines size={22} className="text-[color:var(--mint-500)]" />
-            VYBERO Voice Agent
+            Mehek Voice Agent
           </h1>
           <p className="caption mt-0.5">
-            Talk to Noor right here - bookings land on the calendar below,
+            Talk to Mehek right here - bookings land on the calendar below,
             live. The same agent answers the clinic&rsquo;s phone line.
           </p>
         </div>
@@ -173,7 +173,7 @@ export default function VyberoAgentPage() {
               onClick={() => void syncCalls()}
               disabled={syncBusy}
               className="btn btn-secondary btn-sm"
-              title="Pull Noor's latest call history from ElevenLabs into Analytics (also runs automatically every day)"
+              title="Pull Mehek's latest call history from ElevenLabs into Analytics (also runs automatically every day)"
             >
               {syncBusy ? <Spinner className="w-3.5 h-3.5" /> : <RefreshCw size={14} />}
               {syncNote ?? "Sync calls"}
@@ -246,8 +246,8 @@ export default function VyberoAgentPage() {
       <GlassCard strong className="p-4 sm:p-5 fade-up-1">
         <div className="flex items-center gap-3 mb-3 px-1">
           <SectionTitle
-            title="Call Noor"
-            sub="Live voice session with the CAPTURE agent - bookings land on the calendar below"
+            title="Call Mehek"
+            sub="Live voice session with the Dermiére agent - bookings land on the calendar below"
           />
           {agentId && isAdmin && (
             <button
@@ -281,7 +281,7 @@ export default function VyberoAgentPage() {
             {/* stage caption */}
             <div className="absolute top-4 left-0 right-0 text-center pointer-events-none">
               <div className="text-[11px] font-medium uppercase tracking-[0.3em] text-[color:var(--mint-500)]">
-                VYBERO · Noor
+                VYBERO · Mehek
               </div>
               <div className="text-[12.5px] text-ink-400 mt-1">
                 Tap the orb to start the call
