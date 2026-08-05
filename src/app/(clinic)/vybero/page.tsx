@@ -131,7 +131,7 @@ export default function VyberoAgentPage() {
       widget.setAttribute("variant", "expanded");
       widget.setAttribute(
         "avatar-image-url",
-        `${window.location.origin}/avatar%20dermiere.png?v=2`
+        `${window.location.origin}/mehek-avatar-square.png?v=1`
       );
       widgetHost.current.replaceChildren(widget);
       setWidgetReady(true);
