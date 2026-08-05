@@ -851,6 +851,23 @@ export function buildDermiereSeed(
     });
   }
 
+  // F-10's seeded Arsalan Raza has his own supplied consultation portrait.
+  // Keep this explicit rather than feeding it through the rotating portrait
+  // stories above, so the image remains attached to the same patient on
+  // every deterministic provision.
+  const arsalanRaza = patients.find((patient) => patient.name === "Arsalan Raza");
+  if (arsalanRaza) {
+    assets.push({
+      id: "derm_asset_front_arsalan_raza",
+      patient_id: arsalanRaza.id,
+      kind: "photo_front",
+      storage_url: "/seed/arsalan-raza-front.png",
+      visit_date: iso(now).slice(0, 10),
+      meta: { label: "Front photo" },
+      created_at: iso(now),
+    });
+  }
+
   // Give each branch a small, genuine "today" story. These are ordinary
   // appointments, consultations, plans and invoices with stable ids, so the
   // dashboard derives its figures from stored records exactly as it does for
