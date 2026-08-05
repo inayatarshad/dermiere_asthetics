@@ -19,10 +19,16 @@ import {
   MapPin,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { DERMIERE_TREATMENT_LABELS } from "@/lib/dermiere/clinic";
 import { useMounted } from "@/lib/hooks";
 import { StatCard, EmptyState, Spinner, Modal } from "@/components/ui";
 import { findTreatment, CAPTURE_LOCATIONS } from "@/lib/capture/kb";
-import type { ClinicReview, Reward, ReviewInvite } from "@/lib/types";
+import type {
+  ClinicLocation,
+  ClinicReview,
+  Reward,
+  ReviewInvite,
+} from "@/lib/types";
 
 interface Data {
   invites: ReviewInvite[];
@@ -30,11 +36,29 @@ interface Data {
   rewards: Reward[];
 }
 
-const locShort = (id: string) =>
-  CAPTURE_LOCATIONS.find((l) => l.id === id)?.short ?? id.replace(/-/g, " ");
+/**
+ * A branch id as a person would say it.
+ *
+ * The clinic's own locations come first: CAPTURE's list is a fallback for
+ * demo data, not the authority, and Dermiere's branches are not in it.
+ * Falling through to the raw id printed "branch_f11" on the dashboard.
+ */
+const shortenLoc = (id: string, locations: ClinicLocation[]) =>
+  locations.find((l) => l.id === id)?.short ??
+  CAPTURE_LOCATIONS.find((l) => l.id === id)?.short ??
+  id.replace(/^branch[_-]/, "").replace(/[_-]/g, " ").toUpperCase();
 
+/**
+ * A treatment id as a person would say it.
+ *
+ * Ids belong to whichever clinic owns the review, so the CAPTURE catalogue
+ * is only one source. Dermiere has its own menu, and anything unknown is
+ * title-cased rather than shown raw as "laser_hair".
+ */
 const treatShort = (id: string) =>
-  findTreatment(id)?.short ?? id.replace(/-/g, " ");
+  findTreatment(id)?.short ??
+  DERMIERE_TREATMENT_LABELS[id] ??
+  id.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 function Stars({ n, size = 13 }: { n: number; size?: number }) {
   return (
@@ -56,6 +80,10 @@ export default function ReviewsPage() {
   const mounted = useMounted();
   const patients = useStore((s) => s.patients);
   const locations = useStore((s) => s.locations);
+  const locShort = useCallback(
+    (id: string) => shortenLoc(id, locations),
+    [locations]
+  );
   const users = useStore((s) => s.users);
   const sessionUserId = useStore((s) => s.sessionUserId);
   const me = users.find((u) => u.id === sessionUserId);
@@ -86,11 +114,22 @@ export default function ReviewsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    // The first fetch is kicked off asynchronously rather than called in the
+    // effect body: load() sets state synchronously, which would cascade a
+    // second render before the first has committed.
+    let cancelled = false;
+    const tick = () => {
+      if (!cancelled) void load();
+    };
+    const first = setTimeout(tick, 0);
     const t = setInterval(() => {
-      if (document.visibilityState === "visible") void load();
+      if (document.visibilityState === "visible") tick();
     }, 30_000);
-    return () => clearInterval(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(first);
+      clearInterval(t);
+    };
   }, [load]);
 
   const reviews = useMemo(
@@ -214,7 +253,7 @@ export default function ReviewsPage() {
       <div className="flex flex-wrap items-center gap-3 mb-5 fade-up">
         <h1 className="h1 flex items-center gap-2.5">
           <MessageSquareHeart size={22} className="text-[color:var(--mint-500)]" />
-          Reviews &amp; Capture Circle
+          Reviews &amp; rewards
         </h1>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => setInviteOpen(true)} className="btn btn-primary btn-sm">
@@ -400,7 +439,7 @@ export default function ReviewsPage() {
               className="btn btn-primary w-full"
               target="_blank"
               href={`https://wa.me/?text=${encodeURIComponent(
-                `Thank you for visiting CAPTURE! We would love to hear about your experience: ${inviteUrl} - your review earns a Capture Circle reward.`
+                `Thank you for visiting! We would love to hear about your experience: ${inviteUrl} - your review earns a discount on your next visit.`
               )}`}
             >
               Share via WhatsApp

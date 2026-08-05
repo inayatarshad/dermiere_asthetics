@@ -104,11 +104,38 @@ export const DERMIERE_STAFF = [
     workspace: "clinic" as const,
   },
   {
+    key: "marketing",
+    name: "Rameez Hasan",
+    email: "rameez@dermiere.pk",
+    role: "admin" as const,
+    title: "Marketing Lead",
+    workspace: "clinic" as const,
+  },
+  {
+    key: "operations",
+    name: "Shah Rukh Ahmed",
+    email: "shahrukh@dermiere.pk",
+    role: "admin" as const,
+    title: "Head of Operations",
+    workspace: "clinic" as const,
+  },
+  // The CRM is its own workspace with its own people. A manager owns the
+  // pipeline; an agent works the inbox. Both are admins because the CRM's
+  // own permission table, not the clinic role, decides what they can do.
+  {
     key: "crm",
-    name: "Dermiere CRM",
+    name: "Zoya Rehman",
     email: "crm@dermiere.pk",
     role: "admin" as const,
-    title: "CRM Workspace",
+    title: "CRM Manager",
+    workspace: "crm" as const,
+  },
+  {
+    key: "crm_agent",
+    name: "Bilal Nasir",
+    email: "crm.agent@dermiere.pk",
+    role: "admin" as const,
+    title: "CRM Agent",
     workspace: "crm" as const,
   },
   {

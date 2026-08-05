@@ -336,7 +336,7 @@ export default function LeadsPage() {
                       staffName={staffName}
                       appointment={apptFor(c)}
                       busy={busyId === c.id}
-                      onOpen={() => router.push(`/crm/contacts/${c.id}`)}
+                      onOpen={() => router.push(`/crm/patients/${c.id}`)}
                       onMove={(next) => void move(c, next)}
                     />
                   ))
@@ -579,7 +579,7 @@ function NewLeadModal({
             {error}
             {duplicate && (
               <Link
-                href={`/crm/contacts/${duplicate.id}`}
+                href={`/crm/patients/${duplicate.id}`}
                 className="block mt-2 text-mint-600 font-medium"
               >
                 Open {duplicate.name}&apos;s existing record →

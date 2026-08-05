@@ -341,7 +341,7 @@ export default function FollowUpsPage() {
                       <span>· {branchShort(f.branch_id)}</span>
                       {f.contact_id && (
                         <Link
-                          href={`/crm/contacts/${f.contact_id}`}
+                          href={`/crm/patients/${f.contact_id}`}
                           className="text-mint-600 font-medium"
                         >
                           Open contact →

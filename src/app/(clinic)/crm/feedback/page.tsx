@@ -320,7 +320,7 @@ export default function FeedbackPage() {
                           {f.assigned_to && <span>· Case owner {staffName(f.assigned_to)}</span>}
                           {f.contact_id && (
                             <Link
-                              href={`/crm/contacts/${f.contact_id}`}
+                              href={`/crm/patients/${f.contact_id}`}
                               className="text-mint-600 font-medium"
                             >
                               Open contact →

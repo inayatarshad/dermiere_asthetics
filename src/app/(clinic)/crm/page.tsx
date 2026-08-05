@@ -447,7 +447,7 @@ function NonOwnerOverview() {
           <div className="font-medium text-ink-900">Shared inbox</div>
           <p className="caption mt-1">Patient conversations assigned to the team.</p>
         </Link>
-        <Link href="/crm/contacts" className="glass card-hover p-5 block">
+        <Link href="/crm/patients" className="glass card-hover p-5 block">
           <Users size={20} className="text-mint-600 mb-2" />
           <div className="font-medium text-ink-900">Contacts</div>
           <p className="caption mt-1">Search leads and patients, and their history.</p>

@@ -35,15 +35,9 @@ export interface CrmNavItem {
 export const CRM_NAV: CrmNavItem[] = [
   { href: "/crm", label: "Overview", icon: ChartPie, capability: "view_crm" },
   { href: "/crm/leads", label: "Leads", icon: KanbanSquare, capability: "manage_leads" },
-  { href: "/crm/contacts", label: "Contacts", icon: Contact, capability: "view_crm" },
+  { href: "/crm/patients", label: "Patients", icon: Contact, capability: "view_crm" },
   { href: "/crm/inbox", label: "Inbox", icon: Inbox, capability: "view_conversations" },
   { href: "/crm/settings", label: "Templates", icon: Settings2, capability: "manage_templates" },
-  {
-    href: "/crm/analytics",
-    label: "Analytics",
-    icon: ChartColumn,
-    capability: "view_owner_analytics",
-  },
 ];
 
 /**

@@ -176,7 +176,7 @@ export default function ContactsPage() {
                   >
                     <td className="py-2.5 px-3">
                       <Link
-                        href={`/crm/contacts/${c.id}`}
+                        href={`/crm/patients/${c.id}`}
                         className="font-medium text-ink-900 hover:text-mint-600 inline-flex items-center gap-1.5"
                       >
                         {c.name}

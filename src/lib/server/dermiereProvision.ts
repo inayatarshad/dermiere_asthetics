@@ -23,6 +23,8 @@ import {
   pgListUsers,
   pgUpsertAppointment,
   pgUpsertRecord,
+  pgUpsertReview,
+  pgUpsertReviewInvite,
   pgUpsertUser,
 } from "./db";
 import {
@@ -375,6 +377,16 @@ export async function provisionDermiere(
     for (const rep of seed.reports) {
       await pgUpsertRecord(clinicId, "reports", rep.id, rep);
     }
+    // The review loop, so the Reviews screen and Circle rewards have data.
+    for (const inv of seed.reviewInvites) {
+      await pgUpsertReviewInvite(clinicId, inv.id, inv.token, inv.created_at, inv);
+    }
+    for (const rev of seed.reviews) {
+      await pgUpsertReview(clinicId, rev.id, rev.created_at, rev);
+    }
+    for (const rw of seed.rewards) {
+      await pgUpsertRecord(clinicId, "rewards", rw.id, rw);
+    }
     for (const inv of seed.invoices) {
       await pgUpsertRecord(clinicId, "invoices", inv.id, inv);
     }
@@ -524,6 +536,8 @@ export async function provisionDermiere(
     counts.assets = seed.assets.length;
     counts.plans = seed.plans.length;
     counts.reports = seed.reports.length;
+    counts.reviews = seed.reviews.length;
+    counts.rewards = seed.rewards.length;
     counts.appointments = seed.appointments.length;
     counts.invoices = seed.invoices.length;
     counts.contacts = seed.contacts.length - skippedContacts;

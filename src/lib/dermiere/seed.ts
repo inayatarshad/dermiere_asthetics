@@ -14,6 +14,9 @@ import type {
   Appointment,
   Asset,
   ClinicLocation,
+  ClinicReview,
+  Reward,
+  ReviewInvite,
   Consultation,
   Invoice,
   Patient,
@@ -37,6 +40,7 @@ import { normalizePhone } from "@/lib/crm/phone";
 import { DERMIERE_TREATMENTS } from "./clinic";
 import { DEMO_THREADS } from "./threads";
 import { dermiereTemplates } from "./templates";
+import { buildDermiereReviews } from "./reviews";
 
 // ---------------------------------------------------------------------
 // Deterministic pseudo-randomness (mulberry32) - same demo every run
@@ -71,6 +75,10 @@ export interface DermiereSeed {
   messages: CrmMessage[];
   feedback: CrmFeedback[];
   templates: MessageTemplate[];
+  /** The review loop: what patients said, and the rewards it earned. */
+  reviews: ClinicReview[];
+  reviewInvites: ReviewInvite[];
+  rewards: Reward[];
 }
 
 const FIRST_F = [
@@ -841,8 +849,23 @@ export function buildDermiereSeed(
     });
   }
 
+  // Reviews come last: every one belongs to a patient built above.
+  const { reviews, invites: reviewInvites, rewards } = buildDermiereReviews(
+    patients,
+    { gulberg: branchIds[0], f11: branchIds[1] ?? branchIds[0] },
+    {
+      gulberg: "Dr. Hina Raza",
+      f11: "Dr. Omar Sheikh",
+    },
+    r,
+    now
+  );
+
   return {
     patients,
+    reviews,
+    reviewInvites,
+    rewards,
     assets,
     consultations,
     plans,

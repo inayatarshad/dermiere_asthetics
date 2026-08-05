@@ -15,6 +15,7 @@ import {
   ShoppingBag,
   MessageSquareHeart,
   AudioLines,
+  Settings,
 } from "lucide-react";
 import { useStore, useSessionUser, can } from "@/lib/store";
 import { crmCan } from "@/lib/crm/permissions";
@@ -84,6 +85,10 @@ export function TopNav() {
   // navigation strip anywhere. A Clinic OS account gets the clinic items,
   // with a single "CRM" entry into the workspace.
   const isCrmWorkspace = user?.workspace === "crm";
+  // Several accounts share the "admin" role but do very different jobs, and
+  // the title is the only thing that tells them apart. Operations runs the
+  // floor across both branches, so it keeps the till and the settings.
+  const isOperations = /operations/i.test(user?.title ?? "");
 
   const links = isCrmWorkspace
     ? CRM_NAV.filter((item) => crmCan(user?.role, item.capability)).map(
@@ -97,8 +102,11 @@ export function TopNav() {
         // CRM account to use it, so neither bar ever shows the other's
         // sections.
         { href: "/calendar", label: "Calendar", icon: CalendarDays },
-        // POS is front-of-house: front desk + admin ring up the visit
-        ...(user?.role !== "doctor"
+        // The till is front-of-house work. The front desk rings up the
+        // visit and operations oversees both tills; the founder, marketing
+        // and the doctors have no reason to be in it, so it is not in
+        // their bar. The route stays reachable by URL.
+        ...(user?.role === "front_desk" || isOperations
           ? [{ href: "/pos", label: "POS", icon: ShoppingBag }]
           : []),
         // Reviews monitoring: doctors + admins watch the client voice
@@ -108,10 +116,13 @@ export function TopNav() {
         // The voice-agent console: every role can test Noor from here
         // (takes the slot Discovery held; /discovery stays reachable by URL)
         { href: "/vybero", label: "VYBERO", icon: AudioLines },
-        // Settings is deliberately absent from the bar: it is reachable by
-        // URL but is not part of the day-to-day navigation.
         ...(can.manageUsers(user?.role)
           ? [{ href: "/analytics", label: "Analytics", icon: ChartColumn }]
+          : []),
+        // Staff, roles and passwords are operations' job, so Settings sits
+        // in their bar and nobody else's.
+        ...(isOperations
+          ? [{ href: "/settings", label: "Settings", icon: Settings }]
           : []),
       ];
 

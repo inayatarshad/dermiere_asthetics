@@ -274,7 +274,7 @@ export default function InboxPage() {
                   <div className="flex items-center gap-2">
                     {thread.contact ? (
                       <Link
-                        href={`/crm/contacts/${thread.contact.id}`}
+                        href={`/crm/patients/${thread.contact.id}`}
                         className="font-medium text-ink-900 hover:text-mint-600"
                       >
                         {thread.contact.name}

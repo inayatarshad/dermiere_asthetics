@@ -2,16 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Lock,
-  Stethoscope,
-  ClipboardList,
-  ShieldCheck,
-  Megaphone,
-  Palette,
-  ArrowRight,
-  Contact,
-} from "lucide-react";
+import { Lock, ArrowRight } from "lucide-react";
 import { DERMIERE_DEMO_PASSWORD } from "@/lib/dermiere/clinic";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
@@ -19,64 +10,8 @@ import { loginRequest, fetchBootstrap } from "@/lib/serverSync";
 import { triggerBrandSplash } from "@/components/BrandSplash";
 import { Logo, Spinner } from "@/components/ui";
 import VyberoConcierge from "@/components/VyberoConcierge";
+import { ClinicAccounts, CrmAccounts } from "@/components/SignInAccounts";
 
-/**
- * Sign-in shortcuts for the development workspace.
- *
- * These fill in the EMAIL only - no password is stored in the repo. The
- * accounts are created by the provisioning script, which is where their
- * password is set.
- */
-const ROLE_CARDS = [
-  {
-    role: "admin",
-    email: "crm@dermiere.pk",
-    label: "CRM Workspace",
-    name: "Dermiere CRM",
-    desc: "The CRM on its own: leads, follow-ups, inbox, feedback, analytics",
-    icon: Contact,
-  },
-  {
-    role: "admin",
-    email: "anusha@dermiere.pk",
-    label: "Founder & Director",
-    name: "Dr. Anusha Liaqat",
-    desc: "Full Clinic OS: patients, calendar, POS, reviews - and the CRM",
-    icon: ShieldCheck,
-  },
-  {
-    role: "doctor",
-    email: "hina@dermiere.pk",
-    label: "Dermatologist · Gulberg",
-    name: "Dr. Hina Raza",
-    desc: "Consultations, patient timelines, clinically relevant follow-ups",
-    icon: Stethoscope,
-  },
-  {
-    role: "doctor",
-    email: "omar@dermiere.pk",
-    label: "Dermatologist · F-11",
-    name: "Dr. Omar Sheikh",
-    desc: "Consultations, patient timelines, clinically relevant follow-ups",
-    icon: Palette,
-  },
-  {
-    role: "front_desk",
-    email: "ayesha@dermiere.pk",
-    label: "Front Desk · Gulberg",
-    name: "Ayesha Tariq",
-    desc: "Leads, follow-ups, shared inbox, appointments, point of sale",
-    icon: ClipboardList,
-  },
-  {
-    role: "front_desk",
-    email: "bilal@dermiere.pk",
-    label: "Front Desk · F-11",
-    name: "Bilal Khan",
-    desc: "Leads, follow-ups, shared inbox, appointments, point of sale",
-    icon: Megaphone,
-  },
-];
 
 function LoginInner() {
   const router = useRouter();
@@ -105,6 +40,8 @@ function LoginInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** Which set of accounts is on screen. The CRM is its own workspace. */
+  const [mode, setMode] = useState<"clinic" | "crm">("clinic");
   // After an explicit sign-out or idle lock, the sign-in screen must show
   // unconditionally - auto-bootstrap here is what looped the spinner when
   // the cookie was mid-clear.
@@ -256,33 +193,19 @@ function LoginInner() {
             </button>
           </form>
 
-          <div className="mt-7">
-            <div className="caption mb-2.5">
-              The Dermiere team - pick one, then press Enter to sign in.
-            </div>
-            <div className="space-y-2">
-              {ROLE_CARDS.map(({ email: qEmail, label, name, desc, icon: Icon }) => (
-                <button
-                  key={qEmail}
-                  disabled={busy}
-                  onClick={() => quick(qEmail)}
-                  className="glass-subtle card-hover w-full flex items-center gap-3.5 px-4 py-3 text-left"
-                >
-                  <span className="w-10 h-10 rounded-xl bg-mint-100 text-[color:var(--mint-500)] flex items-center justify-center shrink-0">
-                    <Icon size={19} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-ink-900">
-                      {label}
-                      <span className="text-ink-400 font-normal"> · {name}</span>
-                    </span>
-                    <span className="block text-xs text-ink-400 truncate">{desc}</span>
-                  </span>
-                  <ArrowRight size={15} className="ml-auto text-ink-400 shrink-0" />
-                </button>
-              ))}
-            </div>
-          </div>
+          {mode === "clinic" ? (
+            <ClinicAccounts
+              busy={busy}
+              onPick={quick}
+              onCrm={() => setMode("crm")}
+            />
+          ) : (
+            <CrmAccounts
+              busy={busy}
+              onPick={quick}
+              onClinic={() => setMode("clinic")}
+            />
+          )}
         </div>
       </div>
 
