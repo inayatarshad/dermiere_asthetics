@@ -126,7 +126,14 @@ export default function VyberoAgentPage() {
 
     const mountEl = () => {
       if (cancelled || !widgetHost.current) return;
-      widgetHost.current.innerHTML = `<elevenlabs-convai agent-id="${agentId}" variant="expanded"></elevenlabs-convai>`;
+      const widget = document.createElement("elevenlabs-convai");
+      widget.setAttribute("agent-id", agentId);
+      widget.setAttribute("variant", "expanded");
+      widget.setAttribute(
+        "avatar-image-url",
+        `${window.location.origin}/brand/dermiere-mark.png`
+      );
+      widgetHost.current.replaceChildren(widget);
       setWidgetReady(true);
       // the custom element upgrades (and attaches its shadow root)
       // asynchronously - retry briefly until the injection lands
