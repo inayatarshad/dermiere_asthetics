@@ -21,7 +21,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import type { Appointment, ClinicLocation } from "@/lib/types";
+import type { Appointment } from "@/lib/types";
 import { getSession } from "@/lib/server/auth";
 import {
   agentKeyValid,
@@ -37,6 +37,7 @@ import {
   VyberoStoreError,
 } from "@/lib/server/vyberoStore";
 import { clinicLocalToISO, slotLabel } from "@/lib/server/clinicTime";
+import { resolveClinicLocation } from "@/lib/server/clinicLocation";
 import { CAPTURE_TREATMENTS } from "@/lib/capture/kb";
 import { DERMIERE_TREATMENTS } from "@/lib/dermiere/clinic";
 
@@ -95,24 +96,6 @@ function matchTreatmentByName(name: string | undefined, clinicSlug?: string): {
   }
   // Unknown wording still books a consultation slot rather than failing the call
   return { id: "consultation", durationMin: 30, type: "consultation", label: name ?? "Consultation", matched: false };
-}
-
-/** Map a spoken location to a location id (defaults to the Experience Centre). */
-function matchLocationByName(
-  name: string | undefined,
-  locations: ClinicLocation[] | undefined
-): string {
-  const t = (name ?? "").toLowerCase();
-  const available = locations ?? [];
-  const hit = available.find((location) =>
-    t && [location.name, location.short, location.area, location.city]
-      .filter(Boolean)
-      .some((value) => {
-        const normalized = value!.toLowerCase();
-        return t.includes(normalized) || normalized.includes(t);
-      })
-  );
-  return hit?.id ?? available[0]?.id ?? "experience-centre";
 }
 
 export async function POST(req: NextRequest) {
@@ -184,7 +167,18 @@ export async function POST(req: NextRequest) {
     type = tr.type;
     procedure = tr.id;
     phone = flat.phone?.toString();
-    locationId = matchLocationByName(flat.location?.toString(), config.locations);
+    const location = resolveClinicLocation(flat.location?.toString(), config.locations);
+    if (!location) {
+      return NextResponse.json(
+        {
+          status: "error",
+          error: "unknown_location",
+          message: "Please choose either F-10 Islamabad or Gulberg Islamabad.",
+        },
+        { status: 400 }
+      );
+    }
+    locationId = location.id;
     const extra = [
       flat.notes?.toString().trim(),
       flat.email ? `Email: ${flat.email}` : "",
@@ -222,15 +216,22 @@ export async function POST(req: NextRequest) {
     const id = (body.id ?? "").toString() || crypto.randomUUID();
     const existing = await getAppointment(clinicId, id);
 
-    const free = await slotFree(clinicId, startISO, duration, id);
+    const day = startISO.slice(0, 10);
+    const openSlots = isFlat
+      ? await availabilityFor(clinicId, day, config.hours, locationId)
+      : [];
+    // Flat voice bookings must choose an exact slot returned by the
+    // branch-specific availability endpoint. This also rejects Sundays and
+    // times outside 12:00-20:00 instead of merely checking for collisions.
+    const free = isFlat
+      ? openSlots.some((slot) => slot.start === startISO)
+      : await slotFree(clinicId, startISO, duration, id, locationId);
     if (!free && (!existing || existing.start !== startISO)) {
       if (isFlat) {
         // voice contract: 200 + structured "unavailable" with alternatives,
         // so the agent can offer times instead of reporting a tool failure
-        const day = startISO.slice(0, 10);
-        const open = await availabilityFor(clinicId, day, config?.hours).catch(() => []);
         const requested = Date.parse(startISO);
-        const alternatives = open
+        const alternatives = openSlots
           .map((s) => ({ label: slotLabel(s.start), dist: Math.abs(Date.parse(s.start) - requested) }))
           .sort((a, b) => a.dist - b.dist)
           .slice(0, 3)

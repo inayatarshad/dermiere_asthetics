@@ -18,6 +18,7 @@ import { agentKeyValid, resolveAgentClinic } from "@/lib/server/agentAuth";
 import { getClinicConfig } from "@/lib/server/clinicStore";
 import { getSession } from "@/lib/server/auth";
 import { slotLabel } from "@/lib/server/clinicTime";
+import { resolveClinicLocation } from "@/lib/server/clinicLocation";
 
 export const maxDuration = 30;
 
@@ -47,10 +48,27 @@ export async function GET(req: NextRequest) {
   try {
     const config = await getClinicConfig(clinicId);
     const hours = config?.hours;
-    const slots = await availabilityFor(clinicId, date, hours);
+    const requestedLocation = req.nextUrl.searchParams.get("location") ?? undefined;
+    const location = requestedLocation
+      ? resolveClinicLocation(requestedLocation, config?.locations)
+      : null;
+    if (requestedLocation && !location) {
+      return NextResponse.json(
+        {
+          error: "unknown_location",
+          message: "Choose either F-10 Islamabad or Gulberg Islamabad.",
+          available_locations: (config?.locations ?? []).map((item) => item.name),
+        },
+        { status: 400 }
+      );
+    }
+    const slots = await availabilityFor(clinicId, date, hours, location?.id);
     const open_slots = slots.map((s) => slotLabel(s.start));
     return NextResponse.json({
       date,
+      location: location
+        ? { id: location.id, name: location.name, short: location.short }
+        : null,
       closed: slots.length === 0,
       open_slots,
       hours,

@@ -269,13 +269,17 @@ const ACTIVE_STATUSES = new Set(["booked", "confirmed"]);
 export async function availabilityFor(
   clinicId: string,
   date: string,
-  hours: ClinicHours = DEFAULT_CLINIC_HOURS
+  hours: ClinicHours = DEFAULT_CLINIC_HOURS,
+  locationId?: string
 ): Promise<{ start: string; end: string }[]> {
   const day = new Date(`${date}T00:00:00Z`);
   if (!hours.days.includes(day.getUTCDay())) return [];
 
   const appts = (await listAppointments(clinicId)).filter(
-    (a) => clinicDateLabel(a.start) === date && ACTIVE_STATUSES.has(a.status)
+    (a) =>
+      clinicDateLabel(a.start) === date &&
+      ACTIVE_STATUSES.has(a.status) &&
+      (!locationId || a.location_id === locationId)
   );
   const busy = appts.map((a) => {
     const s = new Date(a.start).getTime();
@@ -307,7 +311,8 @@ export async function slotFree(
   clinicId: string,
   start: string,
   durationMin: number,
-  ignoreId?: string
+  ignoreId?: string,
+  locationId?: string
 ): Promise<boolean> {
   const s = new Date(start).getTime();
   const e = s + durationMin * 60_000;
@@ -315,6 +320,7 @@ export async function slotFree(
     (a) =>
       a.id !== ignoreId &&
       ACTIVE_STATUSES.has(a.status) &&
+      (!locationId || a.location_id === locationId) &&
       clinicDateLabel(a.start) === clinicDateLabel(start)
   );
   return !appts.some((a) => {
