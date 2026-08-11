@@ -1,5 +1,5 @@
 /**
- * GET /api/vybero/sync-elevenlabs - pull Noor's call history from the
+ * GET /api/vybero/sync-elevenlabs - pull Mehek's call history from the
  * ElevenLabs API into the analytics call log.
  *
  * The push path (post-call webhook) is real-time; THIS route is the pull
@@ -21,6 +21,7 @@ import { getSession } from "@/lib/server/auth";
 import { listClinicConfigs, ensureSeedClinic } from "@/lib/server/clinicStore";
 import { listCalls, saveCall } from "@/lib/server/vyberoStore";
 import { detectTopics } from "@/lib/vyberoAnalytics";
+import { sessionBranchId } from "@/lib/server/branchAccess";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -76,7 +77,7 @@ async function authorized(req: NextRequest): Promise<boolean> {
   if (apiKey && urlKey && safeEqual(urlKey, apiKey)) return true;
   // Signed-in admin (the page button)
   const session = await getSession(req);
-  return session?.role === "admin";
+  return session?.role === "admin" && !(await sessionBranchId(session));
 }
 
 function collected(
@@ -148,7 +149,7 @@ function toCall(item: ElConversationListItem, detail: ElConversationDetail | nul
     outcome,
     topics: detectTopics(`${summary} ${questions.join(" ")} ${toolNames.join(" ")}`),
     questions,
-    summary: summary || "Voice conversation with Noor.",
+    summary: summary || "Voice conversation with Mehek.",
   };
 }
 

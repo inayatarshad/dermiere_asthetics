@@ -87,6 +87,10 @@ export default function ReviewsPage() {
   const users = useStore((s) => s.users);
   const sessionUserId = useStore((s) => s.sessionUserId);
   const me = users.find((u) => u.id === sessionUserId);
+  const assignedLocationId =
+    me?.branch_id && locations.some((location) => location.id === me.branch_id)
+      ? me.branch_id
+      : null;
 
   const [data, setData] = useState<Data | null>(null);
   const [busy, setBusy] = useState(false);
@@ -95,7 +99,7 @@ export default function ReviewsPage() {
   const [inviteName, setInviteName] = useState("");
   // Empty means "not chosen"; falls back to the clinic's first site.
   const [pickedInviteLoc, setPickedInviteLoc] = useState("");
-  const inviteLoc = pickedInviteLoc || locations[0]?.id || "";
+  const inviteLoc = assignedLocationId || pickedInviteLoc || locations[0]?.id || "";
   const [inviteBusy, setInviteBusy] = useState(false);
 
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -135,9 +139,12 @@ export default function ReviewsPage() {
   const reviews = useMemo(
     () =>
       (data?.reviews ?? []).filter(
-        (r) => locFilter === "all" || r.location_id === locFilter
+        (r) =>
+          assignedLocationId
+            ? r.location_id === assignedLocationId
+            : locFilter === "all" || r.location_id === locFilter
       ),
-    [data, locFilter]
+    [assignedLocationId, data, locFilter]
   );
 
   const kpis = useMemo(() => {
@@ -199,7 +206,7 @@ export default function ReviewsPage() {
 
   const byLocation = useMemo(() => {
     const m = new Map<string, { sum: number; n: number }>();
-    for (const r of data?.reviews ?? []) {
+    for (const r of reviews) {
       const e = m.get(r.location_id) ?? { sum: 0, n: 0 };
       e.sum += r.rating;
       e.n++;
@@ -208,7 +215,7 @@ export default function ReviewsPage() {
     return [...m.entries()]
       .map(([id, { sum, n }]) => ({ id, avg: sum / n, n }))
       .sort((a, b) => b.n - a.n);
-  }, [data]);
+  }, [reviews]);
 
   const funnel = useMemo(() => {
     const invites = data?.invites ?? [];
@@ -267,11 +274,21 @@ export default function ReviewsPage() {
 
       {/* location filter */}
       <div className="flex flex-wrap gap-1.5 mb-4 fade-up">
-        <button onClick={() => setLocFilter("all")} className={`chip ${locFilter === "all" ? "chip-active" : ""}`}>
-          All locations
-        </button>
-        {(locations.length ? locations : CAPTURE_LOCATIONS).map((l) => (
-          <button key={l.id} onClick={() => setLocFilter(l.id)} className={`chip ${locFilter === l.id ? "chip-active" : ""}`}>
+        {!assignedLocationId && (
+          <button onClick={() => setLocFilter("all")} className={`chip ${locFilter === "all" ? "chip-active" : ""}`}>
+            All locations
+          </button>
+        )}
+        {(locations.length ? locations : CAPTURE_LOCATIONS)
+          .filter((location) => !assignedLocationId || location.id === assignedLocationId)
+          .map((l) => (
+          <button
+            key={l.id}
+            onClick={() => !assignedLocationId && setLocFilter(l.id)}
+            className={`chip ${
+              (assignedLocationId ?? locFilter) === l.id ? "chip-active" : ""
+            }`}
+          >
             <MapPin size={12} /> {l.short}
           </button>
         ))}
@@ -464,8 +481,15 @@ export default function ReviewsPage() {
             </div>
             <div>
               <span className="field-label">Location</span>
-              <select className="input" value={inviteLoc} onChange={(e) => setPickedInviteLoc(e.target.value)}>
-                {(locations.length ? locations : CAPTURE_LOCATIONS).map((l) => (
+              <select
+                className="input"
+                value={inviteLoc}
+                onChange={(e) => setPickedInviteLoc(e.target.value)}
+                disabled={!!assignedLocationId}
+              >
+                {(locations.length ? locations : CAPTURE_LOCATIONS)
+                  .filter((location) => !assignedLocationId || location.id === assignedLocationId)
+                  .map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
                   </option>

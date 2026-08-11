@@ -41,6 +41,7 @@ import { DERMIERE_TREATMENTS } from "./clinic";
 import { DEMO_THREADS } from "./threads";
 import { dermiereTemplates } from "./templates";
 import { buildDermiereReviews } from "./reviews";
+import { clinicDateLabel, clinicLocalToISO } from "@/lib/server/clinicTime";
 
 // ---------------------------------------------------------------------
 // Deterministic pseudo-randomness (mulberry32) - same demo every run
@@ -142,14 +143,16 @@ const INBOUND_OPENERS = [
  * Put a timestamp on a real appointment slot.
  *
  * Times were inherited from whenever the lead happened to be created, so
- * the board could show a consultation at 10:23 pm. The clinic opens 11:00
+ * the board could show a consultation at 10:23 pm. The clinic opens 12:00
  * to 20:00, so bookings land on the half hour inside that window.
  */
 function atClinicHour(ms: number, r: () => number): number {
-  const d = new Date(ms);
-  const slot = Math.floor(r() * 17); // 11:00 .. 19:30 in half hours
-  d.setHours(11 + Math.floor(slot / 2), (slot % 2) * 30, 0, 0);
-  return d.getTime();
+  const slot = Math.floor(r() * 16); // 12:00 .. 19:30 in half hours
+  const time = `${String(12 + Math.floor(slot / 2)).padStart(2, "0")}:${
+    (slot % 2) * 30 === 0 ? "00" : "30"
+  }`;
+  const iso = clinicLocalToISO(clinicDateLabel(new Date(ms).toISOString()), time);
+  return iso ? Date.parse(iso) : ms;
 }
 
 function pick<T>(r: () => number, arr: readonly T[]): T {

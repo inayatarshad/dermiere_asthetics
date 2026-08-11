@@ -78,7 +78,7 @@ export default function AnalyticsPage() {
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [detailCall, setDetailCall] = useState<VyberoCall | null>(null);
 
-  /** Pull Noor's call history from ElevenLabs, then refresh the feed. */
+  /** Pull Mehek's call history from ElevenLabs, then refresh the feed. */
   const syncCalls = async () => {
     if (syncBusy) return;
     setSyncBusy(true);
@@ -126,13 +126,13 @@ export default function AnalyticsPage() {
   );
 
   if (!mounted) return null;
-  if (!can.manageUsers(user?.role)) {
+  if (!can.manageUsers(user?.role) || user?.branch_id) {
     return (
       <div className="pt-4">
         <EmptyState
           icon={<ShieldCheck size={28} />}
           title="Admin access required"
-          body="VYBERO Analytics is available to the clinic administrator role."
+          body="VYBERO Analytics is available to unassigned clinic leadership."
         />
       </div>
     );
@@ -174,7 +174,7 @@ export default function AnalyticsPage() {
           onClick={() => void syncCalls()}
           disabled={syncBusy}
           className="btn btn-secondary btn-sm"
-          title="Pull Noor's latest call history from ElevenLabs (also runs automatically every day)"
+          title="Pull Mehek's latest call history from ElevenLabs (also runs automatically every day)"
         >
           {syncBusy ? <Spinner className="w-3.5 h-3.5" /> : <RefreshCw size={14} />}
           {syncNote ?? "Sync calls"}
@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
         <GlassCard className="px-4 py-2.5 mb-3 border border-amber-200/70 bg-amber-50/60">
           <p className="text-xs text-amber-900">
             <b>Demo data.</b> The numbers below include the seeded demo story
-            - they are not Noor&apos;s real call history. Switch to Live
+            - they are not Mehek&apos;s real call history. Switch to Live
             calls (or press Sync calls) for the truth.
           </p>
         </GlassCard>
@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
       {dataMode === "live" && view.length === 0 && (
         <GlassCard className="px-4 py-2.5 mb-3">
           <p className="text-xs text-ink-700">
-            No synced calls yet. Press <b>Sync calls</b> to pull Noor&apos;s
+            No synced calls yet. Press <b>Sync calls</b> to pull Mehek&apos;s
             history from ElevenLabs - every real call also lands here
             automatically via the daily sync and the post-call webhook.
           </p>
@@ -598,7 +598,7 @@ function CallDetailModal({
                   }`}
                 >
                   <span className="caption block mb-0.5">
-                    {t.role === "agent" ? "Noor" : "Caller"}
+                    {t.role === "agent" ? "Mehek" : "Caller"}
                     {t.t > 0 ? ` · ${formatDuration(Math.round(t.t))}` : ""}
                   </span>
                   {t.text}

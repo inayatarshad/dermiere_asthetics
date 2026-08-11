@@ -10,6 +10,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { put } from "@vercel/blob";
 import type { Appointment, ClinicHours, VyberoCall } from "@/lib/types";
+import { clinicDateLabel, clinicLocalToISO } from "./clinicTime";
 import { DEFAULT_CLINIC_HOURS } from "@/lib/types";
 import {
   dbAvailable,
@@ -270,23 +271,22 @@ export async function availabilityFor(
   date: string,
   hours: ClinicHours = DEFAULT_CLINIC_HOURS
 ): Promise<{ start: string; end: string }[]> {
-  const day = new Date(`${date}T00:00:00`);
-  if (!hours.days.includes(day.getDay())) return [];
+  const day = new Date(`${date}T00:00:00Z`);
+  if (!hours.days.includes(day.getUTCDay())) return [];
 
   const appts = (await listAppointments(clinicId)).filter(
-    (a) => a.start.slice(0, 10) === date && ACTIVE_STATUSES.has(a.status)
+    (a) => clinicDateLabel(a.start) === date && ACTIVE_STATUSES.has(a.status)
   );
   const busy = appts.map((a) => {
     const s = new Date(a.start).getTime();
     return { s, e: s + a.duration_min * 60_000 };
   });
 
-  const [oh, om] = hours.open.split(":").map(Number);
-  const [ch, cm] = hours.close.split(":").map(Number);
-  const dayStart = new Date(day);
-  dayStart.setHours(oh, om, 0, 0);
-  const dayEnd = new Date(day);
-  dayEnd.setHours(ch, cm, 0, 0);
+  const dayStartISO = clinicLocalToISO(date, hours.open);
+  const dayEndISO = clinicLocalToISO(date, hours.close);
+  if (!dayStartISO || !dayEndISO) return [];
+  const dayStart = new Date(dayStartISO);
+  const dayEnd = new Date(dayEndISO);
 
   const out: { start: string; end: string }[] = [];
   const step = hours.slot_min * 60_000;
@@ -315,7 +315,7 @@ export async function slotFree(
     (a) =>
       a.id !== ignoreId &&
       ACTIVE_STATUSES.has(a.status) &&
-      a.start.slice(0, 10) === start.slice(0, 10)
+      clinicDateLabel(a.start) === clinicDateLabel(start)
   );
   return !appts.some((a) => {
     const as = new Date(a.start).getTime();

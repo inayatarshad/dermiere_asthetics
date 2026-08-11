@@ -2,7 +2,7 @@
  * Clinic timezone helpers - CAPTURE operates in Pakistan (Asia/Karachi,
  * UTC+05:00, no DST). The voice agent speaks local wall-clock times, so
  * every conversion here is pinned explicitly: a booking for "16:00" must
- * be 16:00 in Lahore even when the server runs in UTC (Vercel default).
+ * be 16:00 in Pakistan even when the server runs in UTC (Vercel default).
  */
 
 export const CLINIC_TZ = "Asia/Karachi";
@@ -16,6 +16,11 @@ export function slotLabel(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/** YYYY-MM-DD containing an ISO instant in Pakistan wall-clock time. */
+export function clinicDateLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: CLINIC_TZ });
 }
 
 /**

@@ -30,6 +30,7 @@ const MEHEK_AGENT_ID = "agent_2401kz9jefqde28vzj70wq5vxq39";
 
 /** ElevenLabs agent ids are url-safe tokens; refuse anything else. */
 const cleanAgentId = (id: string) => id.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
+const validAgentId = (id: string) => /^agent_[A-Za-z0-9_-]+$/.test(id);
 
 // hydration-safe origin: server snapshot is the placeholder, client
 // snapshot is the real origin - no setState-in-effect needed
@@ -55,13 +56,16 @@ export default function VyberoAgentPage() {
   const [editing, setEditing] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [widgetReady, setWidgetReady] = useState(false);
+  const [widgetReset, setWidgetReset] = useState(0);
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const widgetHost = useRef<HTMLDivElement>(null);
   const mergeVyberoCalls = useStore((s) => s.mergeVyberoCalls);
 
   const savedAgentId = cleanAgentId(vyberoAgentId ?? "");
-  const agentId = savedAgentId.startsWith("agent_")
+  const cleanDraft = cleanAgentId(idDraft);
+  const draftIsValid = validAgentId(cleanDraft);
+  const agentId = validAgentId(savedAgentId)
     ? savedAgentId
     : MEHEK_AGENT_ID;
 
@@ -99,11 +103,17 @@ export default function VyberoAgentPage() {
     }
   };
 
-  // Load the ElevenLabs widget script once, then mount the element.
+  // Load the ElevenLabs embed on this page, then mount its native expanded
+  // widget. Owning the script here avoids a race with the authenticated
+  // clinic layout during cold loads and refreshes.
   useEffect(() => {
-    if (!agentId) return;
+    if (!agentId) {
+      widgetHost.current?.replaceChildren();
+      return;
+    }
     let cancelled = false;
-    const existing = document.querySelector(`script[src="${WIDGET_SRC}"]`);
+    let centreTimer: ReturnType<typeof setInterval> | undefined;
+    let postCallObserver: MutationObserver | undefined;
 
     /**
      * The widget anchors its panel bottom-RIGHT of its containing block
@@ -118,13 +128,65 @@ export default function VyberoAgentPage() {
       const host = widgetHost.current?.querySelector("elevenlabs-convai");
       const sr = (host as HTMLElement & { shadowRoot?: ShadowRoot | null })?.shadowRoot;
       if (!sr) return false;
-      if (sr.querySelector("style[data-capture-centre]")) return true;
-      const style = document.createElement("style");
-      style.setAttribute("data-capture-centre", "1");
-      style.textContent =
-        ".overlay{align-items:center!important}" +
-        ".sheet{left:auto!important;right:auto!important}";
-      sr.appendChild(style);
+      if (!sr.querySelector("style[data-capture-centre]")) {
+        const style = document.createElement("style");
+        style.setAttribute("data-capture-centre", "1");
+        style.textContent =
+          ".overlay{align-items:center!important}" +
+          ".sheet{left:auto!important;right:auto!important}";
+        sr.appendChild(style);
+      }
+
+      const decoratePostCall = () => {
+        const ended = /how was this conversation|ended the conversation/i.test(
+          sr.textContent ?? ""
+        );
+        const oldReset = sr.querySelector<HTMLButtonElement>(
+          "button[data-mehek-reset]"
+        );
+        if (!ended) {
+          oldReset?.remove();
+          return;
+        }
+        if (oldReset) return;
+
+        const buttons = [...sr.querySelectorAll<HTMLButtonElement>("button")];
+        const expand =
+          buttons.find((button) =>
+            /expand|fullscreen|full screen/i.test(
+              `${button.getAttribute("aria-label") ?? ""} ${button.title}`
+            )
+          ) ?? buttons.find((button) => {
+            const rect = button.getBoundingClientRect();
+            const sheet = sr.querySelector<HTMLElement>(".sheet")?.getBoundingClientRect();
+            return !!sheet && rect.top < sheet.top + 72 && rect.right > sheet.right - 88;
+          });
+        if (!expand?.parentElement) return;
+
+        const reset = document.createElement("button");
+        reset.type = "button";
+        reset.setAttribute("data-mehek-reset", "1");
+        reset.setAttribute("aria-label", "Back to Mehek call screen");
+        reset.title = "Back to call screen";
+        reset.textContent = "×";
+        reset.style.cssText =
+          "width:28px;height:28px;border:0;border-radius:999px;background:#f3f0e9;" +
+          "color:#292522;font:400 22px/26px Arial,sans-serif;cursor:pointer;" +
+          "display:inline-flex;align-items:center;justify-content:center;margin-left:6px;";
+        reset.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setWidgetReady(false);
+          setWidgetReset((value) => value + 1);
+        });
+        expand.insertAdjacentElement("afterend", reset);
+      };
+
+      decoratePostCall();
+      if (!postCallObserver) {
+        postCallObserver = new MutationObserver(decoratePostCall);
+        postCallObserver.observe(sr, { childList: true, subtree: true });
+      }
       return true;
     };
 
@@ -135,35 +197,49 @@ export default function VyberoAgentPage() {
       const widget = document.createElement("elevenlabs-convai");
       widget.setAttribute("agent-id", agentId);
       widget.setAttribute("variant", "expanded");
+      widget.setAttribute("default-expanded", "true");
+      widget.setAttribute("always-expanded", "true");
+      widget.setAttribute("dismissible", "false");
+      widget.setAttribute("expandable", "never");
+      widget.setAttribute("feedback-mode", "none");
       widget.setAttribute(
         "avatar-image-url",
-        `${window.location.origin}/mehek-avatar-square.png?v=1`
+        `${window.location.origin}/mehek-avatar-square.png`
       );
       widgetHost.current.replaceChildren(widget);
       setWidgetReady(true);
       // the custom element upgrades (and attaches its shadow root)
       // asynchronously - retry briefly until the injection lands
       let tries = 0;
-      const timer = setInterval(() => {
-        if (cancelled || centreWidget() || ++tries > 40) clearInterval(timer);
+      centreTimer = setInterval(() => {
+        if (cancelled || centreWidget() || ++tries > 40) {
+          if (centreTimer) clearInterval(centreTimer);
+        }
       }, 100);
     };
-    if (existing) {
+
+    if (customElements.get("elevenlabs-convai")) {
       void mountEl();
-      return () => {
-        cancelled = true;
+    } else {
+      const stale = document.querySelector<HTMLScriptElement>(
+        `script[src="${WIDGET_SRC}"]`
+      );
+      stale?.remove();
+      const script = document.createElement("script");
+      script.src = WIDGET_SRC;
+      script.async = true;
+      script.onload = () => void mountEl();
+      script.onerror = () => {
+        if (!cancelled) setWidgetReady(false);
       };
+      document.body.appendChild(script);
     }
-    const script = document.createElement("script");
-    script.src = WIDGET_SRC;
-    script.async = true;
-    script.onload = () => void mountEl();
-    script.onerror = () => setWidgetReady(false);
-    document.body.appendChild(script);
     return () => {
       cancelled = true;
+      if (centreTimer) clearInterval(centreTimer);
+      postCallObserver?.disconnect();
     };
-  }, [agentId]);
+  }, [agentId, widgetReset]);
 
   if (!mounted) return null;
 
@@ -219,7 +295,7 @@ export default function VyberoAgentPage() {
               name="check_availability"
               method="GET"
               url={`${origin}/api/vybero/availability?date={date}`}
-              note='Query param date = YYYY-MM-DD. Header: "Authorization: Bearer <VYBERO_API_KEY>" (or "x-vybero-key: <key>"). Reads open_slots like ["11:30","16:00"] in Pakistan time.'
+              note='Query param date = YYYY-MM-DD. Header: "Authorization: Bearer <VYBERO_API_KEY>" (or "x-vybero-key: <key>"). Reads open_slots like ["12:00","15:30"] in Pakistan time.'
             />
             <ToolRow
               name="book_appointment"
@@ -272,6 +348,14 @@ export default function VyberoAgentPage() {
             >
               <RadioTower size={13} /> {agentId.slice(0, 14)}…
             </button>
+          )}
+          {agentId && !isAdmin && (
+            <div
+              className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-ink-500"
+              title={agentId}
+            >
+              <RadioTower size={13} /> {agentId.slice(0, 14)}&hellip;
+            </div>
           )}
         </div>
 
@@ -345,16 +429,17 @@ export default function VyberoAgentPage() {
               value={idDraft}
               onChange={(e) => setIdDraft(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setVyberoAgentId(cleanAgentId(idDraft));
+                if (e.key === "Enter" && draftIsValid) {
+                  setVyberoAgentId(cleanDraft);
                   setEditing(false);
                 }
               }}
             />
             <button
               className="btn btn-primary btn-sm"
+              disabled={!draftIsValid}
               onClick={() => {
-                setVyberoAgentId(cleanAgentId(idDraft));
+                setVyberoAgentId(cleanDraft);
                 setEditing(false);
               }}
             >

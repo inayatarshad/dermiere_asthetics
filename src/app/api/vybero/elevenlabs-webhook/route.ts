@@ -1,7 +1,7 @@
 /**
  * POST /api/vybero/elevenlabs-webhook - ElevenLabs post-call webhook sink.
  *
- * Fires after every Noor conversation with the full transcript + analysis.
+ * Fires after every Mehek conversation with the full transcript + analysis.
  * We translate ElevenLabs' payload into our VyberoCall shape so the calls
  * land in the same store the Analytics dashboard already reads - real call
  * history, not seeded.
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
       outcome,
       topics,
       questions,
-      summary: summary || "Voice conversation with Noor.",
+      summary: summary || "Voice conversation with Mehek.",
     };
 
     await saveCall(clinicId, call);

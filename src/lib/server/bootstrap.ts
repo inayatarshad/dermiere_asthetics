@@ -31,6 +31,7 @@ import {
   pgGetUsage,
 } from "./db";
 import { getClinicConfig } from "./clinicStore";
+import { derivePatientBranches } from "@/lib/patientBranch";
 
 export function currentMonth(): string {
   return new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -143,6 +144,41 @@ export async function buildBootstrap(
   // answers 401/404 and the client returns to login.
   if (!me || !me.active) return null;
 
+  // Assigned branch staff receive only their own operational data. The
+  // founder/admin has no branch_id and retains the complete clinic view.
+  const branchId = me.branch_id;
+  const configuredLocationIds = new Set((config.locations ?? []).map((item) => item.id));
+  const canonicalAppointments = appointments.filter(
+    (appointment) =>
+      !!appointment.location_id && configuredLocationIds.has(appointment.location_id)
+  );
+  const canonicalInvoices = invoices.filter((invoice) =>
+    configuredLocationIds.has(invoice.location_id)
+  );
+  const patientBranches = derivePatientBranches(
+    patients,
+    canonicalAppointments,
+    canonicalInvoices
+  );
+  const scopedPatients = branchId
+    ? patients.filter((patient) => patientBranches.get(patient.id) === branchId)
+    : patients;
+  const patientIds = new Set(scopedPatients.map((patient) => patient.id));
+  const scopedConsultations = branchId
+    ? consultations.filter((consultation) => patientIds.has(consultation.patient_id))
+    : consultations;
+  const consultationIds = new Set(scopedConsultations.map((item) => item.id));
+  const scopedPlans = branchId
+    ? plans.filter((plan) => consultationIds.has(plan.consultation_id))
+    : plans;
+  const planIds = new Set(scopedPlans.map((plan) => plan.id));
+  const scopedInvoices = branchId
+    ? canonicalInvoices.filter((invoice) => invoice.location_id === branchId)
+    : canonicalInvoices;
+  const scopedAppointments = branchId
+    ? canonicalAppointments.filter((appointment) => appointment.location_id === branchId)
+    : canonicalAppointments;
+
   return {
     user: {
       id: userId,
@@ -174,18 +210,32 @@ export async function buildBootstrap(
     taxRate: config.taxRate ?? 16,
     reviewIncentive: config.reviewIncentive,
     records: {
-      patients,
-      consents,
-      assets,
-      consultations,
-      visualizations,
-      plans,
-      planItems,
-      reports,
-      invoices,
-      rewards,
+      patients: scopedPatients,
+      consents: branchId
+        ? consents.filter((consent) => patientIds.has(consent.patient_id))
+        : consents,
+      assets: branchId
+        ? assets.filter((asset) => patientIds.has(asset.patient_id))
+        : assets,
+      consultations: scopedConsultations,
+      visualizations: branchId
+        ? visualizations.filter((item) => consultationIds.has(item.consultation_id))
+        : visualizations,
+      plans: scopedPlans,
+      planItems: branchId
+        ? planItems.filter((item) => planIds.has(item.plan_id))
+        : planItems,
+      reports: branchId
+        ? reports.filter((report) => consultationIds.has(report.consultation_id))
+        : reports,
+      invoices: scopedInvoices,
+      rewards: branchId
+        ? rewards.filter((reward) => !reward.patient_id || patientIds.has(reward.patient_id))
+        : rewards,
     },
-    appointments,
-    vyberoCalls,
+    appointments: scopedAppointments,
+    // Calls do not carry a reliable branch until a booking is linked. Keep
+    // the all-clinic transcript log with the unassigned founder/admin.
+    vyberoCalls: branchId ? [] : vyberoCalls,
   };
 }

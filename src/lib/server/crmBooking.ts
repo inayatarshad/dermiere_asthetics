@@ -15,6 +15,7 @@ import type { Appointment } from "@/lib/types";
 import type { CrmContact } from "@/lib/crm/types";
 import { pgListAppointments, pgUpsertAppointment } from "./db";
 import { addActivity } from "./crmStore";
+import { CLINIC_TZ, clinicLocalToISO } from "./clinicTime";
 
 /** Deterministic id so re-running a stage change cannot double-book. */
 function appointmentIdFor(contactId: string): string {
@@ -22,19 +23,19 @@ function appointmentIdFor(contactId: string): string {
 }
 
 /**
- * The next sensible consultation slot: tomorrow (or Monday) at 11:00.
+ * The next sensible consultation slot: tomorrow (or Monday) at 12:00.
  *
  * A real booking flow asks the patient for a time. Until that exists, a
  * lead marked "consultation booked" still has to occupy a real slot on a
  * real day, or the calendar keeps lying about what the clinic has agreed.
  */
-function nextSlot(from = new Date()): Date {
-  const slot = new Date(from);
+function nextSlot(from = new Date()): string {
+  const localDate = from.toLocaleDateString("en-CA", { timeZone: CLINIC_TZ });
+  const slot = new Date(`${localDate}T00:00:00Z`);
   slot.setDate(slot.getDate() + 1);
   // Sunday is closed; push to Monday.
-  if (slot.getDay() === 0) slot.setDate(slot.getDate() + 1);
-  slot.setHours(11, 0, 0, 0);
-  return slot;
+  if (slot.getUTCDay() === 0) slot.setUTCDate(slot.getUTCDate() + 1);
+  return clinicLocalToISO(slot.toISOString().slice(0, 10), "12:00")!;
 }
 
 /**
@@ -54,7 +55,7 @@ export async function ensureConsultationBooked(
   );
 
   const now = new Date().toISOString();
-  const start = opts.start ?? existing?.start ?? nextSlot().toISOString();
+  const start = opts.start ?? existing?.start ?? nextSlot();
 
   const appointment: Appointment = {
     id,
@@ -90,6 +91,7 @@ export async function ensureConsultationBooked(
       kind: "appointment",
       summary: "Consultation booked",
       detail: new Date(start).toLocaleString("en-GB", {
+        timeZone: CLINIC_TZ,
         weekday: "short",
         day: "numeric",
         month: "short",

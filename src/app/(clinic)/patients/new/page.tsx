@@ -30,6 +30,7 @@ export default function RegisterPatientPage() {
   const router = useRouter();
   const user = useSessionUser();
   const patients = useStore((s) => s.patients);
+  const locations = useStore((s) => s.locations);
   const registerPatient = useStore((s) => s.registerPatient);
   const setConsent = useStore((s) => s.setConsent);
   const addAsset = useStore((s) => s.addAsset);
@@ -43,6 +44,7 @@ export default function RegisterPatientPage() {
   const [source, setSource] = useState<PatientSource>("walk_in");
   const [email, setEmail] = useState("");
   const [allergies, setAllergies] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState("");
 
   const [consents, setConsents] = useState<Record<ConsentType, boolean>>({
     treatment: false,
@@ -81,6 +83,11 @@ export default function RegisterPatientPage() {
       return;
     }
     if (!user) return;
+    const branchId = user.branch_id ?? selectedBranchId;
+    if (!branchId || !locations.some((location) => location.id === branchId)) {
+      setError("Choose F-10 or Gulberg Islamabad before registering the patient.");
+      return;
+    }
 
     const patient = registerPatient({
       name: name.trim(),
@@ -89,7 +96,7 @@ export default function RegisterPatientPage() {
       age: age ? parseInt(age, 10) : undefined,
       gender,
       city: city.trim() || "Islamabad",
-      branch_id: user.branch_id,
+      branch_id: branchId,
       language,
       source,
       clinical_flags: { allergies: allergies.trim() || undefined },
@@ -206,6 +213,21 @@ export default function RegisterPatientPage() {
               <option value="urdu">Urdu</option>
               <option value="english">English</option>
               <option value="other">Other</option>
+            </select>
+          </Field>
+          <Field label="Home branch">
+            <select
+              className="input"
+              value={user?.branch_id ?? selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              disabled={!!user?.branch_id}
+            >
+              {!user?.branch_id && <option value="">Choose a branch</option>}
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="How they found us" hint="Attribution feeds the marketing loop">
@@ -329,7 +351,11 @@ export default function RegisterPatientPage() {
         <button
           className="btn btn-primary btn-lg"
           onClick={submit}
-          disabled={!detailsComplete || !consents.treatment}
+          disabled={
+            !detailsComplete ||
+            !consents.treatment ||
+            !(user?.branch_id ?? selectedBranchId)
+          }
         >
           <UserPlus size={17} />
           Register & add to queue

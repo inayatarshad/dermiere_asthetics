@@ -19,6 +19,7 @@ import {
 } from "@/lib/server/db";
 import { ensureContactForPatient } from "@/lib/server/crmRegistry";
 import type { Patient } from "@/lib/types";
+import { sessionBranchId } from "@/lib/server/branchAccess";
 
 export const runtime = "nodejs";
 
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
   const clinicId = session.cid;
+  const branchId = await sessionBranchId(session);
 
   let body: { changes?: Change[] };
   try {
@@ -63,9 +65,20 @@ export async function POST(req: NextRequest) {
 
       if (RECORD_SET.has(c.table)) {
         if (c.op === "delete") {
+          // Branch-scoped delete authorization requires resolving the
+          // existing record's ownership. Until a dedicated branch-aware
+          // delete flow exists, fail closed instead of allowing guessed ids.
+          if (branchId) continue;
           await pgDeleteRecord(clinicId, c.table, c.id);
         } else if (c.payload) {
-          await pgUpsertRecord(clinicId, c.table, c.id, c.payload);
+          const payload = branchId
+            ? {
+                ...c.payload,
+                ...(c.table === "patients" ? { branch_id: branchId } : {}),
+                ...(c.table === "invoices" ? { location_id: branchId } : {}),
+              }
+            : c.payload;
+          await pgUpsertRecord(clinicId, c.table, c.id, payload);
           // A patient registered anywhere in Clinic OS must appear in the
           // CRM too - one list of people, not two. Best-effort: a CRM
           // bookkeeping failure must never fail the clinical write.
@@ -73,7 +86,7 @@ export async function POST(req: NextRequest) {
             try {
               await ensureContactForPatient(
                 clinicId,
-                c.payload as unknown as Patient,
+                payload as unknown as Patient,
                 { actorId: session.uid }
               );
             } catch (err) {
@@ -87,10 +100,14 @@ export async function POST(req: NextRequest) {
 
       if (OPERATIONAL.has(c.table) && c.op === "upsert" && c.payload) {
         if (c.table === "appointments") {
-          const start = String(c.payload.start ?? new Date().toISOString());
-          const status = String(c.payload.status ?? "booked");
-          await pgUpsertAppointment(clinicId, c.id, start, status, c.payload);
+          const payload = branchId
+            ? { ...c.payload, location_id: branchId }
+            : c.payload;
+          const start = String(payload.start ?? new Date().toISOString());
+          const status = String(payload.status ?? "booked");
+          await pgUpsertAppointment(clinicId, c.id, start, status, payload);
         } else {
+          if (branchId) continue;
           const startedAt = String(c.payload.started_at ?? new Date().toISOString());
           await pgUpsertCall(clinicId, c.id, startedAt, c.payload);
         }

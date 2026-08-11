@@ -140,7 +140,7 @@ export function TopNav() {
         // The voice-agent console: every role can test Mehek from here
         // (takes the slot Discovery held; /discovery stays reachable by URL)
         { href: "/vybero", label: "VYBERO", icon: AudioLines },
-        ...(can.manageUsers(user?.role)
+        ...(can.manageUsers(user?.role) && !user?.branch_id
           ? [{ href: "/analytics", label: "Analytics", icon: ChartColumn }]
           : []),
         // Staff, roles and passwords are operations' job, so Settings sits

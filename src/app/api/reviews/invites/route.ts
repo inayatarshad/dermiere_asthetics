@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/server/auth";
+import { sessionBranchId } from "@/lib/server/branchAccess";
 import {
   createInvite,
   listInvites,
@@ -43,10 +44,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const branchId = await sessionBranchId(session);
     const invite = await createInvite(session.cid, {
       patient_id: body.patient_id,
       patient_name: name,
-      location_id: (body.location_id ?? "experience-centre").slice(0, 60),
+      // An assigned branch cannot mint a review link against another site,
+      // even if a crafted request submits a different location_id.
+      location_id: (branchId ?? body.location_id ?? "experience-centre").slice(0, 60),
       treatments: Array.isArray(body.treatments)
         ? body.treatments.slice(0, 8).map((t) => String(t).slice(0, 60))
         : [],
@@ -74,11 +78,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
   try {
-    const [invites, reviews, rewards] = await Promise.all([
+    const [branchId, allInvites, allReviews, allRewards] = await Promise.all([
+      sessionBranchId(session),
       listInvites(session.cid),
       listReviews(session.cid),
       listRewards(session.cid),
     ]);
+    const invites = branchId
+      ? allInvites.filter((invite) => invite.location_id === branchId)
+      : allInvites;
+    const reviews = branchId
+      ? allReviews.filter((review) => review.location_id === branchId)
+      : allReviews;
+    const reviewIds = new Set(reviews.map((review) => review.id));
+    const rewards = branchId
+      ? allRewards.filter((reward) => reviewIds.has(reward.review_id))
+      : allRewards;
     return NextResponse.json({ ok: true, invites, reviews, rewards });
   } catch (err) {
     if (err instanceof ReviewStoreError) {

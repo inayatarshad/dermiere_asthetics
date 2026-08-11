@@ -45,7 +45,7 @@ function InvoiceInner() {
         name: "CAPTURE Experience Centre",
         address: "2nd Floor, Vogue Towers, 15 C/2 M.M. Alam Road",
         area: "Gulberg III",
-        city: "Lahore",
+        city: "Islamabad",
         phone: CAPTURE_BRAND.whatsapp,
         kind: "experience_centre" as const,
         doctor: undefined,

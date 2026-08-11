@@ -9,6 +9,7 @@ import type { VyberoCall } from "@/lib/types";
 import { getSession } from "@/lib/server/auth";
 import { agentKeyValid, resolveAgentClinic } from "@/lib/server/agentAuth";
 import { listCalls, saveCall, VyberoStoreError } from "@/lib/server/vyberoStore";
+import { sessionBranchId } from "@/lib/server/branchAccess";
 
 export const maxDuration = 30;
 
@@ -20,6 +21,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
   try {
+    if (await sessionBranchId(session)) {
+      return NextResponse.json({ calls: [] });
+    }
     const calls = await listCalls(session.cid);
     return NextResponse.json({ calls });
   } catch (err) {

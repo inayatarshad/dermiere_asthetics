@@ -460,7 +460,7 @@ export default function PortalPage() {
               <input
                 value={form.cityArea}
                 onChange={(e) => set("cityArea", e.target.value)}
-                placeholder="e.g. Lahore, Gulberg III"
+                placeholder="e.g. Islamabad, Gulberg Greens"
               />
             </label>
             <label>

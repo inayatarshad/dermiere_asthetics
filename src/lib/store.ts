@@ -614,7 +614,10 @@ export const useStore = create<StoreState>()(
 
       setVyberoAgentId: (id) => {
         const clean = id.trim();
-        set({ vyberoAgentId: clean || undefined });
+        // Never persist a display label such as "VYBERO" as an agent id;
+        // the sync API sends this value directly to ElevenLabs.
+        if (!/^agent_[A-Za-z0-9_-]+$/.test(clean)) return;
+        set({ vyberoAgentId: clean });
         void pushClinicConfig({ vyberoAgentId: clean });
       },
 

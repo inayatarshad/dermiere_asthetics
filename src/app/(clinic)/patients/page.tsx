@@ -45,13 +45,11 @@ export default function PatientsPage() {
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [onlyMarketing, setOnlyMarketing] = useState(false);
   const [sort, setSort] = useState<SortKey>("newest");
-  /**
-   * Which site's patients to show. Opens on the viewer's own branch so a
-   * clinician sees their own list first, with "All branches" one click
-   * away: this is a lens, not a permission. A patient belongs to the
-   * clinic, and anyone here can open anyone.
-   */
+  /** Assigned staff are locked to their branch; unassigned leadership may
+   * use the branch selector as a whole-clinic reporting lens. */
   const [branch, setBranch] = useState<string>(() => me?.branch_id ?? "all");
+  const assignedBranchId = me?.branch_id ?? null;
+  const activeBranch = assignedBranchId ?? branch;
 
   /**
    * A patient's home branch, derived from where they actually go.
@@ -97,9 +95,9 @@ export default function PatientsPage() {
     const q = query.trim().toLowerCase();
     const digits = q.replace(/\D/g, "");
     const list = patients.filter((p) => {
-      if (branch !== "all") {
+      if (activeBranch !== "all") {
         const home = branchOf.get(p.id);
-        if (home !== branch) return false;
+        if (home !== activeBranch) return false;
       }
       if (source !== "all" && p.source !== source) return false;
       if (onlyOpen && !openConsultIds.has(p.id)) return false;
@@ -117,10 +115,10 @@ export default function PatientsPage() {
         ? a.name.localeCompare(b.name)
         : b.created_at.localeCompare(a.created_at)
     );
-  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds, branch, branchOf]);
+  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds, activeBranch, branchOf]);
 
   const filtersActive =
-    source !== "all" || onlyOpen || onlyMarketing || !!query.trim() || branch !== "all";
+    source !== "all" || onlyOpen || onlyMarketing || !!query.trim() || activeBranch !== "all";
 
   return (
     <div className="space-y-5">
@@ -181,7 +179,7 @@ export default function PatientsPage() {
         {/* Branch leads: it is the widest cut, and for a clinician it is
             the one already applied when the screen opens. Only shown when
             there is more than one site to choose between. */}
-        {locations.length > 1 && (
+        {locations.length > 1 && !assignedBranchId && (
           <>
             <Chip active={branch === "all"} onClick={() => setBranch("all")}>
               <Building2 size={12} /> All branches
