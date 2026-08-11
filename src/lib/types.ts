@@ -142,6 +142,8 @@ export interface Patient {
   dob?: string;
   gender: "female" | "male" | "other";
   city: string;
+  /** Branch where the patient was registered; visits can later establish a newer branch. */
+  branch_id?: string;
   language: Language;
   source: PatientSource;
   clinical_flags: ClinicalFlags;

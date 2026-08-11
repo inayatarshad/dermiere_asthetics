@@ -45,8 +45,7 @@ export const DERMIERE_BRAND = {
  *
  * Order is meaningful: the first entry is the clinic's main site and leads
  * the sign-in screen, the branch filters and anything that falls back to
- * "the default branch". F-10 in Islamabad is the main clinic; Bahria Town
- * Phase 7 is the Rawalpindi branch.
+ * "the default branch". Both operating branches are in Islamabad.
  */
 export const DERMIERE_BRANCHES: ClinicLocation[] = [
   {
@@ -62,16 +61,18 @@ export const DERMIERE_BRANCHES: ClinicLocation[] = [
     invoicePrefix: "F10",
   },
   {
-    id: "branch_bahria_phase_7",
-    name: "Dermiére Bahria Town Phase 7",
-    short: "Bahria Phase 7",
+    // Keep this stable id: historical appointments, invoices and staff
+    // assignments already reference it in Neon.
+    id: "branch_gulberg",
+    name: "Dermiére Gulberg",
+    short: "Gulberg",
     kind: "experience_centre",
     doctor: "Dr. Anusha Liaqat",
-    address: "Bahria Town Phase 7",
-    area: "Bahria Town Phase 7",
-    city: "Rawalpindi",
+    address: "Gulberg, Islamabad",
+    area: "Gulberg",
+    city: "Islamabad",
     phone: "0323 6062601",
-    invoicePrefix: "BHR",
+    invoicePrefix: "GLB",
   },
 ];
 

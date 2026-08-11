@@ -103,7 +103,7 @@ const BRANCHES: BranchGroup[] = [
   {
     id: "gulberg",
     label: "Gulberg Clinic",
-    sub: "Lahore branch, Gulberg II",
+    sub: "Islamabad branch, Gulberg",
     accounts: [
       {
         email: "sana@dermiere.pk",

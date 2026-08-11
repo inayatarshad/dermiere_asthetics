@@ -18,6 +18,7 @@ import { getTemplate } from "@/lib/templates";
 import { GlassCard, EmptyState, StatusChip, Chip } from "@/components/ui";
 import { PatientAvatar } from "@/components/PatientAvatar";
 import type { PatientSource } from "@/lib/types";
+import { derivePatientBranches } from "@/lib/patientBranch";
 
 type SortKey = "newest" | "name";
 
@@ -61,25 +62,14 @@ export default function PatientsPage() {
    * attending the other site. Most recent activity wins.
    *
    * Appointments first, then invoices: someone can be billed at a site they
-   * walked into without a booking. For a patient with neither, the selected
-   * branch's city is the fallback. This keeps F-10 strictly Islamabad and
-   * Gulberg strictly Lahore instead of leaking unplaced patients into both.
+   * walked into without a booking. For a patient with neither, their
+   * registration branch is the fallback. Both branches are in Islamabad,
+   * so city must never be used to infer a branch.
    */
-  const branchOf = useMemo(() => {
-    const latest = new Map<string, string>();
-    const at = new Map<string, string>();
-    const note = (pid: string | undefined, when: string, where?: string) => {
-      if (!pid || !where) return;
-      const seen = at.get(pid);
-      if (!seen || when > seen) {
-        at.set(pid, when);
-        latest.set(pid, where);
-      }
-    };
-    for (const a of appointments) note(a.patient_id, a.start, a.location_id);
-    for (const inv of invoices) note(inv.patient_id, inv.created_at, inv.location_id);
-    return latest;
-  }, [appointments, invoices]);
+  const branchOf = useMemo(
+    () => derivePatientBranches(patients, appointments, invoices),
+    [appointments, invoices, patients]
+  );
 
   // attribute lookups, derived once per data change (stable selectors above)
   const openConsultIds = useMemo(
@@ -109,14 +99,7 @@ export default function PatientsPage() {
     const list = patients.filter((p) => {
       if (branch !== "all") {
         const home = branchOf.get(p.id);
-        if (home) {
-          if (home !== branch) return false;
-        } else {
-          const selected = locations.find((location) => location.id === branch);
-          if (!selected || p.city.trim().toLowerCase() !== selected.city.trim().toLowerCase()) {
-            return false;
-          }
-        }
+        if (home !== branch) return false;
       }
       if (source !== "all" && p.source !== source) return false;
       if (onlyOpen && !openConsultIds.has(p.id)) return false;
@@ -134,7 +117,7 @@ export default function PatientsPage() {
         ? a.name.localeCompare(b.name)
         : b.created_at.localeCompare(a.created_at)
     );
-  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds, branch, branchOf, locations]);
+  }, [patients, query, source, onlyOpen, onlyMarketing, sort, openConsultIds, marketingIds, branch, branchOf]);
 
   const filtersActive =
     source !== "all" || onlyOpen || onlyMarketing || !!query.trim() || branch !== "all";

@@ -17,6 +17,7 @@ import { firstName, formatDateTime, isToday, SOURCE_LABELS } from "@/lib/format"
 import { getTemplate } from "@/lib/templates";
 import { GlassCard, SectionTitle, StatCard, EmptyState, StatusChip } from "@/components/ui";
 import { PatientAvatar } from "@/components/PatientAvatar";
+import { derivePatientBranches } from "@/lib/patientBranch";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -26,7 +27,6 @@ export default function DashboardPage() {
   const plans = useStore((s) => s.plans);
   const invoices = useStore((s) => s.invoices);
   const appointments = useStore((s) => s.appointments);
-  const locations = useStore((s) => s.locations);
   const createConsultation = useStore((s) => s.createConsultation);
   const users = useStore((s) => s.users);
   const newArrivals = useStore((s) => s.newArrivals);
@@ -35,32 +35,12 @@ export default function DashboardPage() {
   // Branch staff get their own operating picture. Clinic-wide accounts
   // (founder, operations and marketing) have no branch_id and keep the
   // whole-clinic dashboard. Existing visit/billing location wins; patients
-  // without either use the branch city, matching the Patients screen.
+  // without either use their registration branch.
   const branchPatients = useMemo(() => {
     if (!branchId) return patients;
-    const latestBranch = new Map<string, string>();
-    const latestAt = new Map<string, string>();
-    const note = (patientId: string | undefined, at: string, branchId?: string) => {
-      if (!patientId || !branchId) return;
-      const seen = latestAt.get(patientId);
-      if (!seen || at > seen) {
-        latestAt.set(patientId, at);
-        latestBranch.set(patientId, branchId);
-      }
-    };
-    for (const appointment of appointments) {
-      note(appointment.patient_id, appointment.start, appointment.location_id);
-    }
-    for (const invoice of invoices) {
-      note(invoice.patient_id, invoice.created_at, invoice.location_id);
-    }
-    const location = locations.find((item) => item.id === branchId);
-    return patients.filter((patient) => {
-      const known = latestBranch.get(patient.id);
-      if (known) return known === branchId;
-      return !!location && patient.city.trim().toLowerCase() === location.city.trim().toLowerCase();
-    });
-  }, [appointments, branchId, invoices, locations, patients]);
+    const patientBranches = derivePatientBranches(patients, appointments, invoices);
+    return patients.filter((patient) => patientBranches.get(patient.id) === branchId);
+  }, [appointments, branchId, invoices, patients]);
 
   const branchPatientIds = useMemo(
     () => new Set(branchPatients.map((patient) => patient.id)),

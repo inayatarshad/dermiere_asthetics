@@ -97,19 +97,24 @@ export default function CalendarPage() {
   // that no longer exists in every clinic, which opened the diary filtered
   // to nothing and made a full calendar look empty.
   const [locFilter, setLocFilter] = useState<string>("all");
+  const assignedLocationId =
+    user?.branch_id && locations.some((location) => location.id === user.branch_id)
+      ? user.branch_id
+      : null;
+  const activeLocationFilter = assignedLocationId ?? locFilter;
 
   // per-location diary: slots and blocks belong to the selected site
   const appointments = useMemo(
     () =>
-      locFilter === "all"
+      activeLocationFilter === "all"
         ? allAppointments
         : allAppointments.filter(
             // A booking with no site recorded belongs to the clinic's first
             // location rather than to a site id that may not exist, so it
             // stays visible instead of disappearing from every filter.
-            (a) => (a.location_id ?? locations[0]?.id) === locFilter
+            (a) => (a.location_id ?? locations[0]?.id) === activeLocationFilter
           ),
-    [allAppointments, locFilter, locations]
+    [activeLocationFilter, allAppointments, locations]
   );
 
   const days = useMemo(
@@ -232,18 +237,22 @@ export default function CalendarPage() {
       {/* location filter - each CAPTURE site keeps its own diary */}
       {locations.length > 1 && (
         <div className="flex gap-1.5 flex-wrap mb-3">
-          {locations.map((l) => (
+          {locations
+            .filter((location) => !assignedLocationId || location.id === assignedLocationId)
+            .map((l) => (
             <Chip
               key={l.id}
-              active={locFilter === l.id}
-              onClick={() => setLocFilter(l.id)}
+              active={activeLocationFilter === l.id}
+              onClick={() => !assignedLocationId && setLocFilter(l.id)}
             >
               <MapPin size={12} /> {l.short}
             </Chip>
           ))}
-          <Chip active={locFilter === "all"} onClick={() => setLocFilter("all")}>
-            All locations
-          </Chip>
+          {!assignedLocationId && (
+            <Chip active={locFilter === "all"} onClick={() => setLocFilter("all")}>
+              All locations
+            </Chip>
+          )}
         </div>
       )}
 
@@ -328,7 +337,10 @@ export default function CalendarPage() {
             // clinic's first location.
             const appt = addAppointment({
               ...data,
-              location_id: locFilter === "all" ? locations[0]?.id : locFilter,
+              location_id:
+                activeLocationFilter === "all"
+                  ? locations[0]?.id
+                  : activeLocationFilter,
             });
             pushToServer(appt);
             setBooking(null);

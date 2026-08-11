@@ -1,13 +1,13 @@
 # Dermiére Aesthetic & Wellness Clinic — Vybero Knowledge Base
 
-**Market:** Islamabad and Rawalpindi, Pakistan  
+**Market:** Islamabad, Pakistan
 **Knowledge status date:** 5 August 2026  
 **Canonical spelling:** Dermiére Aesthetic & Wellness Clinic  
 **Agent role:** Vybero is an AI voice assistant, not a clinician.
 
 # Dermiére Clinic Overview
 
-Dermiére Aesthetic & Wellness Clinic is an aesthetic and wellness clinic with public branches in Islamabad and Rawalpindi. Its public service catalogue includes consultations, facials, injectables, laser and energy-based procedures, hair/scalp procedures, regenerative skin treatments and IV therapies.
+Dermiére Aesthetic & Wellness Clinic is an aesthetic and wellness clinic with F-10 and Gulberg branches in Islamabad. Its public service catalogue includes consultations, facials, injectables, laser and energy-based procedures, hair/scalp procedures, regenerative skin treatments and IV therapies.
 
 The clinic publicly emphasises personalised planning, skin quality and natural-looking aesthetic outcomes. This is brand positioning, not a promise that any treatment will suit a particular customer or produce a guaranteed result.
 
@@ -27,9 +27,9 @@ These descriptors are self-published. If a caller asks for independent credentia
 - Public contact: 0304 6571349.
 - Exact building, unit, map pin, parking and accessibility: staff confirmation required.
 
-## Rawalpindi branch
+## Gulberg Islamabad branch
 
-- Public location: Bahria Town Phase 7, Rawalpindi.
+- Public location: Gulberg, Islamabad.
 - Public contact: 0323 6062601.
 - Exact street, unit, map pin, parking and accessibility: staff confirmation required.
 
@@ -414,7 +414,7 @@ Escalate implants/devices, medical history, active skin problems, pregnancy or r
 ## Laser Hair Removal — Soprano Titanium
 
 ### Overview
-Dermiére publicly offers Soprano Titanium laser hair removal at its F-10 and Bahria branches. Areas, packages, device availability and practitioner schedules can vary.
+Dermiére publicly offers Soprano Titanium laser hair removal at its F-10 and Gulberg branches. Areas, packages, device availability and practitioner schedules can vary.
 
 ### Common customer questions
 Customers ask about face/body areas, pain, shaving, session count, skin tone, men's services and packages.
@@ -426,7 +426,7 @@ A trained professional must assess skin, hair, medicines, recent tanning and hea
 No approved clinic-specific protocol is stored. Ask staff; do not invent shaving or sun-exposure instructions.
 
 ### Price information
-Historical men's prices were face/neck Rs 6,000, beard line Rs 4,000, back Rs 8,000, full arms Rs 8,000 and chest Rs 7,000. A Bahria-only full body + face promotion was observed at Rs 18,999 on 5 August 2026. All prices are dynamic; call `get_current_price`.
+Historical men's prices were face/neck Rs 6,000, beard line Rs 4,000, back Rs 8,000, full arms Rs 8,000 and chest Rs 7,000. A Gulberg-only full body + face promotion was observed at Rs 18,999 on 5 August 2026. All prices are dynamic; call `get_current_price`.
 
 ### Safety and escalation
 Escalate medication, photosensitivity, pregnancy, active infection, recent tanning, burns or significant reactions.
@@ -597,7 +597,7 @@ All amounts below are historical public observations. Do not quote them as curre
 | Men's back laser | Rs 8,000 | Historical menu |
 | Men's full-arms laser | Rs 8,000 | Historical menu |
 | Men's chest laser | Rs 7,000 | Historical menu |
-| Full body + face laser, Bahria only | Rs 18,999 | Promotion observed 5 August 2026 |
+| Full body + face laser, Gulberg only | Rs 18,999 | Promotion observed 5 August 2026 |
 | Quicky IV | Rs 2,500 | Undated printed menu |
 | The Hangover IV | Rs 3,500 | Undated printed menu |
 | Recovery IV | Rs 4,500 | Undated printed menu |
@@ -611,7 +611,7 @@ No approved permanent policy is stored for consultation fees, deposits, cancella
 ## Clinic, branches and hours
 
 ### What is Dermiére Clinic?
-Dermiére is an aesthetic and wellness clinic with branches in Islamabad and Rawalpindi. It publicly lists consultations, facials, injectables, lasers, hair/scalp procedures and IV therapies.
+Dermiére is an aesthetic and wellness clinic with F-10 and Gulberg branches in Islamabad. It publicly lists consultations, facials, injectables, lasers, hair/scalp procedures and IV therapies.
 
 ### Is this Dr. Anusha's clinic?
 Yes. Dr. Anusha Liaqat publicly identifies as Dermiére's owner. Credential-verification or practitioner-availability questions should go to staff.
@@ -625,11 +625,11 @@ The public location is Ahmed Faraz Road, F-10/1, Islamabad. The exact building a
 ### F-10 wali branch kidhar hai?
 Public address Ahmed Faraz Road, F-10/1 Islamabad hai. Exact building ya pin ke liye 0304 6571349 par confirmation lein.
 
-### Where is the Rawalpindi branch?
-The public location is Bahria Town Phase 7, Rawalpindi. Confirm the exact street and unit at 0323 6062601.
+### Where is the Gulberg branch?
+The public location is Gulberg, Islamabad. Confirm the exact street and unit at 0323 6062601.
 
-### Bahria branch ka number kya hai?
-Bahria Town Phase 7 branch ka public number 0323 6062601 hai.
+### Gulberg branch ka number kya hai?
+Gulberg Islamabad branch ka public number 0323 6062601 hai.
 
 ### Islamabad branch ka number?
 F-10 Islamabad branch ka public number 0304 6571349 hai.
@@ -641,7 +641,7 @@ Standard published hours are Monday to Saturday, 12 noon to 6 pm. Holiday, Ramad
 Reliable Sunday hours are not stored. I need to check live with the branch.
 
 ### Aaj clinic khula hai?
-Standard timing Monday to Saturday 12 se 6 hai, lekin aaj ki timing live check karni hogi. F-10 ya Bahria?
+Standard timing Monday to Saturday 12 se 8 hai, lekin aaj ki timing live check karni hogi. F-10 ya Gulberg?
 
 ### Are Ramadan timings different?
 They can be. I’ll check the current seasonal timing rather than use the standard schedule.
@@ -766,7 +766,7 @@ HIFU appeared in clinic-associated content, but current availability must be con
 I cannot assess suitability or promise reduction. Staff must confirm the service, then a clinician must assess you.
 
 ### Do you offer laser hair removal?
-Yes. Dermiére publicly offers Soprano Titanium laser hair removal at F-10 and Bahria.
+Yes. Dermiére publicly offers Soprano Titanium laser hair removal at F-10 and Gulberg.
 
 ### Laser painful hota hai?
 Comfort varies by person, area and settings. The laser professional can explain what to expect.
@@ -822,7 +822,7 @@ Har patient ke liye automatically safe nahi hoti. Ingredients, medicines, allerg
 Tell me your branch, service or broad concern, preferred date and contact details. A slot is confirmed only after the booking tool succeeds.
 
 ### Kal appointment mil sakti hai?
-Main live availability check karta hoon. F-10 ya Bahria, kis treatment ke liye, aur preferred time kya hai?
+Main live availability check karta hoon. F-10 ya Gulberg, kis treatment ke liye, aur preferred time kya hai?
 
 ### Can I walk in?
 Walk-in policy is not stored. Check availability first so the right practitioner and time can be arranged.
@@ -902,10 +902,10 @@ This may be an emergency. Call local emergency services or go to the nearest eme
 Vision changes after an injectable need emergency assessment. Contact local emergency services or the nearest emergency department immediately and alert the clinic.
 
 ### Can I speak to a human?
-Of course. Tell me whether you need the F-10 or Bahria team and I’ll connect you or arrange a callback.
+Of course. Tell me whether you need the F-10 or Gulberg team and I’ll connect you or arrange a callback.
 
 ### Human staff se baat karwa dein.
-Bilkul. F-10 team chahiye ya Bahria branch? Main connect ya callback request karwa deta hoon.
+Bilkul. F-10 team chahiye ya Gulberg branch? Main connect ya callback request karwa deta hoon.
 
 ### I want to complain about my treatment.
 I’ll escalate this to staff and record the branch, treatment date and callback number. If you have urgent symptoms, seek urgent medical care first.
@@ -978,7 +978,7 @@ Urgent symptoms go to emergency care first, then clinic staff.
 - **Polynucleotide variants:** polynucleotides, PN, Salmon DNA, PDRN. Do not assume products are identical.
 - **Laser hair-removal variants:** LHR, Soprano, Soprano Titanium, full-body laser.
 - **Hair variants:** PRP hair, PRGF, exosome hair treatment, hair fall, frontal thinning.
-- **Branch variants:** F-10, F10, F-10/1, Ahmed Faraz Road, Bahria, Bahria Phase 7, Bahria Town Rawalpindi.
+- **Branch variants:** F-10, F10, F-10/1, Ahmed Faraz Road, Gulberg, Gulberg Islamabad.
 
 # Dynamic Data Rules
 

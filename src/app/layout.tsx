@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   ),
   title: "Dermiére · Clinic OS",
   description:
-    "Dermiére Clinic OS - patients, calendar, point of sale, reviews, and a CRM for leads, follow-ups, shared conversations and feedback. Gulberg and F-11.",
+    "Dermiére Clinic OS - patients, calendar, point of sale, reviews, and a CRM for leads, follow-ups, shared conversations and feedback. F-10 and Gulberg Islamabad.",
   openGraph: {
     title: "Dermiére · Clinic OS",
     description:

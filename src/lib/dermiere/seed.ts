@@ -135,7 +135,7 @@ const INBOUND_OPENERS = [
   "Hello, I saw your page. How much for laser hair reduction full legs?",
   "Salam, is Dr. Sana available next week for a consultation?",
   "Hi, I did a peel last month. Skin is a bit dry, is that normal?",
-  "Do you have a branch in Lahore? I am in Gulberg.",
+  "Do you have a branch in Islamabad? I am in Gulberg.",
 ];
 
 /**
@@ -267,9 +267,7 @@ export function buildDermiereSeed(
         r() < 0.45
           ? `${name.toLowerCase().replace(/[^a-z]/g, ".")}@example.com`
           : undefined,
-      // The branches sit in different cities: F-10 is the Islamabad main
-      // clinic, Gulberg is Lahore. branchIds[0] is always the main branch.
-      city: branch === branchIds[0] ? "Islamabad" : "Lahore",
+      city: "Islamabad",
       gender,
       stage,
       source: pick(r, SOURCES),
@@ -306,6 +304,7 @@ export function buildDermiereSeed(
         email: contact.email,
         gender,
         city: contact.city ?? "Islamabad",
+        branch_id: branch,
         language: r() < 0.5 ? "urdu" : "english",
         source: contact.source === "walk_in" ? "walk_in" : "social",
         clinical_flags: {},

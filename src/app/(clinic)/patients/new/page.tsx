@@ -38,7 +38,7 @@ export default function RegisterPatientPage() {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<"female" | "male" | "other">("female");
-  const [city, setCity] = useState("Lahore");
+  const [city, setCity] = useState("Islamabad");
   const [language, setLanguage] = useState<"urdu" | "english" | "other">("urdu");
   const [source, setSource] = useState<PatientSource>("walk_in");
   const [email, setEmail] = useState("");
@@ -88,7 +88,8 @@ export default function RegisterPatientPage() {
       email: email.trim() || undefined,
       age: age ? parseInt(age, 10) : undefined,
       gender,
-      city: city.trim() || "Lahore",
+      city: city.trim() || "Islamabad",
+      branch_id: user.branch_id,
       language,
       source,
       clinical_flags: { allergies: allergies.trim() || undefined },
@@ -118,7 +119,7 @@ export default function RegisterPatientPage() {
       <div className="fade-up">
         <h1 className="h1 text-ink-900">Register patient</h1>
         <p className="caption mt-0.5">
-          Details, consent, photos. The patient joins today's queue when saved.
+          Details, consent, photos. The patient joins today&rsquo;s queue when saved.
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 # Vybero Knowledge Base Research Pack — Dermiére Aesthetic & Wellness Clinic
 
 **Research/access date:** 2026-08-05  
-**Market:** Islamabad and Rawalpindi, Pakistan  
+**Market:** Islamabad, Pakistan
 **Intended system:** Vybero, an ElevenLabs customer-facing voice agent  
 **Canonical public spelling found:** **Dermiére Aesthetic & Wellness Clinic**  
 **Important:** Prices, hours, promotions, practitioners, availability, formulations and policies are dynamic. Vybero must verify them through the appropriate live tool or clinic staff.
@@ -10,9 +10,9 @@
 
 The researched organisation is the Pakistan-based **Dermiére Aesthetic & Wellness Clinic** associated with **Dr. Anusha Liaqat**. This identity is confirmed by cross-matching several first-party signals:
 
-1. The clinic's official Instagram profile names the brand, publishes Islamabad and Rawalpindi branch information, lists two Pakistani mobile numbers, and repeatedly associates the clinic with Dr. Anusha Liaqat [S01, S09–S12].
+1. The clinic's official Instagram profile names the brand, publishes Islamabad branch information, lists two Pakistani mobile numbers, and repeatedly associates the clinic with Dr. Anusha Liaqat [S01, S09–S12].
 2. Dr. Anusha Liaqat's own Instagram profile identifies her as the owner of `@dermiere.isb`; clinic posts and her account cross-link one another [S03, S06–S08].
-3. First-party posts repeatedly give the current public location descriptions as Ahmed Faraz Road, F-10/1, Islamabad, and Bahria Town Phase 7, Rawalpindi, along with the same contact numbers [S09–S12].
+3. First-party posts repeatedly give the current public location descriptions as Ahmed Faraz Road, F-10/1, Islamabad, and Gulberg, Islamabad, along with the same contact numbers [S09–S12].
 4. The user-supplied photographed menu carries the same Dermiére Aesthetics & Wellness Clinic wordmark and describes IV services consistent with the clinic's first-party IV posts [S45–S48, S51].
 
 The spelling in the user's brief, **Dernière**, was not the spelling used by the Pakistan clinic's first-party accounts or photographed menu. Search also surfaced unrelated businesses using similar spellings. These were deliberately excluded:
@@ -29,14 +29,14 @@ No official Pakistan website, stable official Google Business URL, or verified P
 
 ## B. Executive summary
 
-Dermiére is a public-facing aesthetic and wellness clinic operating in Islamabad and Rawalpindi. Its first-party content emphasises personalised treatment planning, natural-looking injectable outcomes, skin quality, regenerative treatments, energy-based procedures, laser hair removal, hair/scalp procedures, facials and IV infusions. Dr. Anusha Liaqat is publicly presented as the clinic owner and as a dermatologist and aesthetic physician [S01–S04, S13–S17].
+Dermiére is a public-facing aesthetic and wellness clinic operating in Islamabad. Its first-party content emphasises personalised treatment planning, natural-looking injectable outcomes, skin quality, regenerative treatments, energy-based procedures, laser hair removal, hair/scalp procedures, facials and IV infusions. Dr. Anusha Liaqat is publicly presented as the clinic owner and as a dermatologist and aesthetic physician [S01–S04, S13–S17].
 
 The public treatment record is broad but operational information is incomplete. The clinic has published treatment menus and promotional prices, but no stable public booking portal or comprehensive policy page was found. Publicly documented preparation, aftercare, contraindication and follow-up instructions are sparse. Vybero should therefore handle factual orientation and administrative intake, while using live tools for current prices, availability and appointment changes, and escalating all clinical suitability, medication, reaction, diagnosis and emergency questions.
 
 Public branches:
 
 - Islamabad: Ahmed Faraz Road, F-10/1; public mobile 0304 6571349.
-- Rawalpindi: Bahria Town Phase 7; public mobile 0323 6062601.
+- Islamabad: Gulberg; public mobile 0323 6062601.
 - Repeated first-party hours: Monday to Saturday, 12:00 pm to 6:00 pm. Seasonal hours may differ.
 
 ## C. Source registry
@@ -55,7 +55,7 @@ All sources were accessed on **2026-08-05**. “Official” means published by t
 | S08 | Quick clinic tour | Dr. Anusha Liaqat | <https://www.instagram.com/reel/DN8MibaDOPK/> | Social post | Official | 2026-08-05 | High | Hours, clinic identity | Instagram version of clinic tour |
 | S09 | Clinic booking/contact post | Dermiére | <https://www.instagram.com/reel/DaTZu-ZTZru/> | Social post | Official | 2026-08-05 | High | Booking, branches, phones | Recent first-party contact evidence |
 | S10 | Clinic services/review post | Dermiére | <https://www.instagram.com/reel/Da8shJMuZ0d/> | Social post | Official | 2026-08-05 | Medium | Hydrafacial, Oxygeneo, carbon laser, IV | Marketing/testimonial content |
-| S11 | Location and contact post | Dermiére | <https://www.instagram.com/p/DYK4WiHDuLs/> | Social post | Official | 2026-08-05 | High | F-10, Bahria, phones, IV | Recent branch/contact evidence |
+| S11 | Location and contact post | Dermiére | <https://www.instagram.com/p/DYK4WiHDuLs/> | Social post | Official | 2026-08-05 | High | F-10, Gulberg, phones, IV | Recent branch/contact evidence |
 | S12 | Branches and phone numbers | Dermiére | <https://www.instagram.com/p/DSH3OHEDbP0/> | Social post | Official | 2026-08-05 | High | Branches, phones | Corroborates S11 |
 | S13 | Bespoke treatment-plan post | Dermiére | <https://www.instagram.com/reel/DFVJATWonuP/> | Social post | Official | 2026-08-05 | Medium | Consultation approach | Brand positioning, not a clinical protocol |
 | S14 | Natural-results positioning | Dermiére | <https://www.instagram.com/reel/Da5qvPasGCH/> | Social post | Official | 2026-08-05 | Medium | Natural approach, Profhilo | Marketing language |
@@ -70,7 +70,7 @@ All sources were accessed on **2026-08-05**. “Official” means published by t
 | S24 | Microneedling with PRP | Dermiére | <https://www.instagram.com/p/DR466phDaB5/> | Procedure post | Official | 2026-08-05 | High for published procedure card | Duration, downtime, result timeline, discomfort | Individual experience varies |
 | S25 | Acne-scar client journey | Dermiére | <https://www.instagram.com/p/DRUB2YpjcHX/> | Social post | Official | 2026-08-05 | Medium | Acne scars | Marketing case; not general outcome evidence |
 | S26 | Polynucleotide treatment | Dermiére | <https://www.instagram.com/reel/C9vFPgZI7HU/> | Social post | Official | 2026-08-05 | Medium | Skin quality, hydration, under-eye area | Marketing claims; consultation required |
-| S27 | Glass Skin Treatment | Dermiére | <https://www.instagram.com/reel/DOOsioQjVa1/> | Social post | Official | 2026-08-05 | Medium | Baby Botox + PRP, Bahria branch | Posted 2025-09-05 |
+| S27 | Glass Skin Treatment | Dermiére | <https://www.instagram.com/reel/DOOsioQjVa1/> | Social post | Official | 2026-08-05 | Medium | Baby Botox + PRP, Gulberg branch | Posted 2025-09-05 |
 | S28 | Sculptra overview | Dermiére | <https://www.instagram.com/p/DVwm9kTjWFf/> | Social post | Official | 2026-08-05 | Medium | Collagen biostimulator | Posted 2026-03-11 |
 | S29 | Sculptra availability | Dermiére | <https://www.instagram.com/reel/DbTZfbsoa90/> | Social post | Official | 2026-08-05 | Medium | Sculptra | Availability may change |
 | S30 | Radiesse overview | Dermiére | <https://www.instagram.com/p/DZvZaT1As5S/> | Social post | Official | 2026-08-05 | Medium | Collagen-stimulating injectable | No price/protocol published |
@@ -101,9 +101,9 @@ All sources were accessed on **2026-08-05**. “Official” means published by t
 | Public professional descriptor | “Dermatologist & Aesthetic Physician” | S03, S04 | Dr. Anusha profile/reels | Confirmed as self-published | Accessed 2026-08-05 | Dynamic profile | Yes, if presented as independently verified |
 | Publicly listed qualifications | MBBS; MCPS Dermatology (CMH); PGCert Aesthetic Medicine | S03, S04 | Dr. Anusha profile/reels | Probable/self-published | Accessed 2026-08-05 | Mostly static | Yes |
 | Islamabad branch | Ahmed Faraz Road, F-10/1, Islamabad | S01, S09, S11, S12 | Clinic profile/contact posts | Confirmed | 2026 public posts | Dynamic | Yes, exact building/pin |
-| Rawalpindi branch | Bahria Town Phase 7, Rawalpindi | S01, S09, S11, S12 | Clinic profile/contact posts | Confirmed | 2026 public posts | Dynamic | Yes, exact street/unit |
+| Islamabad branch | Gulberg, Islamabad | S01, S09, S11, S12 | Clinic profile/contact posts | Confirmed | 2026 public posts | Dynamic | Yes, exact street/unit |
 | Islamabad phone | 0304 6571349 | S01, S09–S12 | Profile/contact posts | Confirmed | 2026 public posts | Dynamic | Yes before deployment |
-| Bahria phone | 0323 6062601 | S01, S09–S12 | Profile/contact posts | Confirmed | 2026 public posts | Dynamic | Yes before deployment |
+| Gulberg phone | 0323 6062601 | S01, S09–S12 | Profile/contact posts | Confirmed | 2026 public posts | Dynamic | Yes before deployment |
 | Standard published hours | Monday–Saturday, 12:00 pm–6:00 pm | S01, S07, S08 | Profile and clinic tour | Confirmed | Accessed 2026-08-05 | Dynamic | Yes; seasonal/holiday hours |
 | Sunday hours | Not publicly established | — | No reliable first-party source found | Unverified | 2026-08-05 | Dynamic | Yes |
 | Booking channels | Phone/WhatsApp and Instagram direct message | S01, S03, S09–S12 | Profiles/contact posts | Probable | 2026 public posts | Dynamic | Yes; confirm WhatsApp capability |
@@ -145,7 +145,7 @@ All sources were accessed on **2026-08-05**. “Official” means published by t
 | Salmon DNA Facial price | Rs 45,000 as posted | S18 | Signature Facial Menu | Confirmed historical | 2026-03-13 | Dynamic | Yes/get_current_price |
 | Ultimate Skin Booster price | Rs 49,000 as posted | S18 | Signature Facial Menu | Confirmed historical | 2026-03-13 | Dynamic | Yes/get_current_price |
 | Men's laser prices | Face/neck 6,000; beard line 4,000; back 8,000; arms 8,000; chest 7,000 | S37 | Men's laser menu | Confirmed historical | 2026 page | Dynamic | Yes/get_current_price |
-| Full body + face laser promotion | Rs 18,999, Bahria branch only, visible at access | S01, S02 | Clinic profile/reels index | Confirmed as observed promotion | 2026-08-05 | Highly dynamic | Yes/get_current_price |
+| Full body + face laser promotion | Rs 18,999, Gulberg branch only, visible at access | S01, S02 | Clinic profile/reels index | Confirmed as observed promotion | 2026-08-05 | Highly dynamic | Yes/get_current_price |
 | Permanent consultation fee | Not established; “free” appeared only in promotions | — | No stable policy source | Unverified | 2026-08-05 | Dynamic | Yes |
 | Cancellation/reschedule/deposit/refund/late policy | No reliable public policy located | — | Research finding | Unverified | 2026-08-05 | Dynamic | Yes |
 
@@ -153,7 +153,7 @@ All sources were accessed on **2026-08-05**. “Official” means published by t
 
 # Dermiére Clinic Overview
 
-Dermiére Aesthetic & Wellness Clinic is an aesthetic and wellness clinic with public branches in Islamabad and Rawalpindi. First-party content focuses on personalised planning, natural-looking injectable outcomes, skin quality, laser services, regenerative procedures, hair/scalp treatments, facials and IV infusions [S01, S10, S13–S19].
+Dermiére Aesthetic & Wellness Clinic is an aesthetic and wellness clinic with public branches in Islamabad. First-party content focuses on personalised planning, natural-looking injectable outcomes, skin quality, laser services, regenerative procedures, hair/scalp treatments, facials and IV infusions [S01, S10, S13–S19].
 
 Vybero is an AI voice assistant. It may explain publicly documented services, locations, standard published hours and booking channels. It must not diagnose, choose a treatment, assess suitability, prescribe, promise outcomes or present marketing claims as established medical fact.
 
@@ -163,15 +163,15 @@ Dr. Anusha Liaqat publicly identifies as Dermiére's owner and describes herself
 
 # Locations and Contact Details
 
-## Islamabad branch
+## Gulberg Islamabad branch
 
 - Public location: Ahmed Faraz Road, F-10/1, Islamabad [S01, S09, S11, S12].
 - Public contact: 0304 6571349 [S01, S09–S12].
 - Exact building, unit and verified map pin: not publicly established; staff confirmation required.
 
-## Rawalpindi branch
+## Islamabad branch
 
-- Public location: Bahria Town Phase 7, Rawalpindi [S01, S09, S11, S12].
+- Public location: Gulberg, Islamabad [S01, S09, S11, S12].
 - Public contact: 0323 6062601 [S01, S09–S12].
 - Exact street, unit and verified map pin: not publicly established; staff confirmation required.
 
@@ -511,7 +511,7 @@ Escalate implants/devices, medical history, active skin problems, pregnancy and 
 ## Laser Hair Removal — Soprano Titanium
 
 ### Overview
-The clinic publicly offers laser hair removal using Soprano Titanium at its F-10 and Bahria branches [S34, S35, S37, S38]. Areas and packages vary.
+The clinic publicly offers laser hair removal using Soprano Titanium at its F-10 and Gulberg branches [S34, S35, S37, S38]. Areas and packages vary.
 
 ### Common customer questions
 Customers ask about face/body areas, pain, shaving, session count, skin tone, men’s services and packages.
@@ -520,7 +520,7 @@ Customers ask about face/body areas, pain, shaving, session count, skin tone, me
 A trained professional must assess skin, hair, medications, recent tanning and relevant health factors. No verified clinic-specific preparation/aftercare protocol was found.
 
 ### Price information
-One men's menu listed face/neck Rs 6,000, beard line Rs 4,000, back Rs 8,000, full arms Rs 8,000 and chest Rs 7,000 [S37]. A profile promotion observed 2026-08-05 listed full body + face at Rs 18,999 for Bahria only [S01, S02]. All are dynamic; use `get_current_price`.
+One men's menu listed face/neck Rs 6,000, beard line Rs 4,000, back Rs 8,000, full arms Rs 8,000 and chest Rs 7,000 [S37]. A profile promotion observed 2026-08-05 listed full body + face at Rs 18,999 for Gulberg only [S01, S02]. All are dynamic; use `get_current_price`.
 
 ### Safety and escalation
 Escalate medication, photosensitivity, pregnancy, active infection, recent tanning, burns or significant reactions.
@@ -691,7 +691,7 @@ All prices below are historical observations, not current quotations. Vybero mus
 | Men's back laser | Rs 8,000 | S37; post/menu date not captured |
 | Men's full-arms laser | Rs 8,000 | S37; post/menu date not captured |
 | Men's chest laser | Rs 7,000 | S37; post/menu date not captured |
-| Full body + face laser, Bahria only | Rs 18,999 | S01/S02; promotion observed 2026-08-05 |
+| Full body + face laser, Gulberg only | Rs 18,999 | S01/S02; promotion observed 2026-08-05 |
 | Quicky IV | Rs 2,500 | S51; undated photographed menu |
 | The Hangover IV | Rs 3,500 | S51; undated photographed menu |
 | Recovery IV | Rs 4,500 | S51; undated photographed menu |
@@ -730,14 +730,14 @@ Escalate to clinic staff when the customer asks about suitability, diagnosis, co
 - Polynucleotide variants: polynucleotides, PN, Salmon DNA, PDRN. Do not assume products are identical; ask staff.
 - Laser hair-removal variants: LHR, Soprano, Soprano Titanium, full-body laser.
 - Hair variants: PRP hair, PRGF, exosome hair treatment, hair fall, frontal thinning.
-- Branch variants: F-10, F10, F-10/1, Ahmed Faraz Road; Bahria, Bahria Phase 7, Bahria Town Rawalpindi.
+- Branch variants: F-10, F10, F-10/1, Ahmed Faraz Road; Gulberg, Gulberg Islamabad.
 
 ## F. Voice-agent FAQ dataset
 
 Each answer is designed for speech and is under 80 words. Live tool calls are described rather than simulated.
 
 1. **What is Dermiére Clinic?**  
-   Dermiére is an aesthetic and wellness clinic with branches in Islamabad and Rawalpindi. It publicly offers consultations, facials, injectables, lasers, hair and scalp procedures, and IV therapies. I can explain the public service list or help you reach the clinic.
+   Dermiére is an aesthetic and wellness clinic with branches in Islamabad. It publicly offers consultations, facials, injectables, lasers, hair and scalp procedures, and IV therapies. I can explain the public service list or help you reach the clinic.
 
 2. **Is this Dr. Anusha's clinic?**  
    Yes. Dr. Anusha Liaqat publicly identifies as the owner of Dermiére. If you need to verify a credential or ask about her personal availability, I’ll check with clinic staff.
@@ -866,7 +866,7 @@ Each answer is designed for speech and is under 80 words. Live tool calls are de
     A public visitor post mentioned jawline and double-chin concerns, but I can’t assess suitability or promise reduction. Staff must confirm the service and a clinician must evaluate you.
 
 44. **Do you offer laser hair removal?**  
-    Yes, Dermiére publicly offers Soprano Titanium laser hair removal at its F-10 and Bahria branches. I can check the area, package, price and slot.
+    Yes, Dermiére publicly offers Soprano Titanium laser hair removal at its F-10 and Gulberg branches. I can check the area, package, price and slot.
 
 45. **Laser painful hota hai?**  
     Comfort varies by person, area and settings. I can’t promise pain-free treatment. The laser professional can explain the device and what to expect for your area.
@@ -881,7 +881,7 @@ Each answer is designed for speech and is under 80 words. Live tool calls are de
     Yes. Public menus have listed men’s face and neck, beard line, back, arms and chest. I can check the current branch availability and price.
 
 49. **Full body laser offer abhi available hai?**  
-    Offers can change quickly. I’ll check the current full-body package and whether it applies to F-10, Bahria or both.
+    Offers can change quickly. I’ll check the current full-body package and whether it applies to F-10, Gulberg or both.
 
 50. **Can I get laser while pregnant?**  
     I can’t confirm suitability during pregnancy. Please speak with the clinic’s qualified professional before booking any laser procedure.
@@ -922,11 +922,11 @@ Each answer is designed for speech and is under 80 words. Live tool calls are de
 62. **F-10 wali branch kidhar hai?**  
     Public address Ahmed Faraz Road, F-10/1 Islamabad hai. Exact building ya pin ke liye branch number 0304 6571349 par confirmation lein; main staff se connect bhi kar sakta hoon.
 
-63. **Where is the Rawalpindi branch?**  
-    The public location is Bahria Town Phase 7, Rawalpindi. The exact street and unit are not reliably public, so please confirm the pin with the branch at 0323 6062601.
+63. **Where is the Gulberg branch?**
+    The public location is Gulberg, Islamabad. The exact street and unit are not reliably public, so please confirm the pin with the branch at 0323 6062601.
 
-64. **Bahria branch ka number kya hai?**  
-    Bahria Town Phase 7 branch ka public number 0323 6062601 hai. Deployment se pehle staff is number ko verify karega.
+64. **Gulberg branch ka number kya hai?**
+    Gulberg branch ka public number 0323 6062601 hai. Deployment se pehle staff is number ko verify karega.
 
 65. **Islamabad branch ka number?**  
     F-10 Islamabad branch ka public number 0304 6571349 hai.
@@ -938,7 +938,7 @@ Each answer is designed for speech and is under 80 words. Live tool calls are de
     I don’t have reliable published Sunday hours. Let me check live with the branch.
 
 68. **Aaj clinic khula hai?**  
-    Standard timing Monday to Saturday, 12 se 6 hai, lekin aaj ki branch timing live check karna better hai. Kaunsi branch chahiye—F-10 ya Bahria?
+    Standard timing Monday to Saturday, 12 se 6 hai, lekin aaj ki branch timing live check karna better hai. Kaunsi branch chahiye—F-10 ya Gulberg?
 
 69. **Are Ramadan timings different?**  
     They can be. Older Ramadan posts used different hours, so I’ll check the current seasonal timing rather than use the standard schedule.
@@ -947,7 +947,7 @@ Each answer is designed for speech and is under 80 words. Live tool calls are de
     Tell me your preferred branch, service or broad concern, preferred date and contact number. I’ll use the booking system. A slot is confirmed only when the booking tool returns confirmation.
 
 71. **Kal appointment mil sakti hai?**  
-    Main live availability check karta hoon. F-10 ya Bahria branch, kis treatment ke liye, aur preferred time kya hai?
+    Main live availability check karta hoon. F-10 ya Gulberg branch, kis treatment ke liye, aur preferred time kya hai?
 
 72. **Can I walk in?**  
     Walk-in policy isn’t publicly confirmed. I recommend checking availability first so the right practitioner and treatment time can be arranged.
@@ -1022,10 +1022,10 @@ Each answer is designed for speech and is under 80 words. Live tool calls are de
     Vision changes after an injectable procedure need emergency assessment. Contact local emergency services or the nearest emergency department immediately and alert the clinic. I can’t safely triage this by phone.
 
 96. **Can I speak to a human?**  
-    Of course. Tell me whether you need the F-10 or Bahria team and I’ll connect or arrange a callback.
+    Of course. Tell me whether you need the F-10 or Gulberg team and I’ll connect or arrange a callback.
 
 97. **Human staff se baat karwa dein.**  
-    Bilkul. F-10 team chahiye ya Bahria branch? Main aap ko connect ya callback request karwa deta hoon.
+    Bilkul. F-10 team chahiye ya Gulberg branch? Main aap ko connect ya callback request karwa deta hoon.
 
 98. **I want to complain about my treatment.**  
     I’m sorry you’re concerned. I’ll escalate this to a human staff member and record the branch, treatment date and best callback number. If you have urgent symptoms, please seek urgent medical care first.
@@ -1069,7 +1069,7 @@ Staff should complete and approve the following before production deployment:
 2. Confirm Dr. Anusha Liaqat's preferred public name, title, credentials and any registration details Vybero may state.
 3. Confirm exact Islamabad address, building/unit, verified map pin, parking and accessibility.
 4. Resolve historical F-10/2 references against the current repeated F-10/1 address.
-5. Confirm exact Bahria Town Phase 7 street, plaza/unit, landmark, map pin, parking and accessibility.
+5. Confirm exact Gulberg street, plaza/unit, landmark, map pin, parking and accessibility.
 6. Confirm current phone numbers, WhatsApp availability, call-routing ownership and response hours.
 7. Confirm standard, Sunday, Ramadan, holiday and branch-specific hours.
 8. Supply the official booking URL if one exists and define whether Instagram DMs create bookings or only enquiries.
@@ -1088,7 +1088,7 @@ Staff should complete and approve the following before production deployment:
 21. Confirm the lip-filler “minimal downtime” and two-week final-result statement is still approved.
 22. Supply current price master, branch differences, tax inclusion, starting prices, packages and promotion expiry.
 23. Confirm or retire every price observed in S18, S37 and S51.
-24. Confirm the full body + face laser Rs 18,999 promotion, eligibility, included areas and Bahria-only status.
+24. Confirm the full body + face laser Rs 18,999 promotion, eligibility, included areas and Gulberg-only status.
 25. Confirm current consultation fee and when, if ever, consultation is free or redeemable.
 26. Provide booking deposit, rescheduling, cancellation, no-show, late-arrival, refund, package expiry/transfer and price-dispute policies.
 27. Provide policy for minors, guardians, companions, photography, consent, privacy and record handling.

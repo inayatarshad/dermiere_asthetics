@@ -30,6 +30,7 @@ import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { formatPkr, CAPTURE_TREATMENTS, CAPTURE_PRODUCTS, findTreatment } from "@/lib/capture/kb";
 import type { Invoice, InvoiceItem, PaymentMethod } from "@/lib/types";
+import { derivePatientBranches } from "@/lib/patientBranch";
 import { Modal, Spinner } from "@/components/ui";
 
 type Tab = "treatments" | "products" | "regimens";
@@ -63,6 +64,10 @@ export default function PosPage() {
   const sessionUserId = useStore((s) => s.sessionUserId);
 
   const me = users.find((u) => u.id === sessionUserId);
+  const assignedLocationId =
+    me?.branch_id && locations.some((location) => location.id === me.branch_id)
+      ? me.branch_id
+      : null;
 
   const [tab, setTab] = useState<Tab>("treatments");
   const [query, setQuery] = useState("");
@@ -77,7 +82,7 @@ export default function PosPage() {
   // user picks one. Derived rather than synced, so config arriving late needs
   // no effect and cannot cause a cascading render.
   const [pickedLocation, setPickedLocation] = useState("");
-  const locationId = pickedLocation || locations[0]?.id || "";
+  const locationId = assignedLocationId || pickedLocation || locations[0]?.id || "";
   const [codeInput, setCodeInput] = useState("");
   const [codeBusy, setCodeBusy] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -92,30 +97,44 @@ export default function PosPage() {
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [reviewBusy, setReviewBusy] = useState(false);
 
-  // Picker suggestions: name or phone contains the typed text
+  const patientBranches = useMemo(
+    () => derivePatientBranches(patients, appointments, invoices),
+    [appointments, invoices, patients]
+  );
+  const availablePatients = useMemo(
+    () =>
+      assignedLocationId
+        ? patients.filter(
+            (patient) => patientBranches.get(patient.id) === assignedLocationId
+          )
+        : patients,
+    [assignedLocationId, patientBranches, patients]
+  );
+
+  // Picker suggestions: branch-scoped name or phone contains the typed text.
   const patientMatches = useMemo(() => {
     const q = clientName.trim().toLowerCase();
-    if (!q) return patients.slice(0, 6);
-    return patients
+    if (!q) return availablePatients.slice(0, 6);
+    return availablePatients
       .filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
           (p.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, ""))
       )
       .slice(0, 6);
-  }, [patients, clientName]);
+  }, [availablePatients, clientName]);
 
   // The billed client: explicit pick wins; exact typed name still links
   // (covers the today's-sessions prefill) - otherwise it's a walk-in.
   const matchedPatient = useMemo(() => {
     if (selectedPatientId) {
-      const p = patients.find((x) => x.id === selectedPatientId);
+      const p = availablePatients.find((x) => x.id === selectedPatientId);
       if (p) return p;
     }
-    return patients.find(
+    return availablePatients.find(
       (p) => p.name.toLowerCase() === clientName.trim().toLowerCase()
     );
-  }, [patients, selectedPatientId, clientName]);
+  }, [availablePatients, selectedPatientId, clientName]);
 
   const patientBillCount = useMemo(
     () =>
@@ -126,7 +145,7 @@ export default function PosPage() {
   );
 
   const pickPatient = (id: string) => {
-    const p = patients.find((x) => x.id === id);
+    const p = availablePatients.find((x) => x.id === id);
     if (!p) return;
     setSelectedPatientId(p.id);
     setClientName(p.name);
@@ -155,6 +174,7 @@ export default function PosPage() {
     const t = findTreatment(appt.procedure_interest!);
     if (!t) return;
     setClientName(appt.patient_name);
+    setSelectedPatientId(appt.patient_id ?? null);
     setCart((c) => {
       if (c.some((l) => l.ref === t.id)) return c;
       return [
@@ -366,9 +386,12 @@ export default function PosPage() {
   const todaysInvoices = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     return invoices
-      .filter((i) => i.created_at.slice(0, 10) === today)
+      .filter(
+        (i) =>
+          i.created_at.slice(0, 10) === today && i.location_id === locationId
+      )
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [invoices]);
+  }, [invoices, locationId]);
 
   if (!mounted) return null;
 
@@ -627,6 +650,12 @@ export default function PosPage() {
                   className="input"
                   value={locationId}
                   onChange={(e) => setPickedLocation(e.target.value)}
+                  disabled={!!assignedLocationId}
+                  title={
+                    assignedLocationId
+                      ? "POS is assigned to your staff branch"
+                      : "Choose the branch receiving this payment"
+                  }
                 >
                   {(locations.length > 0
                     ? locations

@@ -312,8 +312,13 @@ export async function provisionDermiere(
     storedHours.close === "20:00" &&
     storedHours.slot_min === 30;
   const storedLocations = existing?.payload?.locations;
-  const locationsAreLegacySeed =
-    storedLocations?.some((location) => location.id === "branch_gulberg") ?? false;
+  const locationsNeedCanonicalMigration =
+    storedLocations?.some(
+      (location) =>
+        location.id === "branch_bahria_phase_7" ||
+        (location.id === "branch_gulberg" &&
+          (location.city !== "Islamabad" || location.area !== "Gulberg"))
+    ) ?? false;
 
   const config: ClinicConfig = {
     ...defaultConfig({
@@ -349,7 +354,7 @@ export async function provisionDermiere(
     // branch in code (a wrong city, a renamed site) could never reach the
     // database, because the stale row always won.
     locations:
-      !reconcile && storedLocations?.length && !locationsAreLegacySeed
+      !reconcile && storedLocations?.length && !locationsNeedCanonicalMigration
         ? storedLocations
         : DERMIERE_BRANCHES,
     taxRate: existing?.payload?.taxRate ?? 16,
