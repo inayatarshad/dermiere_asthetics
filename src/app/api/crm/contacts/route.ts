@@ -34,6 +34,7 @@ import { pgListAppointments, pgListRecords } from "@/lib/server/db";
 import type { Appointment, Patient } from "@/lib/types";
 import { isPlausiblePhone, normalizePhone } from "@/lib/crm/phone";
 import { LEAD_SOURCES, isStage, type ContactStage } from "@/lib/crm/types";
+import { projectCrmContacts } from "@/lib/crm/projection";
 
 export const runtime = "nodejs";
 
@@ -51,15 +52,16 @@ export async function GET(req: Request) {
       // already assigned without copying or updating the patient record.
       pgListRecords<Patient>(ctx.clinicId, "patients"),
     ]);
-    const patientById = new Map(patients.map((patient) => [patient.id, patient]));
-    const projectedContacts = contacts.map((contact) => {
-      const patientBranch = contact.patient_id
-        ? patientById.get(contact.patient_id)?.branch_id
-        : undefined;
-      return patientBranch && patientBranch !== contact.branch_id
-        ? { ...contact, branch_id: patientBranch }
-        : contact;
-    });
+    const validBranchIds = new Set(
+      (config?.locations ?? []).map((location) => location.id)
+    );
+    const projectedContacts = projectCrmContacts(
+      contacts,
+      patients,
+      appointments,
+      Date.now(),
+      validBranchIds
+    );
     const scopedContacts = crmScopeRows(ctx, projectedContacts);
     const scopedAppointments = ctx.branchId
       ? appointments.filter((appointment) => appointment.location_id === ctx.branchId)

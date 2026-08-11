@@ -49,6 +49,8 @@ import type {
   TreatmentPlan,
 } from "@/lib/types";
 import { normalizePhone } from "@/lib/crm/phone";
+import { projectCrmContacts } from "@/lib/crm/projection";
+import { getClinicConfig } from "@/lib/server/clinicStore";
 
 export const runtime = "nodejs";
 
@@ -69,7 +71,6 @@ export async function GET(
       ctx.canViewAllBranches || branchId === ctx.branchId;
 
     const [
-      activities,
       followUps,
       conversations,
       feedback,
@@ -77,11 +78,9 @@ export async function GET(
       invoices,
       plans,
       consultations,
+      patients,
+      config,
     ] = await Promise.all([
-        listActivitiesFor(ctx.clinicId, {
-          contactId: id,
-          patientId: contact.patient_id,
-        }),
         listFollowUps(ctx.clinicId),
         listConversations(ctx.clinicId),
         listFeedback(ctx.clinicId),
@@ -89,19 +88,38 @@ export async function GET(
         pgListRecords<Invoice>(ctx.clinicId, "invoices"),
         pgListRecords<TreatmentPlan>(ctx.clinicId, "plans"),
         pgListRecords<Consultation>(ctx.clinicId, "consultations"),
+        pgListRecords<Patient>(ctx.clinicId, "patients"),
+        getClinicConfig(ctx.clinicId),
       ]);
+    const projectedContact = projectCrmContacts(
+      [contact],
+      patients,
+      appointments,
+      Date.now(),
+      new Set((config?.locations ?? []).map((location) => location.id))
+    )[0];
+    const patientId = projectedContact.patient_id;
+    const activities = await listActivitiesFor(ctx.clinicId, {
+      contactId: id,
+      patientId,
+    });
 
     // --- fold the clinical record into the same timeline ----------------
     const derived: CrmActivity[] = [];
-    if (contact.patient_id) {
+    if (patientId) {
       for (const a of appointments) {
-        if (a.patient_id !== contact.patient_id) continue;
+        const samePatient = a.patient_id === patientId;
+        const sameUnlinkedPhone =
+          !a.patient_id &&
+          !!a.phone &&
+          normalizePhone(a.phone) === projectedContact.phone_norm;
+        if (!samePatient && !sameUnlinkedPhone) continue;
         if (!inScope(a.location_id)) continue;
         derived.push({
           id: `appt_${a.id}`,
           clinic_id: ctx.clinicId,
           contact_id: contact.id,
-          patient_id: contact.patient_id,
+          patient_id: patientId,
           kind: a.status === "completed" ? "visit" : "appointment",
           summary:
             a.status === "completed"
@@ -114,13 +132,13 @@ export async function GET(
         });
       }
       for (const inv of invoices) {
-        if (inv.patient_id !== contact.patient_id) continue;
+        if (inv.patient_id !== patientId) continue;
         if (!inScope(inv.location_id)) continue;
         derived.push({
           id: `inv_${inv.id}`,
           clinic_id: ctx.clinicId,
           contact_id: contact.id,
-          patient_id: contact.patient_id,
+          patient_id: patientId,
           kind: "invoice",
           summary: `Invoice ${inv.number} - Rs. ${inv.total.toLocaleString("en-PK")}`,
           branch_id: inv.location_id,
@@ -131,7 +149,7 @@ export async function GET(
       // A plan reaches its patient through the consultation it came out of.
       const patientConsultIds = new Set(
         consultations
-          .filter((c) => c.patient_id === contact.patient_id)
+          .filter((c) => c.patient_id === patientId)
           .map((c) => c.id)
       );
       for (const p of plans) {
@@ -140,7 +158,7 @@ export async function GET(
           id: `plan_${p.id}`,
           clinic_id: ctx.clinicId,
           contact_id: contact.id,
-          patient_id: contact.patient_id,
+          patient_id: patientId,
           kind: "treatment_plan",
           summary: "Treatment plan created",
           ref_id: p.id,
@@ -159,29 +177,27 @@ export async function GET(
     // The registry record itself, so the CRM can show a patient's clinical
     // detail in place instead of bouncing to a Clinic OS screen a CRM
     // account is not allowed to open.
-    const patient = contact.patient_id
-      ? (await pgListRecords<Patient>(ctx.clinicId, "patients")).find(
-          (p) => p.id === contact.patient_id
-        ) ?? null
+    const patient = patientId
+      ? patients.find((p) => p.id === patientId) ?? null
       : null;
-    const projectedContact =
-      patient?.branch_id && patient.branch_id !== contact.branch_id
-        ? { ...contact, branch_id: patient.branch_id }
-        : contact;
 
-    const patientAppointments = contact.patient_id
+    const patientAppointments = patientId
       ? appointments
           .filter(
             (a) =>
-              a.patient_id === contact.patient_id && inScope(a.location_id)
+              (a.patient_id === patientId ||
+                (!a.patient_id &&
+                  !!a.phone &&
+                  normalizePhone(a.phone) === projectedContact.phone_norm)) &&
+              inScope(a.location_id)
           )
           .sort((a, b) => b.start.localeCompare(a.start))
       : [];
-    const patientInvoices = contact.patient_id
+    const patientInvoices = patientId
       ? invoices
           .filter(
             (i) =>
-              i.patient_id === contact.patient_id && inScope(i.location_id)
+              i.patient_id === patientId && inScope(i.location_id)
           )
           .sort((a, b) => b.created_at.localeCompare(a.created_at))
       : [];
@@ -216,8 +232,8 @@ export async function GET(
           inScope(f.branch_id) &&
           f.contact_id === id ||
           (inScope(f.branch_id) &&
-            contact.patient_id &&
-            f.patient_id === contact.patient_id)
+            patientId &&
+            f.patient_id === patientId)
       ),
       conversations: conversations.filter(
         (c) => c.contact_id === id && inScope(c.branch_id)
@@ -227,8 +243,8 @@ export async function GET(
           inScope(f.branch_id) &&
           f.contact_id === id ||
           (inScope(f.branch_id) &&
-            contact.patient_id &&
-            f.patient_id === contact.patient_id)
+            patientId &&
+            f.patient_id === patientId)
       ),
     });
   } catch (err) {

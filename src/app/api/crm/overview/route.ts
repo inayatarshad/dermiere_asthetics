@@ -21,6 +21,7 @@ import { getClinicConfig } from "@/lib/server/clinicStore";
 import { computeAnalytics } from "@/lib/crm/analytics";
 import { computeDashboard } from "@/lib/crm/dashboard";
 import type { Appointment, Invoice, Patient } from "@/lib/types";
+import { projectCrmContacts } from "@/lib/crm/projection";
 
 export const runtime = "nodejs";
 
@@ -54,8 +55,16 @@ export async function GET(req: Request) {
       getClinicConfig(ctx.clinicId),
     ]);
 
-    const analytics = computeAnalytics({
+    const projectedContacts = projectCrmContacts(
       contacts,
+      patients,
+      appointments,
+      Date.now(),
+      new Set((config?.locations ?? []).map((location) => location.id))
+    );
+
+    const analytics = computeAnalytics({
+      contacts: projectedContacts,
       followUps,
       feedback,
       conversations,
@@ -71,7 +80,7 @@ export async function GET(req: Request) {
     // follow the range picker, so it is computed separately rather than
     // bent out of the ranged analytics above.
     const dashboard = computeDashboard({
-      contacts,
+      contacts: projectedContacts,
       conversations,
       messages,
       appointments,
