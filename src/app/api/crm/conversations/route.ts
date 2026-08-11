@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { crmError, requireCrm } from "@/lib/server/crmApi";
+import { crmError, crmScopeRows, requireCrm } from "@/lib/server/crmApi";
 import {
   listContacts,
   listConversations,
@@ -30,11 +30,13 @@ export async function GET(req: Request) {
       listTemplates(ctx.clinicId),
     ]);
 
-    const byId = new Map(contacts.map((c) => [c.id, c]));
+    const scopedConversations = crmScopeRows(ctx, conversations);
+    const scopedContacts = crmScopeRows(ctx, contacts);
+    const byId = new Map(scopedContacts.map((c) => [c.id, c]));
 
     return NextResponse.json({
       ok: true,
-      conversations: conversations.map((c) => {
+      conversations: scopedConversations.map((c) => {
         const contact = byId.get(c.contact_id);
         return {
           ...c,
@@ -51,10 +53,13 @@ export async function GET(req: Request) {
         };
       }),
       staff: staff.map((s) => ({ id: s.id, name: s.name, role: s.role })),
-      branches: config?.locations ?? [],
+      branches: ctx.branchId
+        ? (config?.locations ?? []).filter((branch) => branch.id === ctx.branchId)
+        : config?.locations ?? [],
       templates,
       provider: providerStatus(),
       me: ctx.userId,
+      scopeBranchId: ctx.branchId ?? null,
     });
   } catch (err) {
     return crmError(err);

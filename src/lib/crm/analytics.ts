@@ -100,12 +100,17 @@ function scope(input: AnalyticsInput) {
     ? input.invoices.filter((i) => i.location_id === branchId)
     : input.invoices;
 
-  // Patients have no branch of their own; a patient belongs to the branch
-  // their CRM contact was handled at, which is the only branch signal that
-  // exists for them.
+  // The patient registry is authoritative for a patient's home branch.
+  // Fall back to the CRM contact only for older rows created before patients
+  // carried branch_id, so CRM analytics mirrors Clinic OS without rewriting it.
   const patientBranch = new Map<string, string | undefined>();
+  for (const p of input.patients) {
+    patientBranch.set(p.id, p.branch_id);
+  }
   for (const c of input.contacts) {
-    if (c.patient_id) patientBranch.set(c.patient_id, c.branch_id);
+    if (c.patient_id && !patientBranch.get(c.patient_id)) {
+      patientBranch.set(c.patient_id, c.branch_id);
+    }
   }
   const patients = branchId
     ? input.patients.filter((p) => patientBranch.get(p.id) === branchId)

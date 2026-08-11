@@ -243,19 +243,14 @@ export default function FeedbackPage() {
               </button>
             ))}
             <div className="w-40">
-              <select
-                className="input input-sm"
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                aria-label="Filter by branch"
-              >
-                <option value="">All branches</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.short}
-                  </option>
-                ))}
-              </select>
+              {branches.length > 1 ? (
+                <select className="input input-sm" value={branch} onChange={(e) => setBranch(e.target.value)} aria-label="Filter by branch">
+                  <option value="">All branches</option>
+                  {branches.map((b) => <option key={b.id} value={b.id}>{b.short}</option>)}
+                </select>
+              ) : (
+                <span className="chip">{branches[0]?.short ?? "Branch"}</span>
+              )}
             </div>
           </div>
 

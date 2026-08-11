@@ -170,6 +170,8 @@ export async function runDueAutomations(
     now?: number;
     /** Origin for review links, e.g. https://dermiere.vercel.app */
     baseUrl?: string;
+    /** Restrict an interactive staff-triggered run to that staff member's branch. */
+    branchId?: string;
   } = {}
 ): Promise<AutomationRun> {
   const clinicName = opts.clinicName ?? "Dermiére";
@@ -179,7 +181,10 @@ export async function runDueAutomations(
   const appointments = await pgListAppointments<Appointment>(clinicId);
 
   const due = (await listFollowUps(clinicId)).filter(
-    (f) => f.status === "pending" && Date.parse(f.due_at) <= now
+    (f) =>
+      f.status === "pending" &&
+      Date.parse(f.due_at) <= now &&
+      (!opts.branchId || f.branch_id === opts.branchId)
   );
 
   for (const followUp of due) {

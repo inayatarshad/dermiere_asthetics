@@ -14,6 +14,8 @@ import {
   oneOf,
   readJson,
   requireCrm,
+  crmWriteBranch,
+  requireCrmRowAccess,
   str,
 } from "@/lib/server/crmApi";
 import {
@@ -40,6 +42,7 @@ export async function PATCH(
     if (!existing) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    requireCrmRowAccess(ctx, existing);
 
     const action = oneOf(body.action, [
       "complete",
@@ -148,10 +151,13 @@ export async function PATCH(
         body.assigned_to !== undefined
           ? str(body.assigned_to, { max: 64 })
           : existing.assigned_to,
-      branch_id:
+      branch_id: crmWriteBranch(
+        ctx,
         body.branch_id !== undefined
           ? str(body.branch_id, { max: 64 })
-          : existing.branch_id,
+          : undefined,
+        existing.branch_id
+      ),
       due_at: isoDate(body.due_at) ?? existing.due_at,
     });
     return NextResponse.json({ ok: true, followUp: updated });

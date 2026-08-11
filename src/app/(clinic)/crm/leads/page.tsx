@@ -230,19 +230,21 @@ export default function LeadsPage() {
         </div>
         {/* .input is width:100%, so the size lives on a wrapper. */}
         <div className="w-40">
-          <select
-            className="input input-sm"
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            aria-label="Filter by branch"
-          >
-            <option value="">All branches</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.short}
-              </option>
-            ))}
-          </select>
+          {branches.length > 1 ? (
+            <select
+              className="input input-sm"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              aria-label="Filter by branch"
+            >
+              <option value="">All branches</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>{b.short}</option>
+              ))}
+            </select>
+          ) : (
+            <span className="chip">{branches[0]?.short ?? "Branch"}</span>
+          )}
         </div>
         <div className="w-44">
           <select
@@ -509,7 +511,7 @@ function NewLeadModal({
               value={form.branch_id}
               onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
             >
-              <option value="">No branch</option>
+              {branches.length > 1 && <option value="">No branch</option>}
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}

@@ -18,6 +18,7 @@ import {
   crmError,
   readJson,
   requireCrm,
+  crmWriteBranch,
   str,
 } from "@/lib/server/crmApi";
 import { ingestInbound, resolveProvider } from "@/lib/server/messaging";
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
         timestamp: new Date().toISOString(),
         contactName: str(body.name, { max: 120 }),
       },
-      { branchId: str(body.branch_id, { max: 64 }) }
+      { branchId: crmWriteBranch(ctx, str(body.branch_id, { max: 64 })) }
     );
 
     // A patient asking to be seen gets answered here, not left for a human.

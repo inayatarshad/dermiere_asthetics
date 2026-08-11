@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       // Review links must be openable from the patients phone, so they
       // carry the origin this request arrived on.
       baseUrl: new URL(req.url).origin,
+      branchId: ctx.branchId,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {

@@ -17,6 +17,8 @@ import {
   oneOf,
   readJson,
   requireCrm,
+  crmScopeRows,
+  crmWriteBranch,
   str,
   strList,
 } from "@/lib/server/crmApi";
@@ -28,8 +30,8 @@ import {
   saveContact,
 } from "@/lib/server/crmStore";
 import { getClinicConfig, listAssignableStaff } from "@/lib/server/clinicStore";
-import { pgListAppointments } from "@/lib/server/db";
-import type { Appointment } from "@/lib/types";
+import { pgListAppointments, pgListRecords } from "@/lib/server/db";
+import type { Appointment, Patient } from "@/lib/types";
 import { isPlausiblePhone, normalizePhone } from "@/lib/crm/phone";
 import { LEAD_SOURCES, isStage, type ContactStage } from "@/lib/crm/types";
 
@@ -38,17 +40,33 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   try {
     const ctx = await requireCrm(req, "view_crm");
-    const [contacts, staff, config, appointments] = await Promise.all([
+    const [contacts, staff, config, appointments, patients] = await Promise.all([
       listContacts(ctx.clinicId),
       listAssignableStaff(ctx.clinicId),
       getClinicConfig(ctx.clinicId),
       // The board shows when each person is actually coming in, which lives
       // on the appointment, not the contact.
       pgListAppointments<Appointment>(ctx.clinicId),
+      // Read-only registry projection: the CRM sees the branch Clinic OS
+      // already assigned without copying or updating the patient record.
+      pgListRecords<Patient>(ctx.clinicId, "patients"),
     ]);
+    const patientById = new Map(patients.map((patient) => [patient.id, patient]));
+    const projectedContacts = contacts.map((contact) => {
+      const patientBranch = contact.patient_id
+        ? patientById.get(contact.patient_id)?.branch_id
+        : undefined;
+      return patientBranch && patientBranch !== contact.branch_id
+        ? { ...contact, branch_id: patientBranch }
+        : contact;
+    });
+    const scopedContacts = crmScopeRows(ctx, projectedContacts);
+    const scopedAppointments = ctx.branchId
+      ? appointments.filter((appointment) => appointment.location_id === ctx.branchId)
+      : appointments;
     return NextResponse.json({
       ok: true,
-      contacts,
+      contacts: scopedContacts,
       staff: staff.map((s) => ({
         id: s.id,
         name: s.name,
@@ -56,9 +74,12 @@ export async function GET(req: Request) {
         title: s.title,
         active: s.active,
       })),
-      branches: config?.locations ?? [],
+      branches: ctx.branchId
+        ? (config?.locations ?? []).filter((branch) => branch.id === ctx.branchId)
+        : config?.locations ?? [],
       treatments: config?.menu ?? [],
-      appointments,
+      appointments: scopedAppointments,
+      scopeBranchId: ctx.branchId ?? null,
     });
   } catch (err) {
     return crmError(err);
@@ -105,7 +126,7 @@ export async function POST(req: Request) {
       source: oneOf(body.source, LEAD_SOURCES) ?? "other",
       treatment_interest: strList(body.treatment_interest, 10),
       assigned_to: str(body.assigned_to, { max: 64 }),
-      branch_id: str(body.branch_id, { max: 64 }),
+      branch_id: crmWriteBranch(ctx, str(body.branch_id, { max: 64 })),
       tags: strList(body.tags, 12),
       notes: str(body.notes, { max: 4000 }),
       estimated_value: num(body.estimated_value, 0, 100_000_000),

@@ -18,10 +18,14 @@ import {
   oneOf,
   readJson,
   requireCrm,
+  crmScopeRows,
+  crmWriteBranch,
+  requireCrmRowAccess,
   str,
 } from "@/lib/server/crmApi";
 import {
   addActivity,
+  getContact,
   getFeedback,
   listFeedback,
   newId,
@@ -49,11 +53,14 @@ export async function GET(req: Request) {
     ]);
     return NextResponse.json({
       ok: true,
-      feedback,
+      feedback: crmScopeRows(ctx, feedback),
       staff: staff.map((s) => ({ id: s.id, name: s.name, role: s.role })),
-      branches: config?.locations ?? [],
+      branches: ctx.branchId
+        ? (config?.locations ?? []).filter((branch) => branch.id === ctx.branchId)
+        : config?.locations ?? [],
       lowRatingThreshold: LOW_RATING_THRESHOLD,
       me: ctx.userId,
+      scopeBranchId: ctx.branchId ?? null,
     });
   } catch (err) {
     return crmError(err);
@@ -71,13 +78,22 @@ export async function POST(req: Request) {
       return badRequest("An overall rating between 1 and 5 is required.");
     }
 
+    const contactId = str(body.contact_id, { max: 64 });
+    const contact = contactId ? await getContact(ctx.clinicId, contactId) : null;
+    if (contactId && !contact) return badRequest("That contact does not exist.");
+    if (contact) requireCrmRowAccess(ctx, contact);
+
     const low = overall <= LOW_RATING_THRESHOLD;
     const feedback = await saveFeedback({
       id: newId(),
       clinic_id: ctx.clinicId,
-      contact_id: str(body.contact_id, { max: 64 }),
+      contact_id: contactId,
       patient_id: str(body.patient_id, { max: 64 }),
-      branch_id: str(body.branch_id, { max: 64 }),
+      branch_id: crmWriteBranch(
+        ctx,
+        str(body.branch_id, { max: 64 }),
+        contact?.branch_id
+      ),
       doctor_id: str(body.doctor_id, { max: 64 }),
       invite_token: str(body.invite_token, { max: 120 }),
       overall_rating: overall,
@@ -124,6 +140,7 @@ export async function PATCH(req: Request) {
     if (!existing) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    requireCrmRowAccess(ctx, existing);
 
     const status = oneOf(body.recovery_status, RECOVERY_STATUSES);
     if (status === "resolved" && !crmCan(ctx.role, "resolve_feedback")) {

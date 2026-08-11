@@ -17,6 +17,8 @@ import {
   oneOf,
   readJson,
   requireCrm,
+  requireCrmRowAccess,
+  crmWriteBranch,
   str,
   strList,
 } from "@/lib/server/crmApi";
@@ -61,6 +63,10 @@ export async function GET(
     if (!contact) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    requireCrmRowAccess(ctx, contact);
+
+    const inScope = (branchId?: string) =>
+      ctx.canViewAllBranches || branchId === ctx.branchId;
 
     const [
       activities,
@@ -90,6 +96,7 @@ export async function GET(
     if (contact.patient_id) {
       for (const a of appointments) {
         if (a.patient_id !== contact.patient_id) continue;
+        if (!inScope(a.location_id)) continue;
         derived.push({
           id: `appt_${a.id}`,
           clinic_id: ctx.clinicId,
@@ -108,6 +115,7 @@ export async function GET(
       }
       for (const inv of invoices) {
         if (inv.patient_id !== contact.patient_id) continue;
+        if (!inScope(inv.location_id)) continue;
         derived.push({
           id: `inv_${inv.id}`,
           clinic_id: ctx.clinicId,
@@ -141,7 +149,10 @@ export async function GET(
       }
     }
 
-    const timeline = [...activities, ...derived].sort((a, b) =>
+    const timeline = [
+      ...activities.filter((activity) => inScope(activity.branch_id)),
+      ...derived,
+    ].sort((a, b) =>
       b.created_at.localeCompare(a.created_at)
     );
 
@@ -153,21 +164,31 @@ export async function GET(
           (p) => p.id === contact.patient_id
         ) ?? null
       : null;
+    const projectedContact =
+      patient?.branch_id && patient.branch_id !== contact.branch_id
+        ? { ...contact, branch_id: patient.branch_id }
+        : contact;
 
     const patientAppointments = contact.patient_id
       ? appointments
-          .filter((a) => a.patient_id === contact.patient_id)
+          .filter(
+            (a) =>
+              a.patient_id === contact.patient_id && inScope(a.location_id)
+          )
           .sort((a, b) => b.start.localeCompare(a.start))
       : [];
     const patientInvoices = contact.patient_id
       ? invoices
-          .filter((i) => i.patient_id === contact.patient_id)
+          .filter(
+            (i) =>
+              i.patient_id === contact.patient_id && inScope(i.location_id)
+          )
           .sort((a, b) => b.created_at.localeCompare(a.created_at))
       : [];
 
     return NextResponse.json({
       ok: true,
-      contact,
+      contact: projectedContact,
       patient,
       // A compact clinical summary the CRM can render without a second call.
       patientSummary: patient
@@ -192,14 +213,22 @@ export async function GET(
       timeline,
       followUps: followUps.filter(
         (f) =>
+          inScope(f.branch_id) &&
           f.contact_id === id ||
-          (contact.patient_id && f.patient_id === contact.patient_id)
+          (inScope(f.branch_id) &&
+            contact.patient_id &&
+            f.patient_id === contact.patient_id)
       ),
-      conversations: conversations.filter((c) => c.contact_id === id),
+      conversations: conversations.filter(
+        (c) => c.contact_id === id && inScope(c.branch_id)
+      ),
       feedback: feedback.filter(
         (f) =>
+          inScope(f.branch_id) &&
           f.contact_id === id ||
-          (contact.patient_id && f.patient_id === contact.patient_id)
+          (inScope(f.branch_id) &&
+            contact.patient_id &&
+            f.patient_id === contact.patient_id)
       ),
     });
   } catch (err) {
@@ -221,6 +250,7 @@ export async function PATCH(
     if (!existing) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    requireCrmRowAccess(ctx, existing);
 
     // --- stage move (its own operation so it is always logged) ----------
     if (body.stage !== undefined) {
@@ -263,10 +293,13 @@ export async function PATCH(
         body.assigned_to !== undefined
           ? str(body.assigned_to, { max: 64 })
           : current.assigned_to,
-      branch_id:
+      branch_id: crmWriteBranch(
+        ctx,
         body.branch_id !== undefined
           ? str(body.branch_id, { max: 64 })
-          : current.branch_id,
+          : undefined,
+        current.branch_id
+      ),
       tags: body.tags !== undefined ? strList(body.tags, 12) : current.tags,
       notes: body.notes !== undefined ? str(body.notes, { max: 4000 }) : current.notes,
       estimated_value:
@@ -341,6 +374,7 @@ export async function POST(
     if (!contact) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    requireCrmRowAccess(ctx, contact);
     if (contact.patient_id) {
       return NextResponse.json({
         ok: true,
@@ -354,7 +388,9 @@ export async function POST(
     // them instead of creating a duplicate patient record.
     const patients = await pgListRecords<Patient>(ctx.clinicId, "patients");
     const match = patients.find(
-      (p) => normalizePhone(p.phone) === contact.phone_norm
+      (p) =>
+        normalizePhone(p.phone) === contact.phone_norm &&
+        (ctx.canViewAllBranches || p.branch_id === ctx.branchId)
     );
 
     let patientId: string;
@@ -370,6 +406,7 @@ export async function POST(
         email: contact.email,
         gender: contact.gender ?? "other",
         city: contact.city ?? "",
+        branch_id: crmWriteBranch(ctx, contact.branch_id),
         language: "urdu",
         source: contact.source === "walk_in" ? "walk_in" : "social",
         clinical_flags: {},

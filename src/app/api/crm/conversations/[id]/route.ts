@@ -16,6 +16,8 @@ import {
   oneOf,
   readJson,
   requireCrm,
+  crmWriteBranch,
+  requireCrmRowAccess,
   str,
 } from "@/lib/server/crmApi";
 import {
@@ -47,6 +49,7 @@ export async function GET(
     if (!conversation) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    requireCrmRowAccess(ctx, conversation);
     const [messages, contact] = await Promise.all([
       conversationMessages(ctx.clinicId, id),
       getContact(ctx.clinicId, conversation.contact_id),
@@ -78,6 +81,11 @@ export async function POST(
     const text = str(body.body, { max: 4000 });
     if (!text) return badRequest("A message is required.");
     const internal = body.internal === true;
+    const conversation = await getConversation(ctx.clinicId, id);
+    if (!conversation) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    requireCrmRowAccess(ctx, conversation);
 
     // An internal note is a CRM annotation; sending to the patient is not.
     if (!internal && !crmCan(ctx.role, "send_messages")) {
@@ -117,6 +125,7 @@ export async function PATCH(
     if (!conversation) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    requireCrmRowAccess(ctx, conversation);
 
     const assignedTo =
       body.assigned_to !== undefined
@@ -137,10 +146,13 @@ export async function PATCH(
       assigned_to: assignedTo,
       status:
         oneOf(body.status, CONVERSATION_STATUSES) ?? conversation.status,
-      branch_id:
+      branch_id: crmWriteBranch(
+        ctx,
         body.branch_id !== undefined
           ? str(body.branch_id, { max: 64 })
-          : conversation.branch_id,
+          : undefined,
+        conversation.branch_id
+      ),
     });
 
     if (body.assigned_to !== undefined && assignedTo !== conversation.assigned_to) {

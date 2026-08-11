@@ -12,12 +12,16 @@ import { NextResponse } from "next/server";
 import { AuthError, requireSession } from "./auth";
 import type { SessionClaims } from "./session";
 import { crmCan, type CrmCapability } from "@/lib/crm/permissions";
+import { sessionBranchId } from "./branchAccess";
 
 export interface CrmContext {
   clinicId: string;
   userId: string;
   role: string;
   email: string;
+  /** Undefined only for roles allowed to see the whole clinic. */
+  branchId?: string;
+  canViewAllBranches: boolean;
 }
 
 export async function requireCrm(
@@ -25,15 +29,55 @@ export async function requireCrm(
   capability: CrmCapability
 ): Promise<CrmContext> {
   const session: SessionClaims = await requireSession(req);
+  if (session.ws !== "crm") {
+    throw new AuthError(403, "This account does not belong to the CRM workspace.");
+  }
   if (!crmCan(session.role, capability)) {
     throw new AuthError(403, "Your role does not have access to this.");
+  }
+  const canViewAllBranches = crmCan(session.role, "view_all_branches");
+  const assignedBranch = await sessionBranchId(session);
+  if (!canViewAllBranches && !assignedBranch) {
+    throw new AuthError(403, "Your account is not assigned to a clinic branch.");
   }
   return {
     clinicId: session.cid,
     userId: session.uid,
     role: session.role,
     email: session.email,
+    branchId: canViewAllBranches ? undefined : assignedBranch ?? undefined,
+    canViewAllBranches,
   };
+}
+
+/** Branch-scoped roles may only read rows owned by their assigned branch. */
+export function crmScopeRows<T extends { branch_id?: string }>(
+  ctx: CrmContext,
+  rows: T[]
+): T[] {
+  return ctx.branchId
+    ? rows.filter((row) => row.branch_id === ctx.branchId)
+    : rows;
+}
+
+/** Resolve a write branch without trusting a branch-scoped client's body. */
+export function crmWriteBranch(
+  ctx: CrmContext,
+  requested?: string,
+  fallback?: string
+): string | undefined {
+  if (ctx.branchId) return ctx.branchId;
+  return requested ?? fallback;
+}
+
+/** Fail closed before exposing or mutating a single branch-owned row. */
+export function requireCrmRowAccess(
+  ctx: CrmContext,
+  row: { branch_id?: string } | null | undefined
+): void {
+  if (ctx.branchId && row?.branch_id !== ctx.branchId) {
+    throw new AuthError(403, "This record belongs to another clinic branch.");
+  }
 }
 
 /** Uniform error response; unexpected errors become a 500 without leaking. */

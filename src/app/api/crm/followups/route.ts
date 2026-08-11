@@ -16,6 +16,9 @@ import {
   oneOf,
   readJson,
   requireCrm,
+  crmScopeRows,
+  crmWriteBranch,
+  requireCrmRowAccess,
   str,
 } from "@/lib/server/crmApi";
 import {
@@ -41,10 +44,13 @@ export async function GET(req: Request) {
     ]);
     return NextResponse.json({
       ok: true,
-      followUps,
+      followUps: crmScopeRows(ctx, followUps),
       staff: staff.map((s) => ({ id: s.id, name: s.name, role: s.role })),
-      branches: config?.locations ?? [],
+      branches: ctx.branchId
+        ? (config?.locations ?? []).filter((branch) => branch.id === ctx.branchId)
+        : config?.locations ?? [],
       me: ctx.userId,
+      scopeBranchId: ctx.branchId ?? null,
     });
   } catch (err) {
     return crmError(err);
@@ -65,6 +71,7 @@ export async function POST(req: Request) {
     const contactId = str(body.contact_id, { max: 64 });
     const contact = contactId ? await getContact(ctx.clinicId, contactId) : null;
     if (contactId && !contact) return badRequest("That contact does not exist.");
+    if (contact) requireCrmRowAccess(ctx, contact);
 
     const now = new Date().toISOString();
     const followUp = await saveFollowUp({
@@ -78,7 +85,11 @@ export async function POST(req: Request) {
       priority: oneOf(body.priority, PRIORITIES) ?? "normal",
       status: "pending",
       assigned_to: str(body.assigned_to, { max: 64 }) ?? ctx.userId,
-      branch_id: str(body.branch_id, { max: 64 }) ?? contact?.branch_id,
+      branch_id: crmWriteBranch(
+        ctx,
+        str(body.branch_id, { max: 64 }),
+        contact?.branch_id
+      ),
       due_at: dueAt,
       rescheduled_from: [],
       created_at: now,
